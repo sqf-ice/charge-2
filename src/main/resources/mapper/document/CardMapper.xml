@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.CardMapper">
+	
+	<!-- 查询卡片列表 -->
+	<select id="getCardAll" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.actv_time,this_.card_id,cons_.cons_name,cons_.cons_type_code,group_.group_name,cons_.cons_phone,vehicle_.license_plate,brand_.`brand_name` AS brand,model_.`model_name` AS `model`  FROM c_card this_ 
+		LEFT OUTER JOIN vehicle vehicle_ ON this_.vehicle_id = vehicle_.vehicle_id
+		LEFT OUTER JOIN c_cons cons_ ON this_.cons_id = cons_.cons_id 
+		LEFT OUTER JOIN c_group group_ ON cons_.group_id = group_.group_id
+		LEFT OUTER JOIN vehicle_brand brand_ ON vehicle_.`brand` = brand_.`id`
+		LEFT OUTER JOIN vehicle_model model_ ON vehicle_.`model` = model_.`id`
+		<include refid="conditions" />
+	</select>
+	<!-- 列表查询条件 -->
+	<sql id="conditions">
+		<where>
+			1=1
+		<if test="startTime != null">
+			AND this_.actv_time <![CDATA[ >= ]]> #{startTime}
+		</if>
+		<if test="endTime != null">
+			AND this_.actv_time <![CDATA[ <= ]]> #{endTime}
+		</if>
+		<if test="cardId != null">
+			AND this_.card_id like concat('%',#{cardId},'%') 
+		</if>
+		<if test="consName != null">
+			AND cons_.cons_name like concat('%',#{consName},'%')
+		</if>
+		<if test="groupName != null">
+			AND group_.group_name like concat('%',#{groupName},'%')
+		</if>
+		<if test="consPhone != null">
+			AND cons_.cons_phone like concat('%',#{consPhone},'%')
+		</if>
+		<if test="licensePlate != null">
+			AND vehicle_.license_plate like concat('%',#{licensePlate},'%')
+		</if>
+		<if test="orgIds != null">
+			AND this_.ORG_ID IN 
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				#{orgId}
+			</foreach>
+		</if>
+		</where>
+	</sql>
+	
+	<!-- 根据卡号获取信息 -->
+	<select id="getCardById" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.card_id,
+	        this_.org_id,
+	        this_.actv_time,
+	        this_.card_type,
+	        this_.cons_id,
+	        cons_.cons_phone,
+	        cons_.cons_name,
+	        cons_.cons_type_code,
+	        group_.group_id,
+	        group_.group_name,
+	        vehicle_.vehicle_id,
+	        vehicle_.license_plate,
+	        vehicle_.model,
+	        vehicle_.brand,
+	        this_.is_check,
+	        this_.`USER_ID`,
+	        user_.`login_name`
+	    FROM
+	        c_card this_ 
+		LEFT OUTER JOIN vehicle vehicle_ ON this_.vehicle_id = vehicle_.vehicle_id
+		LEFT OUTER JOIN c_cons cons_ ON this_.cons_id = cons_.cons_id 
+		LEFT OUTER JOIN c_group group_ ON cons_.group_id = group_.group_id
+		LEFT OUTER JOIN sys_user user_ ON user_.`id` = this_.`USER_ID`
+		WHERE this_.card_id = #{cardId}
+	</select>
+	
+	
+	<!-- 新增卡片信息 -->
+	<insert id="saveCardInfo" parameterType="DataVo">
+		INSERT INTO `c_card` (
+			card_id,
+			card_type,
+			actv_time,
+			org_id,
+			user_id,
+			cons_id,
+			vehicle_id,
+			is_check
+		) value (
+			#{cardId},
+			#{cardType},
+			#{actvTime},
+			#{orgId},
+			#{userId},
+			#{consId},
+			#{vehicleId},
+			#{isCheck}
+		)
+	</insert>
+	
+	<!-- 编辑合约企业 -->
+	<update id="updateCardInfo" parameterType="DataVo">
+		UPDATE c_card 
+		<set>
+			<if test="actvTime !=null ">actv_time = #{actvTime},</if>
+			<if test="vehicleId !=null ">vehicle_id = #{vehicleId},</if>
+			<if test="isCheck !=null ">is_check = #{isCheck},</if>
+			<if test="cardType !=null ">card_type = #{cardType},</if>
+		</set>
+		WHERE card_id = #{cardId}
+	</update>
+	
+	<!-- 卡片充值 -->
+	<insert id="rechargeCard" parameterType="DataVo">
+		insert into `c_card_recharge` (
+			seq_id,
+			card_id,
+			recharge_time,
+			amount,
+			recharge_type,
+			station_id,
+			user_id
+		) value (
+			#{seqId},
+			#{cardId},
+			now(),
+			#{amount},
+			#{verifyType},
+			#{stationId},
+			#{userId}
+		)
+	</insert>
+	<!-- 保存解锁卡流水信息 -->
+	<insert id="unlockCard" parameterType="DataVo">
+		INSERT INTO card_unlock_info (card_id,amount,new_money,card_money,org_id,user_id,unlock_time) 
+		VALUES
+		(
+			#{cardId},#{amount},#{newMoney},#{cardMoney},#{orgId},#{userId},now()
+		)
+	</insert>
+	
+	<!-- 根据会员查询车辆信息 -->
+	<select id="getCardByConsId" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.`CONS_ID`,this_.`CONS_NAME`,car_.vehicle_id, car_.`license_plate`,car_.`model`,car_.`brand` FROM c_cons this_
+		LEFT OUTER JOIN vehicle car_  ON this_.`CAR_ID` = car_.`vehicle_id`
+		WHERE this_.`CONS_ID` = #{consId}
+	</select>
+	
+	<!-- 根据会员电话和运营商关联会员信息  -->
+	<select id="queryConsInfo" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.`CONS_ID`,this_.`CONS_NAME`,this_.`CONS_TYPE_CODE`,this_.`GROUP_ID`,car_.`vehicle_id`,car_.`license_plate`,car_.`model`,car_.`brand` FROM c_cons this_
+		LEFT OUTER JOIN vehicle car_ ON this_.car_id = car_.vehicle_id
+		WHERE this_.`CONS_PHONE` = #{consPhone} AND this_.`APP_FROM` = #{appFrom}
+	</select>
+	<!-- 判断卡片是否存在 -->
+	<select id="getCardIdIsExist" resultType="Integer">
+		select COUNT(*) from c_card where CARD_ID = #{cardId} 
+	</select>
+	
+	<!-- 加载卡秘钥 -->
+	<select id="querCardKeys" parameterType="DataVo" resultType="DataVo">
+		SELECT * FROM card_keys this_ where 1=1
+		<if test="orgIds != null">
+			AND this_.`org_id` IN 
+			<foreach collection="orgIds" item="oId" open="(" close=")" separator=",">
+				#{oId}
+			</foreach>
+		</if>
+		<if test="orgId != null">
+			AND this_.`org_id` = #{orgId}
+		</if>
+ 	</select>
+</mapper>

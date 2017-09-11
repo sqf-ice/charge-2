@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.VehicleStatusMapper">
+	<!-- 查询地上铁车辆信息 -->
+	<select id="getVehicleMonitor" parameterType="DataVo" resultType="DataVo">
+	  	SELECT this_.`vehicle_id`,org_.`ORG_NAME`,this_.`license_plate`,this_.`manufacturer`,this_.`brand`,this_.`vehicle_type`,this_.`mileage` FROM vehicle this_
+		LEFT OUTER JOIN pub_org org_ ON org_.`ORG_ID` = this_.`org_id`
+		WHERE this_.`org_id` = 58 AND on_number IS NOT NULL 
+		<if test="orgId != null">
+			AND org_.`ORG_ID` = #{orgId}
+		</if>
+		<if test="licensePlate !=null">
+			AND this_.`license_plate` LIKE concat('%',#{licensePlate},'%') 
+		</if>
+		<if test="manufacturer !=null ">
+			AND this_.`manufacturer` = #{manufacturer}
+		</if>
+		<if test="brand != null">
+			AND this_.`brand` = #{brand}
+		</if>
+		<if test="vehicleType != null">
+			AND this_.`vehicle_type` = #{vehicleType}
+		</if>
+		<if test="vehicleIds != null">
+			AND this_.`vehicle_id`
+			<if test="vehicleStatus != 3">
+				IN
+			</if> 
+			<if test="vehicleStatus == 3">
+				NOT IN 
+			</if>  
+			<foreach collection="vehicleIds" item="vehicleId" open="(" close=")" separator=",">
+				#{vehicleId}
+			</foreach> 
+		</if>
+	</select>
+	<!-- 查询离线状态车辆  返回车辆Id -->
+	<select id="getVehicleStatus" parameterType="DataVo" resultType="DataVo">
+		SELECT VEHICLE_ID FROM VEHICLE_STATUS  WHERE 1=1 
+		<if test="vehicleStatus != 3">
+			 AND vehicle_status = #{vehicleStatus} 
+		</if>
+	</select>
+	
+	<select id="getAllVehicleStatus"  resultType="DataVo">
+		SELECT * FROM VEHICLE_STATUS 
+	</select>
+</mapper>

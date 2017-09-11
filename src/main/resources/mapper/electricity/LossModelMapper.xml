@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.electricity.mapper.LossModelMapper">
+	
+	<sql id="selectiveSql">
+		<where>
+			<!-- 损耗模型 条件判断--> 
+			<if test="orgId != null and '' != orgId">
+				AND this_.org_id = #{orgId}
+			</if>
+			<if test="stationName != null and '' != stationName">
+				AND chgstation2_.station_name LIKE CONCAT('%',#{stationName},'%' )
+			</if>
+			<if test="stationIds != null">
+				AND this_.stationId in 
+				<foreach collection="stationIds" item="stationId" open="(" separator="," close=")">
+					#{stationId}
+				</foreach>
+			</if>
+		</where>
+	</sql>
+	
+	<!-- 分页条件 -->
+	<!--  <sql id="page">
+		    <if test="pageIndex!=null and pageSize!=null">
+			LIMIT #{pageIndex},#{pageSize}
+		    </if>
+	      </sql>-->
+	
+	<sql id="baseSql">
+			this_.LM_ID lmId,
+			this_.LM_NAME lmName,
+			this_.ORG_ID orgId,
+			this_.STATION_ID stationId,
+			this_.LM_TYPE lmType,
+			this_.LM_NO lmNo,
+			this_.CREATE_DATE createDate,
+			this_.UPDATE_DATE updateDate,
+			this_.LM_CZZB lm_czzb,
+			this_.LM_CDSS lm_cdss,
+			this_.LM_SJCD lm_sjcd,
+			this_.LM_QTYD lm_qtyd
+	    FROM
+			LOSS_MODEL this_
+		LEFT OUTER JOIN PUB_ORG puborgs2x1_ ON this_.ORG_ID = puborgs2x1_.ORG_ID
+		LEFT OUTER JOIN CHG_STATION chgstation2_ ON this_.STATION_ID = chgstation2_.STATION_ID
+	</sql>
+	
+	<!-- 按条件统计 -->
+	<select id="count" parameterType="Map" resultType="Integer">
+		SELECT
+	         count(*)
+        FROM
+	         LOSS_MODEL this_
+        LEFT OUTER JOIN 
+        	 pub_org puborgs2x1_ ON this_.org_id = puborgs2x1_.org_id
+        LEFT OUTER JOIN
+        	 chg_station chgstation2_ ON this_.station_id = chgstation2_.station_id 
+		<include refid="selectiveSql"/>
+	</select>
+
+	<!-- 按条件查询前100条信息 -->
+	<select id="selectAll" parameterType="Map" resultType="com.clouyun.charge.modules.electricity.entitys.LossModel">
+		SELECT
+	    <include refid="baseSql"/>
+		<include refid="selectiveSql"/>
+		LIMIT 100
+	</select>
+	<!-- 新增损耗模型 -->
+	<insert id="lossModelAdd" parameterType="Map" useGeneratedKeys="true" >
+		INSERT INTO loss_Model (
+		LM_NAME,ORG_ID,STATION_ID,LM_TYPE,LM_NO,CREATE_DATE,UPDATE_DATE,LM_CZZB,LM_CDSS,LM_SJCD,LM_QTYD
+		
+		) VALUES(
+		#{lmName},#{orgId},#{stationId},#{lmType},#{lmNo},#{createDate},#{updateDate},#{lmCzzb},#{lmCdss},
+		#{lmSjcd},#{lmQtyd}
+		)
+	</insert>
+
+	<!-- 编辑损耗模型 -->
+	<update id="lossModelEdit" parameterType="Map" useGeneratedKeys="true">
+		UPDATE loss_model
+		<set>
+			<if test="lmName != null">LM_NAME=#{lmName},</if>
+			<if test="orgId != null">ORG_ID = #{orgId},</if>
+			<if test="stationId != null">STATION_ID = #{stationId},</if>
+			<if test="lmType != null">LM_TYPE = #{lmType},</if>
+			<if test="lmNo != null">LM_NO = #{lmNo},</if>
+			<if test="createDate != null">CREATE_DATE=#{createDate},</if>
+			<if test="updateDate != null">UPDATE_DATE = #{updateDate,jdbcType=TIMESTAMP},</if>
+			<if test="lmCzzb != null">LM_CZZB = #{lmCzzb},</if>
+			<if test="lmCdss != null">LM_CDSS = #{lmCdss},</if>
+			<if test="lmSjcd != null">LM_SJCD = #{lmSjcd},</if>
+			<if test="lmQtyd != null">LM_QTYD=#{lmQtyd}</if>
+		</set>
+		WHERE
+			LM_ID = #{lmId}	
+	</update>
+	
+	<!-- 模型类型字典查询 -->
+	<select id="modelTypeSelect" parameterType="Integer" resultType="Map">
+		SELECT
+			TYPE_ID,ITEM_NUM,ITEM_NAME,SORT_NO
+		FROM
+			pub_dict_item
+		WHERE
+			TYPE_ID=#{typeId}	  
+	</select>
+	
+	<!-- 根据场站ID查找损耗模型 -->
+	
+	<select id="findModelByStationId" parameterType="Integer" resultType="com.clouyun.charge.modules.electricity.entitys.LossModel">
+		SELECT
+			this_.LM_ID,
+			this_.LM_NAME,
+			this_.ORG_ID,
+			this_.STATION_ID,
+			this_.LM_TYPE,
+			this_.LM_NO,
+			this_.CREATE_DATE,
+			this_.UPDATE_DATE,
+			this_.LM_CZZB,
+			this_.LM_CDSS,
+			this_.LM_SJCD,
+			this_.LM_QTYD
+		FROM
+			LOSS_MODEL this_
+		WHERE
+			this_.STATION_ID = #{stationId}	  
+	</select>
+	
+</mapper>

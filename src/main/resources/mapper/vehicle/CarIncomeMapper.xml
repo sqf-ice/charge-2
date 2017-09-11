@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.vehicle.mapper.CarIncomeMapper">
+    <!-- 服务车辆数统计 -->
+    <select id="carTypeCount" resultType="DataVo">
+        SELECT
+        using_roperty vehicle_Type,
+	  count(*) size
+       FROM
+	  vehicle
+     <where>
+         vehicle_Type IS NOT NULL
+         AND vehicle_Type != ''
+         <if test="orgIds!=null and orgIds.size()>0">
+             and org_Id  in
+             <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                 #{item}
+             </foreach>
+         </if>
+
+     </where>
+       GROUP BY
+        using_roperty
+	ORDER  BY
+	size DESC
+  </select>
+
+    <!-- 车辆收入24小时图表 -->
+    <select id="carHourChart" parameterType="DataVo" resultType="DataVo">
+        SELECT
+        sum(amount) AMOUNT,sum(chg_Power) cha_power,
+        DATE_FORMAT(END_TIME, "%H") hour_time
+        FROM
+        bill_pay
+        <where>
+            and
+            PAY_STATE !=1
+            <choose>
+                <when test="dateTime !=null">
+
+                    <![CDATA[ and  DATE_FORMAT(END_TIME, '%Y-%m-%d')=  DATE_FORMAT(#{dateTime}, '%Y-%m-%d')   ]]>
+                </when>
+                <otherwise>
+                    <![CDATA[ and DATE_FORMAT(END_TIME, '%Y-%m-%d') = DATE_FORMAT(NOW(), '%Y-%m-%d') ]]>
+                </otherwise>
+            </choose>
+            <if test="orgIds!=null and orgIds.size()>0">
+                and ORG_ID  in
+                <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY
+        hour_time
+        ORDER BY
+        hour_time
+    </select>
+    <!-- 当月单车充电排行取前十 -->
+    <select id="carChgPowerTop10"  parameterType="DataVo" resultType="DataVo">
+        SELECT
+             sum(b.CHG_POWER) CHG_POWER,count(*) size ,v.license_Plate license_Plate
+               FROM
+                bill_pay b,vehicle v
+         WHERE b.CAR_ID is NOT null
+           AND b.PAY_STATE !=1
+          and DATE_FORMAT(b.END_TIME,'%Y-%m') = DATE_FORMAT(NOW(),'%Y-%m')
+         and v.license_Plate is not null
+        and v.license_Plate != ''
+        and b.CAR_ID = v.vehicle_Id
+                <if test="orgIds!=null and orgIds.size()>0">
+                    and b.ORG_ID  in
+                    <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+        GROUP BY b.CAR_ID
+        ORDER BY CHG_POWER desc
+    </select>
+
+    <!-- 查询充电场站前20 -->
+    <select id="carChgPowerTop20" resultType="DataVo">
+        SELECT
+        p.PILE_ID,
+        p.STATION_ID,
+        GROUP_CONCAT(distinct p.PILE_ADDR) PILE_ADDR_list,
+        c.STATION_NAME ,
+        count(p.STATION_ID) size
+        FROM
+        chg_pile p,chg_station c
+        WHERE
+        p.STATION_ID = c.STATION_ID
+        <if test="pileAddr!=null and pileAddr.size()>0">
+            and
+            p.PILE_ADDR IN
+            <foreach item="item" index="index" collection="pileAddr" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="orgIds!=null and orgIds.size()>0 ">
+            and p.ORG_ID  in
+            <foreach item="itemOrg" index="index" collection="orgIds" open="(" separator="," close=")">
+                #{itemOrg}
+            </foreach>
+        </if>
+        GROUP BY
+        p.STATION_ID
+        ORDER BY
+        size desc
+    </select>
+    <!-- 查询卡号不用f开头的车牌-->
+    <select id="selectCarPlate" parameterType="String" resultType="String">
+        SELECT  license_Plate license_Plate
+            from vehicle
+            where
+          vehicle_Id = (
+           SELECT CAR_ID from c_cons
+        WHERE
+         CONS_ID =(
+      SELECT
+    CONS_ID
+    from c_card
+     where
+   CARD_ID=#{carLicensePlate})
+      )
+    </select>
+    
+    
+    
+    <!-- 新  start -->
+    <!-- 查询卡号不用f开头的车牌 -->
+    <select id="queryCarPlate" resultType="DataVo" parameterType="DataVo">
+    	SELECT card_.`CARD_ID`, this_.`license_plate` FROM vehicle this_ 
+	    LEFT OUTER JOIN c_cons cons_ ON cons_.`CAR_ID` = this_.`vehicle_id`
+	    LEFT OUTER JOIN c_card card_ ON card_.`CONS_ID` = cons_.`CONS_ID`
+	    WHERE card_.`CARD_ID` IN 
+	    <if test="carLicensePlates != null ">
+		    <foreach collection="carLicensePlates" item="cardId" open="(" close=")" separator=",">
+		    	#{cardId}
+		    </foreach>
+	    </if>
+    </select>
+    <!-- 查询卡号用f开头的车牌-->
+    <select id="queryCarPlateF" parameterType="DataVo" resultType="DataVo">
+    	SELECT pay_.`BILL_PAY_ID`,this_.`license_plate` FROM vehicle this_ 
+	    LEFT OUTER JOIN bill_pay pay_ ON this_.`vehicle_id` = pay_.`CAR_ID`
+	    WHERE pay_.`BILL_PAY_ID` IN 
+	    <if test="carLicensePlateFs != null ">
+		    <foreach collection="carLicensePlateFs" item="billPayId" open="(" close=")" separator=",">
+		    	#{billPayId}
+		    </foreach>
+	    </if>
+    </select>
+     <!-- 查询vim的车牌-->
+    <select id="queryVins" parameterType="DataVo" resultType="DataVo">
+	    SELECT vin,license_Plate FROM vehicle
+        WHERE vin IN
+        <if test="vins != null">
+        	<foreach collection="vins" item="vin" open="(" close=")" separator=",">
+        		#{vin}
+        	</foreach>
+        </if>
+    </select>
+    
+    <!-- 新  end -->
+    
+    <!-- 查询卡号用f开头的车牌-->
+    <select id="selectCarPlateF" parameterType="String" resultType="String">
+    SELECT license_Plate license_Plate
+    from vehicle WHERE
+     vehicle_Id = (
+	SELECT
+		CAR_ID
+	FROM
+		bill_pay
+	WHERE
+		BILL_PAY_ID =#{carLicensePlate}
+       )
+    </select>
+    <!-- 查询vim的车牌-->
+    <select id="selectCarvVim" parameterType="String" resultType="String">
+           SELECT license_Plate license_Plate FROM
+           vehicle
+            WHERE vin = #{vin}
+     </select>
+    <select id="carList" parameterType="DataVo" resultType="DataVo">
+        SELECT  * from (
+        SELECT
+        v.license_Plate,
+        v.on_number,
+        br.brand_name brand,
+        v.line,
+        v.vehicle_id,
+        s.STATION_NAME,
+        o.ORG_NAME
+        FROM
+        vehicle v
+        LEFT JOIN chg_station s on s.STATION_ID  = v.station_id
+        LEFT JOIN pub_org o on o.ORG_ID = v.org_id
+        LEFT JOIN  vehicle_brand br  on br.id = v.brand
+            <where>
+                <if test="stationId!=null">
+                    and  v.station_id = #{stationId}
+                </if>
+                <if test="onNumber!=null and onNumber!=''">
+                    and   v.on_Number like concat('%',#{onNumber},'%')
+                </if>
+                <if test="licensePlate!=null and licensePlate!=''">
+                    and    v.license_Plate like concat('%',#{licensePlate},'%')
+                </if>
+                <if test="line!=null and line!=''">
+                    and   v.line like concat('%',#{line},'%')
+                </if>
+                <if test="orgId!=null and orgId!=''">
+                    and   v.org_Id = #{orgId}
+                </if>
+                <if test="orgName!=null and orgName!=''">
+                    and   o.org_name  like concat('%',#{orgName},'%')
+                </if>
+                <if test="orgIds!=null and orgIds.size()>0">
+                    and v.org_Id  in
+                    <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                        #{item}
+                    </foreach>
+                </if>
+            </where>
+        ORDER BY line,on_number
+        ) a
+    </select>
+
+
+<!-- 查询车辆收入列表-->
+  <select id="carIncomeList" parameterType="DataVo" resultType="DataVo">
+      SELECT
+      b.CAR_ID,
+      min(b.START_TIME) START_TIME,
+      max(b.END_TIME) END_TIME,
+      group_concat( distinct s.STATION_NAME) cd_Station_Name,
+      count(*) size,
+      sum(b.CHG_POWER) chg_power,
+      sum(b.AMOUNT) amount
+      FROM
+      bill_pay b
+      LEFT JOIN chg_pile pi on b.PILE_ID = pi.PILE_ID
+      LEFT JOIN chg_station s on pi.STATION_ID = s.STATION_ID
+      <where>
+          b.pay_state !=1
+          <if test="carIds!=null and carIds.size()>0">
+              and b.CAR_ID  in
+              <foreach item="item" index="index" collection="carIds" open="(" separator="," close=")">
+                  #{item}
+              </foreach>
+          </if>
+          <if test="startDate!=null">
+              <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') >= DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i%s')  ]]>
+          </if>
+          <if test="endDate!=null">
+              <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') < DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i%s')  ]]>
+          </if>
+          <if test="orgIds!=null and orgIds.size()>0">
+              and s.org_Id  in
+              <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                  #{item}
+              </foreach>
+          </if>
+      </where>
+      GROUP BY b.CAR_ID
+    </select>
+    <!-- 查询车辆收入详情列表-->
+    <select id="carIncomeDetail" parameterType="DataVo" resultType="DataVo">
+        SELECT
+        a.BILL_PAY_ID,
+        a.START_TIME,
+        a.END_TIME,
+        a.BILL_PAY_NO,
+        a.ORG_NAME,
+        s.STATION_NAME,
+        a.license_Plate license_Plate,
+        a.vehicle_Type vehicle_Type,
+        a.on_Number on_Number,
+        a.line,
+        a.POWER_ZXYG1 price,
+        a.CHG_POWER,
+        a.amount,
+        a.STATION_NAME cd_station_name,
+        a.PILE_NO
+        FROM
+        (
+        SELECT
+        b.BILL_PAY_ID,
+        b.START_TIME,
+        b.END_TIME,
+        b.BILL_PAY_NO,
+        o.ORG_NAME,
+        v.STATION_ID,
+        v.license_Plate,
+        v.vehicle_Type,
+        v.on_Number,
+        v.line,
+        b.POWER_ZXYG1,
+        b.CHG_POWER,
+        s.STATION_NAME,
+        b.amount,
+        p.PILE_NO
+        FROM
+        bill_pay b
+        INNER JOIN vehicle v ON b.CAR_ID = v.vehicle_Id
+        LEFT JOIN pub_org o ON b.ORG_ID = o.ORG_ID
+        LEFT JOIN chg_pile p ON b.PILE_ID = p.PILE_ID
+        LEFT JOIN chg_station s ON p.STATION_ID = s.STATION_ID
+        <where>
+            b.CAR_ID = #{carId}
+            <if test="stationId!=null and stationId!=''">
+                 and s.station_Id=  #{stationId}
+            </if>
+            <if test="startDate!=null">
+                <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') >= DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i%s')  ]]>
+            </if>
+            <if test="endDate!=null">
+                <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') < DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i%s')  ]]>
+            </if>
+        </where>
+        ) a
+        LEFT JOIN chg_station s ON a.STATION_ID = s.STATION_ID
+    </select>
+    <!-- 车辆收入详情统计汇总列表-->
+     <select id="carsCountDetailList" parameterType="DataVo" resultType="DataVo">
+     SELECT
+	a.START_TIME,
+	a.END_TIME,
+	a.BILL_PAY_NO,
+	a.ORG_NAME,
+	s.STATION_NAME,
+	a.license_Plate license_Plate,
+	a.vehicle_Type vehicle_Type,
+	a.on_Number on_Number,
+	a.line,
+	a.POWER_ZXYG1 price,
+	a.CHG_POWER,
+	a.amount,
+	a.STATION_NAME cd_station_name,
+	a.PILE_NO
+   FROM
+	(
+		SELECT
+			b.START_TIME,
+			b.END_TIME,
+			b.BILL_PAY_NO,
+			o.ORG_NAME,
+			v.STATION_ID,
+			v.license_Plate,
+			v.vehicle_Type,
+			v.on_Number,
+			v.line,
+			b.POWER_ZXYG1,
+			b.CHG_POWER,
+			s.STATION_NAME,
+			b.amount,
+			p.PILE_NO
+		FROM
+			bill_pay b
+		INNER JOIN vehicle v ON b.CAR_ID = v.vehicle_Id
+		LEFT JOIN pub_org o ON b.ORG_ID = o.ORG_ID
+		LEFT JOIN chg_pile p ON b.PILE_ID = p.PILE_ID
+		LEFT JOIN chg_station s ON p.STATION_ID = s.STATION_ID
+     where
+         b.pay_state !=1
+         <if test="startDate!=null">
+             <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') >= DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i%s')  ]]>
+         </if>
+         <if test="endDate!=null">
+             <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') < DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i%s')  ]]>
+         </if>
+         <if test="onNumber!=null and onNumber!=''">
+             and   v.on_Number like concat('%',#{onNumber},'%')
+         </if>
+         <if test="licensePlate!=null and licensePlate!=''">
+             and  v.license_Plate like concat('%',#{licensePlate},'%')
+            </if>
+         <if test="orgId!=null and orgId!=''">
+              and o.org_Id = #{orgId}
+           </if>
+         <if test="orgName!=null and orgName!=''">
+             and   o.org_name like concat('%',#{orgName},'%')
+         </if>
+         <if test="line!=null and line!=''">
+             and  v.LINE like concat('%',#{line},'%')
+         </if>
+         <if test="cdStationId!=null and cdStationId!=''">
+             and s.STATION_ID  = #{cdStationId}
+         </if>
+         <if test="cdStationName!=null and cdStationName!=''">
+             and   s.STATION_NAME like concat('%',#{cdStationName},'%')
+         </if>
+         <if test="orgIds!=null and orgIds.size()>0">
+             and b.ORG_ID  in
+             <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                 #{item}
+             </foreach>
+         </if>
+         <if test="orgIds!=null and orgIds.size()>0">
+             and v.ORG_ID  in
+             <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                 #{item}
+             </foreach>
+         </if>
+	) a
+LEFT JOIN chg_station s ON a.STATION_ID = s.STATION_ID
+         <where>
+             <if test="stationName!=null and stationName!=''">
+                 and      s.STATION_NAME like concat('%',#{stationName},'%')
+             </if>
+             <if test="stationId!=null and stationId!=''">
+                 and    s.STATION_Id =#{stationId}
+             </if>
+         </where>
+     </select>
+    <!-- 车辆所属场站-->
+    <select id="carsStation" parameterType="DataVo" resultType="DataVo">
+                SELECT
+                s.STATION_ID,
+                 s.STATION_NAME
+                FROM
+               vehicle v
+                INNER JOIN
+                chg_station s
+             ON
+              v.station_id = s.STATION_ID
+            GROUP BY
+            STATION_ID
+    </select>
+    <select id="carListType2" parameterType="DataVo" resultType="DataVo">
+        SELECT
+        v.license_Plate,
+        v.on_number,
+        v.brand,
+        v.line,
+        v.vehicle_id,
+        v.STATION_NAME,
+        v.ORG_NAME,
+        b.CAR_ID,
+        min(b.START_TIME) START_TIME,
+        max(b.END_TIME) END_TIME,
+        s.STATION_NAME cd_Station_Name,
+        count(*) size,
+        sum(b.CHG_POWER) chg_power,
+        sum(b.AMOUNT) amount
+        FROM
+        bill_pay b
+        INNER JOIN
+        (
+        SELECT
+        v.license_Plate,
+        v.on_number,
+        br.brand_name brand,
+        v.line,
+        v.vehicle_id,
+        s.STATION_NAME,
+        o.ORG_NAME
+        FROM
+        vehicle v
+        LEFT JOIN chg_station s on s.STATION_ID  = v.station_id
+        LEFT JOIN pub_org o on o.ORG_ID = v.org_id
+        LEFT JOIN  vehicle_brand br  on br.id = v.brand
+        <where>
+            <if test="stationId!=null">
+                and  v.station_id = #{stationId}
+            </if>
+            <if test="onNumber!=null and onNumber!=''">
+                and   v.on_Number like concat('%',#{onNumber},'%')
+            </if>
+            <if test="licensePlate!=null and licensePlate!=''">
+                and    v.license_Plate like concat('%',#{licensePlate},'%')
+            </if>
+            <if test="line!=null and line!=''">
+                and   v.line like concat('%',#{line},'%')
+            </if>
+            <if test="orgId!=null and orgId!=''">
+                and   v.org_Id = #{orgId}
+            </if>
+            <if test="orgName!=null and orgName!=''">
+                and   o.org_name  like concat('%',#{orgName},'%')
+            </if>
+            <if test="orgIds!=null and orgIds.size()>0">
+                and v.org_Id  in
+                <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        ) v
+        on
+        v.vehicle_id = b.CAR_ID
+        LEFT JOIN chg_pile pi on b.PILE_ID = pi.PILE_ID
+        LEFT JOIN chg_station s on pi.STATION_ID = s.STATION_ID
+        <where>
+            b.pay_state !=1
+            <if test="cdStationId!=null">
+                and  s.station_id = #{cdStationId}
+            </if>
+            <if test="startDate!=null">
+                <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') >= DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i%s')  ]]>
+            </if>
+            <if test="endDate!=null">
+                <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') < DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i%s')  ]]>
+            </if>
+            <if test="orgIds!=null and orgIds.size()>0">
+                and s.org_Id  in
+                <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        GROUP BY b.CAR_ID
+        ORDER BY v.line,v.on_number
+    </select>
+
+    <select id="carListTypeCount" parameterType="DataVo" resultType="DataVo">
+        SELECT
+        sum(b.CHG_POWER) chg_power,
+        sum(b.AMOUNT) amount,
+        count(*) size
+        FROM
+        bill_pay b
+        LEFT JOIN chg_pile pi on b.PILE_ID = pi.PILE_ID
+        LEFT JOIN chg_station s on pi.STATION_ID = s.STATION_ID
+        INNER JOIN (
+        SELECT
+        v.vehicle_id
+        FROM
+        vehicle v
+        LEFT JOIN chg_station s on s.STATION_ID  = v.station_id
+        LEFT JOIN pub_org o on o.ORG_ID = v.org_id
+        <where>
+            <if test="stationId!=null">
+                and  v.station_id = #{stationId}
+            </if>
+            <if test="onNumber!=null and onNumber!=''">
+                and   v.on_Number like concat('%',#{onNumber},'%')
+            </if>
+            <if test="licensePlate!=null and licensePlate!=''">
+                and    v.license_Plate like concat('%',#{licensePlate},'%')
+            </if>
+            <if test="line!=null and line!=''">
+                and   v.line like concat('%',#{line},'%')
+            </if>
+            <if test="orgId!=null and orgId!=''">
+                and   v.org_Id = #{orgId}
+            </if>
+            <if test="orgName!=null and orgName!=''">
+                and   o.org_name  like concat('%',#{orgName},'%')
+            </if>
+            <if test="orgIds!=null and orgIds.size()>0">
+                and v.org_Id  in
+                <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        ) v on b.CAR_ID = v.vehicle_id
+        <where>
+            b.pay_state !=1
+            <if test="cdStationId!=null">
+                and  s.station_id = #{cdStationId}
+            </if>
+            <if test="startDate!=null">
+                <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') >= DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i%s')  ]]>
+            </if>
+            <if test="endDate!=null">
+                <![CDATA[ and DATE_FORMAT(b.END_TIME, '%Y-%m-%d %H:%i%s') < DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i%s')  ]]>
+            </if>
+            <if test="orgIds!=null and orgIds.size()>0">
+                and s.org_Id  in
+                <foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+</mapper>

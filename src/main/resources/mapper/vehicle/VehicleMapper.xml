@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.vehicle.mapper.VehicleMapper">
+	<!-- 查询车辆信息列表 -->
+	<sql id="Base_Column_List">
+		this_.vehicle_id,
+		this_.org_id,
+		this_.belongs_org_id,
+		this_.on_number,
+		this_.station_id,
+		this_.license_plate,
+		this_.manufacturer,
+		this_.brand,
+		this_.model,
+		this_.color,
+		this_.engine_no,
+		this_.vehicle_size,
+		this_.vin,
+		this_.using_roperty,
+		this_.operation_roperty,
+		this_.vehicle_type,
+		this_.line,
+		this_.load_no,
+		this_.load_weight,
+		this_.total_weight,
+		this_.curb_weight,
+		this_.init_mileage,
+		this_.mileage,
+		this_.register_date,
+		this_.belongs_type,
+		this_.belongs_name,
+		this_.driving_url,
+		this_.provice_code,
+		this_.city_code,
+		this_.remark,
+		this_.create_time,
+		this_.update_time,
+		this_.create_by,
+		this_.update_by,
+		org.org_name,
+		org1.org_name belongs_org_name,
+		that_.station_name
+	</sql>
+	<sql id="conditions">
+		<where>
+			<if test="consTrueName != null and '' != consTrueName">
+				AND this_.vehicle_id IN (SELECT rel.vehicle_id FROM
+				vehicle_member_rel rel
+				LEFT JOIN c_cons cons ON rel.cons_id =
+				cons.cons_id
+				WHERE cons.cons_name like
+				concat('%',#{consTrueName},'%'))
+			</if>
+			<!-- 公司权限 -->
+			<if test="orgIds != null">
+				AND this_.org_id IN
+				<foreach collection="orgIds" item="item" open="(" separator=","
+					close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test="orgId != null">
+				AND this_.org_id = #{orgId,jdbcType=INTEGER}
+			</if>
+			<if test="belongsOrgId != null">
+				AND this_.belongs_org_Id = #{belongsOrgId,jdbcType=INTEGER}
+			</if>
+			<!--车牌号 -->
+			<if test="licensePlate != null and '' != licensePlate">
+				AND this_.license_plate like
+				concat('%',#{licensePlate},'%')
+			</if>
+			<!-- 车辆厂家 -->
+			<if test="line != null and '' != line">
+				AND this_.line like concat('%',#{line},'%')
+			</if>
+			<!-- 车架号 -->
+			<if test="brand != null and '' != brand ">
+				AND this_.brand = #{brand}
+			</if>
+			<!-- 车辆类型 -->
+			<if test="vehicleType != null">
+				AND this_.vehicle_type = #{vehicleType,jdbcType=INTEGER}
+			</if>
+			<!-- 车辆所有人 -->
+			<if test="belongsType != null">
+				AND this_.belongs_type = #{belongsType,jdbcType=INTEGER}
+			</if>
+			<if test="belongsName != null and '' != belongsName">
+				AND this_.belongs_name like
+				concat('%',#{belongsName},'%')
+			</if>
+		</where>
+	</sql>
+	<sql id="orderBy">
+		<if test="sort!=null and sort!=''">
+			ORDER BY ${sort} ${order}
+		</if>
+	</sql>
+	<select id="getVehicles" parameterType="Map" resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM
+		vehicle this_
+		LEFT JOIN pub_org org ON this_.org_id = org.org_id
+		LEFT JOIN chg_station that_ ON this_.station_id = that_.station_id
+		LEFT JOIN pub_org org1 ON this_.belongs_org_id =org1.org_id
+		<include refid="conditions" />
+		<include refid="orderBy" />
+	</select>
+
+	<select id="getVehicle" parameterType="java.lang.Integer" resultType="DataVo">
+		SELECT
+		this_.vehicle_id,
+		this_.org_id,
+		this_.belongs_org_id,
+		this_.on_number,
+		this_.station_id,
+		this_.license_plate,
+		this_.manufacturer,
+		this_.brand,
+		this_.model,
+		this_.color,
+		this_.engine_no,
+		this_.vehicle_size,
+		this_.vin,
+		this_.using_roperty,
+		this_.operation_roperty,
+		this_.vehicle_type,
+		this_.line,
+		this_.load_no,
+		this_.load_weight,
+		this_.total_weight,
+		this_.curb_weight,
+		this_.init_mileage,
+		this_.mileage,
+		this_.register_date,
+		this_.belongs_type,
+		this_.belongs_name,
+		this_.driving_url,
+		this_.provice_code,
+		this_.city_code,
+		this_.remark,
+		this_.create_time,
+		this_.update_time,
+		this_.create_by,
+		this_.update_by,
+		org.org_name,
+		org1.org_name belongs_org_name,
+		that_.station_name,
+		brand.brand_name,
+		model.model_name
+		FROM
+		vehicle this_
+		LEFT JOIN pub_org org ON this_.org_id = org.org_id
+		LEFT JOIN chg_station that_ ON this_.station_id = that_.station_id
+		LEFT JOIN pub_org org1 ON this_.belongs_org_id =org1.org_id
+		LEFT JOIN vehicle_brand brand ON this_.brand = brand.id
+		LEFT JOIN vehicle_model model ON this_.model = model.id
+		WHERE vehicle_id=#{vehicleId,jdbcType=INTEGER}
+	</select>
+
+	<select id="getIsExistByLicense" parameterType="Map"
+		resultType="java.lang.Integer">
+		SELECT
+		count(1)
+		FROM
+		vehicle
+		<where>
+			is_active = '0' and is_delete='0'
+			<if test="vehicleId != null">
+				AND vehicle_id != #{vehicleId,jdbcType=INTEGER}
+			</if>
+			<if test="orgId != null">
+				AND org_Id = #{orgId,jdbcType=INTEGER}
+			</if>
+			<if test="licensePlate != null and ''!= licensePlate">
+				AND license_plate = #{licensePlate,jdbcType=VARCHAR}
+			</if>
+		</where>
+	</select>
+
+	<select id="getVehiclesByLicenses" parameterType="Map"
+		resultType="DataVo">
+		SELECT
+		vehicle_id,license_plate,org_id
+		FROM
+		vehicle
+		<where>
+		    is_active = 0 and is_delete= 0
+			<if test="licensePlates != null">
+			   and
+				<foreach collection="licensePlates" item="item"  open="(" separator="or"
+					close=")">
+					(license_plate= #{item.licensePlate} AND org_id = #{item.orgId})
+				</foreach>
+			
+			</if>
+		</where>
+	</select>
+	<!-- 新增车辆 -->
+	<insert id="insertVehicle" parameterType="Map" keyProperty="vehicleId"
+		useGeneratedKeys="true">
+		INSERT INTO vehicle
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="orgId != null">org_id,</if>
+			<if test="belongsOrgId != null">belongs_org_id,</if>
+			<if test="stationId != null">station_id,</if>
+			<if test="onNumber != null and onNumber !=''">on_Number,</if>
+			<if test="licensePlate != null and licensePlate !=''">license_plate,</if>
+			<if test="manufacturer != null and manufacturer !=''">manufacturer,</if>
+			<if test="brand != null and brand !=''">brand,</if>
+			<if test="model != null and model !=''">model,</if>
+			<if test="color != null and color !=''">color,</if>
+			<if test="engineNo != null and engineNo !=''">engine_no,</if>
+			<if test="vehicleSize != null and vehicleSize !=''">vehicle_size,</if>
+			<if test="vin != null and vin !=''">vin,</if>
+			<if test="usingRoperty != null">using_roperty,</if>
+			<if test="operationRoperty != null">operation_roperty,</if>
+			<if test="vehicleType != null">vehicle_type,</if>
+			<if test="line != null and line !=''">line,</if>
+			<if test="loadNo != null and loadNo !=''">load_no,</if>
+			<if test="loadWeight != null">load_weight,</if>
+			<if test="totalWeight != null">total_weight,</if>
+			<if test="curbWeight != null">curb_weight,</if>
+			<if test="initMileage != null">init_Mileage,</if>
+			<if test="mileage != null">mileage,</if>
+			register_date,
+			<if test="belongsType != null">belongs_type,</if>
+			<if test="belongsName != null and belongsName !=''">belongs_name,</if>
+			<if test="drivingUrl != null and drivingUrl !=''">driving_url,</if>
+			<if test="proviceCode != null and proviceCode !=''">provice_code,</if>
+			<if test="cityCode != null and cityCode !=''">city_code,</if>
+			<if test="remark != null and remark != ''">remark,</if>
+			create_time,
+			<if test="createBy != null">create_by</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="orgId != null">#{orgId,jdbcType=INTEGER},</if>
+			<if test="belongsOrgId != null">#{belongsOrgId,jdbcType=INTEGER},</if>
+			<if test="stationId != null">#{stationId,jdbcType=INTEGER},</if>
+			<if test="onNumber != null and onNumber !=''">#{onNumber,jdbcType=VARCHAR},</if>
+			<if test="licensePlate != null and licensePlate !=''">#{licensePlate,jdbcType=VARCHAR},</if>
+			<if test="manufacturer != null and manufacturer !=''">#{manufacturer,jdbcType=VARCHAR},</if>
+			<if test="brand != null and brand !=''">#{brand,jdbcType=VARCHAR},</if>
+			<if test="model != null and model !=''">#{model,jdbcType=VARCHAR},</if>
+			<if test="color != null and color !=''">#{color,jdbcType=VARCHAR},</if>
+			<if test="engineNo != null and engineNo !=''">#{engineNo,jdbcType=VARCHAR},</if>
+			<if test="vehicleSize != null and vehicleSize !=''">#{vehicleSize,jdbcType=VARCHAR},</if>
+			<if test="vin != null and vin !=''">#{vin,jdbcType=VARCHAR},</if>
+			<if test="usingRoperty != null">#{usingRoperty,jdbcType=INTEGER},</if>
+			<if test="operationRoperty != null">#{operationRoperty,jdbcType=INTEGER},</if>
+			<if test="vehicleType != null">#{vehicleType,jdbcType=INTEGER},</if>
+			<if test="line != null and line !=''">#{line,jdbcType=VARCHAR},</if>
+			<if test="loadNo != null and loadNo !=''">#{loadNo,jdbcType=VARCHAR},</if>
+			<if test="loadWeight != null">#{loadWeight,jdbcType=DOUBLE},</if>
+			<if test="totalWeight != null">#{totalWeight,jdbcType=DOUBLE},</if>
+			<if test="curbWeight != null">#{curbWeight,jdbcType=DOUBLE},</if>
+			<if test="initMileage != null">#{initMileage,jdbcType=DOUBLE},</if>
+			<if test="mileage != null">#{mileage,jdbcType=DOUBLE},</if>
+			now(),
+			<if test="belongsType != null">#{belongsType,jdbcType=INTEGER},</if>
+			<if test="belongsName != null and belongsName !=''">#{belongsName,jdbcType=VARCHAR},</if>
+			<if test="drivingUrl != null and drivingUrl !=''">#{drivingUrl,jdbcType=VARCHAR},</if>
+			<if test="proviceCode != null and proviceCode !=''">#{proviceCode,jdbcType=VARCHAR},</if>
+			<if test="cityCode != null and cityCode !=''">#{cityCode,jdbcType=VARCHAR},</if>
+			<if test="remark != null and remark != ''">#{remark,jdbcType=VARCHAR},</if>
+			now(),
+			<if test="createBy != null">#{createBy,jdbcType=INTEGER}</if>
+		</trim>
+	</insert>
+	
+	<insert id="batchInsertVehicles" parameterType="Map">
+		INSERT INTO vehicle(
+		org_id,
+		belongs_org_id,
+		on_number,
+		station_id,
+		license_plate,
+		manufacturer,
+		brand,
+		model,
+		color,
+		engine_no,
+		vehicle_size,
+		vin,
+		using_roperty,
+		operation_roperty,
+		vehicle_type,
+		line,
+		load_no,
+		load_weight,
+		total_weight,
+		curb_weight,
+		init_mileage,
+		mileage,
+		register_date,
+		belongs_type,
+		belongs_name,
+		remark,
+		create_time
+		)
+		VALUES
+		<foreach collection="vehicles" item="vehicle" index="index"
+			separator=",">
+			(#{vehicle.orgId},#{vehicle.belongsOrgId},#{vehicle.onNumber},#{vehicle.stationId},#{vehicle.licensePlate},
+			#{vehicle.manufacturer},#{vehicle.brand},#{vehicle.model},#{vehicle.color},
+			#{vehicle.engineNo},#{vehicle.vehicleSize},#{vehicle.vin},
+			#{vehicle.usingRoperty},#{vehicle.operationRoperty},#{vehicle.vehicleType},#{vehicle.line},
+			#{vehicle.loadNo},#{vehicle.loadWeight},#{vehicle.totalWeight}
+			,#{vehicle.curbWeight},#{vehicle.initMileage},#{vehicle.mileage}
+			,now(),#{vehicle.belongsType},#{vehicle.belongsName}
+			,#{vehicle.remark},now()
+			)
+		</foreach>
+	</insert>
+	<!-- 更新车辆 -->
+	<update id="updateVehicle" parameterType="Map">
+		UPDATE vehicle
+		<set>
+			org_id=#{orgId},
+			license_plate=#{licensePlate},
+			belongs_org_id=#{belongsOrgId},
+			station_id=#{stationId},
+			on_Number=#{onNumber},
+			manufacturer=#{manufacturer},
+			brand=#{brand},
+			model=#{model},
+			color=#{color},
+			engine_no=#{engineNo},
+			vehicle_size=#{vehicleSize},
+			vin=#{vin},
+			using_roperty=#{usingRoperty},
+			operation_roperty=#{operationRoperty},
+			vehicle_type=#{vehicleType},
+			line=#{line},
+			load_no=#{loadNo},
+			driving_url=#{drivingUrl},
+			load_weight=#{loadWeight},
+			total_weight=#{totalWeight},
+			curb_weight=#{curbWeight},
+			init_mileage=#{initMileage},
+			register_date=#{registerDate},
+			belongs_type=#{belongsType},
+			belongs_name=#{belongsName},
+			city_code=#{cityCode},
+			provice_Code=#{proviceCode},
+			remark=#{remark},
+			update_time=now(),
+			update_by=#{updateBy}
+		</set>
+		<where>
+			vehicle_id=#{vehicleId}
+		</where>
+	</update>
+	<!-- 删除车辆和驾驶员的关联关系 -->
+	<delete id="deleteVehDriRelByVehId" parameterType="Map">
+		DELETE FROM vehicle_driver_rel
+		<where>
+			<if test="vehicleIds != null">
+				AND vehicle_id IN
+				<foreach collection="vehicleIds" item="item" index="index"
+					open="(" separator="," close=")">#{item}</foreach>
+			</if>
+		</where>
+	</delete>
+
+	<!-- 删除车辆的驾驶员 -->
+	<delete id="deleteVehDriRelBy2Id" parameterType="Map">
+		DELETE FROM
+		vehicle_driver_rel WHERE driver_id = #{driverId,jdbcType=INTEGER}
+		and
+		vehicle_id = #{vehicleId,jdbcType=INTEGER}
+	</delete>
+   <!--  添加车辆与驾驶员的关联关系 -->
+	<insert id="insertVehDriRels" parameterType="Map">
+		INSERT INTO
+		vehicle_driver_rel(vehicle_id,driver_id)
+		VALUES(#{vehicleId},#{driverId})
+    </insert>
+    <!--  添加车辆与会员的关联关系 -->
+    <insert id="insertVehMemRels" parameterType="Map">
+		INSERT INTO
+		vehicle_member_rel(vehicle_id,cons_id)
+		VALUES(#{vehicleId},#{consId})
+    </insert>
+
+	<select id="getVehDriRel" parameterType="Map" resultType="DataVo">
+		SELECT
+		this_.vehicle_id,
+		this_.driver_id,
+		that_.driverName as driver_name
+		FROM
+		vehicle_driver_rel this_
+		LEFT JOIN driver that_
+		ON this_.driver_id =
+		that_.driverId
+		<where>
+			<!-- <if test="vehicleIds != null">
+				AND this_.vehicle_id IN
+				<foreach collection="vehicleIds" item="item" index="index"
+					open="(" separator="," close=")">#{item}
+				</foreach>
+			</if> -->
+			<if test="driverName != null and '' != driverName">
+				AND that_.driverName like concat('%',#{driverName},'%')
+			</if>
+		</where>
+	</select>
+	<select id="getVehMemRel" parameterType="Map" resultType="DataVo">
+		SELECT
+		DISTINCT
+		this_.vehicle_id,
+		this_.cons_id,
+		that_.cons_name as cons_true_name
+		FROM vehicle_member_rel this_
+		LEFT JOIN c_cons that_
+		ON this_.cons_id = that_.cons_id
+		<where>
+			<!-- <if test="vehicleIds != null">
+				AND this_.vehicle_id IN
+				<foreach collection="vehicleIds" item="item" index="index"
+					open="(" separator="," close=")">#{item}
+				</foreach>
+			</if> -->
+			<if test="consTrueName != null and '' != consTrueName">
+				AND that_.cons_name like
+				concat('%',#{consTrueName},'%')
+			</if>
+		</where>
+	</select>
+	
+	<select id="getVehMemRelByVehicleId" parameterType="Integer" resultType="DataVo">
+		SELECT
+		DISTINCT this_.vehicle_id,
+		this_.cons_id,
+		that_.cons_name,
+		that_.cons_type_code,
+        that_.group_id,
+		c.group_name,
+		d.card_id,
+		that_.cons_phone
+		FROM
+		c_cons that_ 
+		LEFT JOIN vehicle_member_rel this_
+		ON this_.cons_id = that_.cons_id
+		LEFT JOIN c_group c
+		ON that_.group_id = c.group_id
+		LEFT JOIN c_card d
+		ON that_.car_id = d.vehicle_id 
+		AND this_.cons_id = d.CONS_ID
+		WHERE  this_.vehicle_id = #{vehicleId}
+	</select>
+	
+	<select id="getBillSum" parameterType="Map" resultType="DataVo">
+		SELECT
+	    cons_id,
+		sum(amount) sum
+		FROM
+		bill_pay WHERE
+		order_status = 1 AND pay_state !=1  
+		<if test="consId != null">
+				AND cons_id IN
+				<foreach collection="consId" item="item" index="index"
+					open="(" separator="," close=")">#{item}
+				</foreach>
+			</if>
+		GROUP BY cons_id
+	</select>
+	
+	<select id="getOrgList" parameterType="Map" resultType="DataVo">
+		SELECT
+	    org_id id,
+		org_name name
+		FROM
+		pub_org 
+		WHERE
+		audit_status = 1 
+		<if test="orgIds != null">
+				AND org_id IN
+				<foreach collection="orgIds" item="item" index="index"
+					open="(" separator="," close=")">#{item}
+				</foreach>
+			</if>
+	</select>
+	
+	<select id="getStationList" parameterType="Map" resultType="DataVo">
+		SELECT
+		org_id,
+	    station_id id,
+		station_name name
+		FROM
+		chg_station 
+		WHERE
+		use_status = 0  
+		<if test="orgIds != null">
+			AND org_id IN
+			<foreach collection="orgIds" item="item" index="index"
+				open="(" separator="," close=")">#{item}
+			</foreach>
+		</if>
+		<if test="stationIds != null">
+			AND station_id IN
+			<foreach collection="stationIds" item="item" index="index"
+				open="(" separator="," close=")">#{item}
+			</foreach>
+		</if>
+	</select>
+	
+	<!-- 获取会员信息 -->
+	<select id="getMemberList"  resultType="DataVo">
+		SELECT 
+		a.cons_id,
+		a.app_from org_id,
+		a.cons_name,
+		a.cons_phone,
+		b.group_name,
+		a.cons_type_code 
+		FROM  c_cons a 
+		LEFT JOIN c_group b 
+		ON a.group_id = b.group_id
+		<where>
+			<if test="orgIds != null">
+				AND a.app_from IN
+				<foreach collection="orgIds" item="item" index="index"
+					open="(" separator="," close=")">#{item}
+				</foreach>
+			</if> 
+		</where>
+	</select>
+	<!-- 获取卡信息 -->
+	<select id="getCardList"  resultType="DataVo">
+		SELECT 
+		card_id,
+		cons_id
+		FROM  c_card
+		<where>
+			<if test="orgIds != null">
+				AND org_id IN
+					<foreach collection="orgIds" item="item" index="index"
+					open="(" separator="," close=")">#{item}
+				</foreach>
+			</if>
+		</where> 
+	</select>
+	<update id="updateVehicleByPlate" parameterType="Map">
+			update vehicle
+			<set>
+			<!-- org_id=#{vehicle.orgId,jdbcType=INTEGER}, -->
+			belongs_org_id=#{belongsOrgId},
+			station_id=#{stationId},
+			manufacturer=#{manufacturer},
+			brand=#{brand},
+			model=#{model},
+			color=#{color},
+			engine_no=#{engineNo},
+			vehicle_size=#{vehicleSize},
+			vin=#{vin},
+			using_roperty=#{usingRoperty},
+			operation_roperty=#{operationRoperty},
+			vehicle_type=#{vehicleType},
+			line=#{line},
+			load_no=#{loadNo},
+			load_weight=#{loadWeight},
+			total_weight=#{totalWeight},
+			curb_weight=#{curbWeight},
+			init_mileage=#{initMileage},
+			mileage=#{mileage},
+			belongs_type=#{belongsType},
+			belongs_name=#{belongsName},
+			on_Number=#{onNumber},
+			remark=#{remark},
+			update_time= now(),
+			update_by=#{updateBy}
+			</set>
+			where license_plate = #{licensePlate} AND org_id=#{orgId}
+	</update>
+	<!-- 车品牌业务字典 -->
+	<select id="getVehicleBrands"  resultType="DataVo">
+		SELECT 
+		id,
+		brand_name
+		FROM  vehicle_brand
+	</select>
+	<!-- 车型号业务字典 -->
+	<select id="getVehicleModels"  resultType="DataVo" parameterType="Map">
+		SELECT 
+		id,
+		brand_id,
+		model_name
+		FROM  vehicle_model
+		<where>
+			<if test="brandId != null">
+				AND brand_id = #{brandId}
+			</if>
+		</where>
+	</select>
+	<!-- 更新卡片的车辆信息 -->
+	<update id="updateCardVehicle" parameterType="Map">
+		UPDATE c_card set vehicle_id=#{vehicleId} WHERE card_id = #{cardId} 
+	</update>
+	<!-- 更新会员常用车辆 -->
+	<update id="updateConsVehicle" parameterType="Map">
+		UPDATE c_cons SET car_id = #{vehicleId}  WHERE cons_id= #{consId}
+	</update>
+</mapper>

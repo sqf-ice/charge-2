@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.clouyun.charge.modules.finance.mapper.HistoryBillMapper">
+	<sql id="Base_Column_List">
+		this_.history_bill_id  id,
+		this_.history_bill_date date,
+		this_.contract_id,
+		this_.eqip_cost,
+		this_.total_income income,
+		this_.total_service_fee service_fee,
+		this_.total_contract_service_fee contract_service_fee,
+		that_.contract_period,
+		that_.contract_date,
+		that_.contract_name,
+		that_.station_name,
+		that_.org_name,
+		that_.org_id
+	</sql>
+
+	<!-- 分页条件 -->
+	<sql id="page">
+		<if test="pageIndex!=null and pageSize!=null">
+			LIMIT #{pageIndex},#{pageSize}
+		</if>
+	</sql>
+
+	<sql id="conditions">
+		<where>
+			<if test="startDate!= null">
+				AND history_bill_date <![CDATA[ >= ]]>#{startDate,jdbcType=TIMESTAMP}
+			</if>
+			<if test="endDate != null">
+				AND history_bill_date <![CDATA[ <= ]]>#{endDate,jdbcType=TIMESTAMP}
+			</if>
+		</where>
+	</sql>
+	<!-- 分页查询财务明细 -->
+	<select id="get" resultType="DataVo" parameterType="DataVo">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM
+		c_history_bill this_
+		LEFT JOIN (
+		SELECT
+		con.contract_id,
+		con.contract_period,
+		con.contract_date,
+		con.contract_name,
+		so.station_id,
+		so.org_name,
+		so.org_id,
+		so.station_name
+		FROM
+		c_contract con
+		LEFT JOIN (
+		SELECT
+		sta.station_id,
+		org.org_name,
+		org.org_id,
+		sta.station_name
+		FROM
+		chg_station sta
+		LEFT JOIN pub_org org ON sta.org_id = org.org_id
+		WHERE
+		sta.station_status = 0 <!--  -->
+		) so ON con.station_id = so.station_id
+		WHERE
+		con.contract_approve_status = 1 <!--  -->
+		AND con.contract_status = 1  <!--  -->
+		) that_ ON this_.contract_id = that_.contract_id
+		<include refid="conditions" />
+		ORDER BY this_.history_bill_date DESC
+		<include refid="page" />
+	</select>
+	<!-- 查询财务明细详情 -->
+	<select id="getById" resultType="DataVo" parameterType="java.lang.Integer">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM
+		c_history_bill this_
+		LEFT JOIN (
+		SELECT
+		con.contract_id,
+		con.contract_period,
+		con.contract_date,
+		con.contract_name,
+		so.station_id,
+		so.org_name,
+		so.org_id,
+		so.station_name
+		FROM
+		c_contract con
+		LEFT JOIN (
+		SELECT
+		sta.station_id,
+		org.org_name,
+		org.org_id,
+		sta.station_name
+		FROM
+		chg_station sta
+		LEFT JOIN pub_org org ON sta.org_id = org.org_id
+		WHERE
+		sta.station_status = 0 <!--  -->
+		) so ON con.station_id = so.station_id
+		WHERE
+		con.contract_approve_status = 1 <!--  -->
+		AND con.contract_status = 1  <!--  -->
+		) that_ ON this_.contract_id = that_.contract_id
+		WHERE this_.history_bill_id = #{id,jdbcType=INTEGER}
+	</select>
+</mapper>

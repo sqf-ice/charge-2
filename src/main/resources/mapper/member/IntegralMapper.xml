@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.member.mapper.IntegralMapper">
+	<!-- 排序条件 -->
+    <sql id="orderBy">
+        <if test="sort!=null">
+            ORDER BY ${sort} ${order}
+        </if>
+    </sql>
+	
+	<!-- 积分规则 --> 
+	<select id="queryIntegrals" resultType="DataVo" parameterType="list">
+		SELECT
+	        SUM(this_.number) as integral,
+	        this_.cons_id
+	    FROM
+	        IntegralHistory this_ 
+	        <where>
+	        	this_.cons_id in
+	        	<foreach collection="list" item="consId" open="(" separator="," close=")">
+					#{consId}
+				</foreach>
+	        </where>
+	    GROUP BY
+	        this_.cons_id
+	</select>
+	
+	<!-- 积分详情 -->
+	<select id="queryIntegralHistoryInfo" resultType="DataVo">
+		SELECT
+	        this_.id,
+	        this_.integralName as integral_Name,
+	        this_.number,
+	        this_.integralTime as integral_Time,
+	        this_.consumerUse as consumer_Use,
+	        this_.note,
+	        this_.cons_id,
+	        this_.integralId as integral_Id,
+	        ccons2x1_.cons_name
+	    FROM
+	        integralhistory this_ 
+	    INNER JOIN
+	        c_cons ccons2x1_ 
+	            on this_.cons_id=ccons2x1_.cons_id 
+	    WHERE
+	        this_.cons_id = #{consId}
+	    <include refid="orderBy"/>
+	</select>
+	
+	<!-- 积分管理列表 -->
+	<select id="queryIntegralInfo" resultType="DataVo">
+		SELECT
+			this_.id,
+	        this_.number,
+	        this_.money,
+	        this_.operatingTime as operating_Time,
+	        this_.type,
+	        pubuser2x1_.user_name,
+	        puborg2x2_.org_id,
+	        puborg2x2_.org_name
+	    FROM
+	        Integral this_ 
+	    INNER JOIN
+	        pub_org puborg2x2_ 
+	            ON this_.org_id=puborg2x2_.org_id 
+	    INNER JOIN
+	        pub_user pubuser2x1_ 
+	            ON this_.user_id=pubuser2x1_.user_id
+	    <where>
+	    	<if test="orgId != null">
+	    		and puborg2x2_.org_id = #{orgId}
+	    	</if>
+	    	<if test="orgName != null">
+	    		and puborg2x2_.org_name LIKE CONCAT('%',#{orgName},'%' ) 
+	    	</if>
+	    	<if test="type != null">
+	    		and this_.type = #{type}
+	    	</if>
+	    </where>
+	</select>
+	
+	<!-- 更新积分信息 -->
+	<update id="updateIntegral">
+		UPDATE integral 
+			<set>
+				<if test="money != null and '' != money">money = #{money},</if>
+				<if test="number != null and '' != number">number = #{number},</if>
+				<if test="operatingTime != null and '' != operatingTime">operatingTime = #{operatingTime},</if>
+				<if test="username != null and '' != username">user_id = #{userId}</if>
+			</set>
+		where id = #{integralId}
+	</update>
+	
+</mapper>

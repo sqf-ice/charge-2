@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.member.mapper.GroupMapper">
+	
+	<sql id="selectiveSql">
+		<where>
+			<if test="groupName != null and '' != groupName">
+				AND this_.group_name LIKE CONCAT('%',#{groupName},'%' )  		
+			</if>
+			<if test="groupNo != null and '' != groupNo">
+				AND this_.group_no LIKE CONCAT('%',#{groupNo},'%' )  		
+			</if>
+			<if test="groupMan != null and '' != groupMan">
+				AND this_.attention_name LIKE CONCAT('%',#{groupMan},'%' )  		
+			</if>
+			<if test="groupPhone != null and '' != groupPhone">
+				AND this_.attention_phone LIKE CONCAT('%',#{groupPhone},'%' )  		
+			</if>
+			<if test="groupStatus != null and '' != groupStatus">
+				AND this_.group_status = #{groupStatus}	
+			</if>
+			<if test="payType != null and '' != payType">
+				AND this_.pay_model = #{payType}	
+			</if>
+			<if test="orgIds!=null and orgIds.size()>0">
+				AND this_.app_from IN
+				<foreach collection="orgIds" item="oId" open="(" separator="," close=")">
+					#{oId}
+				</foreach>
+			</if>
+		</where>
+	</sql>
+	<sql id="baseSql">
+			this_.group_id,
+	        this_.group_no,
+	        this_.group_name,
+	        this_.group_addr,
+	        this_.attention_name,
+	        this_.attention_phone,
+	        this_.attention_email,
+	        this_.pay_model,
+	        this_.remark,
+	        this_.acct_id,
+	        this_.group_status,
+	        this_.app_from,
+	        cacct2x1_.acct_no,
+	        cacct2x1_.acct_amount,
+	        cacct2x1_.update_time,
+	        cacct2x1_.acct_state_code,
+	        cacct2x1_.acct_cash_limit,
+	        cacct2x1_.create_time  
+	</sql>
+	<select id="queryGroups" resultType="DataVo">
+		SELECT
+	    <include refid="baseSql"/>
+	    FROM
+	        c_group this_ 
+	    LEFT OUTER JOIN
+	        c_acct cacct2x1_ ON this_.acct_id=cacct2x1_.acct_id
+	     <include refid="selectiveSql"/>
+	     <include refid="orderBy"/>
+	</select>
+	
+	<!-- 排序条件 -->
+    <sql id="orderBy">
+        <if test="sort!=null">
+            ORDER BY ${sort} ${order}
+        </if>
+    </sql>
+	
+	<select id="queryGroupByKey" resultType="DataVo">
+		SELECT
+	    <include refid="baseSql"/>
+	    	,org.org_name
+	    FROM
+	        c_group this_ 
+	    LEFT OUTER JOIN
+	        c_acct cacct2x1_ ON this_.acct_id=cacct2x1_.acct_id
+   	    LEFT OUTER JOIN
+	    	pub_org org on this_.APP_FROM = org.org_id
+	    WHERE
+	        this_.group_id=#{groupId}
+	</select>	
+	
+	<!-- 新增集团 -->
+	<insert id="insertGroup" parameterType="Map" keyProperty="groupId" useGeneratedKeys="true">
+		INSERT INTO c_group
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="groupName != null and '' != groupName">group_name,</if>
+			<if test="groupNo != null and '' != groupNo">group_no,</if>
+			<if test="groupAddr != null and '' != groupAddr">group_addr,</if>
+			<if test="attentionName != null and '' != attentionName">attention_name,</if>
+			<if test="attentionPhone != null and '' != attentionPhone">attention_phone,</if>
+			<if test="attentionEmail != null and '' != attentionEmail">attention_email,</if>
+			<if test="payModel != null and '' != payModel">pay_model,</if>
+			<if test="appFrom != null and '' != appFrom">app_from,</if>
+			<if test="groupStatus != null and '' != groupStatus">group_status,</if>
+			<if test="acctId != null and '' != acctId">acct_id,</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="groupName != null and '' != groupName">#{groupName},</if>
+			<if test="groupNo != null and '' != groupNo">#{groupNo},</if>
+			<if test="groupAddr != null and '' != groupAddr">#{groupAddr},</if>
+			<if test="attentionName != null and '' != attentionName">#{attentionName},</if>
+			<if test="attentionPhone != null and '' != attentionPhone">#{attentionPhone},</if>
+			<if test="attentionEmail != null and '' != attentionEmail">#{attentionEmail},</if>
+			<if test="payModel != null and '' != payModel">#{payModel},</if>
+			<if test="appFrom != null and '' != appFrom">#{appFrom},</if>
+			<if test="groupStatus != null and '' != groupStatus">#{groupStatus},</if>
+			<if test="acctId != null and '' != acctId">#{acctId},</if>
+		</trim>
+	</insert>
+	
+	<!-- 更新集团信息 -->
+	<update id="updateGroup">
+		UPDATE c_group 
+			<set>
+				<if test="groupName != null and '' != groupName">group_name = #{groupName},</if>
+				<if test="groupNo != null and '' != groupNo">group_no = #{groupNo},</if>
+				<if test="groupAddr != null and '' != groupAddr">group_addr = #{groupAddr},</if>
+				<if test="attentionName != null and '' != attentionName">attention_name = #{attentionName},</if>
+				<if test="attentionPhone != null and '' != attentionPhone">attention_phone = #{attentionPhone},</if>
+				<if test="attentionEmail != null and '' != attentionEmail">attention_email = #{attentionEmail},</if>
+				<if test="payModel != null and '' != payModel">pay_model = #{payModel},</if>
+				<if test="appFrom != null and '' != appFrom">app_from = #{appFrom}</if>
+			</set>
+		where group_id = #{groupId}
+	</update>
+
+	<!-- 集团名称唯一验证   -->
+	<select id="checkGroupNameOnly" resultType="Integer">
+		select count(group_id) from c_group where group_name = #{groupName} 
+			<if test="groupId != null">
+				and group_id != #{groupId}
+			</if>
+	</select>
+	<!-- 集团字典服务 -->
+	<select id="queryGroupDicts" resultType="DataVo">
+		select group_id,group_name from c_group
+			<where>
+				<if test="orgId != null">
+					AND app_from = #{orgId}
+				</if>
+				<if test="orgIds!=null and orgIds.size()>0">
+					AND app_from IN
+					<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+						#{orgId}
+					</foreach>
+				</if>
+				<if test="groupId != null">
+					AND group_id = #{groupId}
+				</if>
+				<if test="groupIds != null">
+					AND group_id IN
+					<foreach collection="groupIds" item="id" open="("
+						separator="," close=")">
+						#{id}
+					</foreach>
+				</if>
+				<if test="groupName != null">
+					AND group_name like concat('%',#{groupName},'%')
+				</if>
+			</where>
+	</select>
+</mapper>

@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.system.mapper.PubOrgMapper">
+
+
+	<!-- 新增企业信息 -->
+	<insert id="insertPubOrg" parameterType="Map"  useGeneratedKeys="true" keyProperty="orgId">
+		INSERT INTO PUB_ORG	 (
+		NAME_PY,ORG_NAME,ORG_ABBR,org_Type,org_No,ORG_CODE,ORG_HEAD,MEMBER_PHONE,ORG_EMAIL,ORG_FAX,ORG_PHONE,REMARK,BUSINESSLICENCE
+		,PROV_CODE,CITY_CODE,DIST_CODE,ADDRESS,PAYMENT_PROCESS,ORGISTER_TIME) VALUES(
+		#{namePy},#{orgName},#{orgAbbr},#{orgType},#{orgNo},#{orgCode},#{orgHead},#{memberPhone},#{orgEmail},#{orgFax},#{orgPhone},#{remark},#{businessLicence}
+		,#{provCode},#{cityCode},#{distCode},#{address},#{paymentProcess},now())
+	</insert>
+	
+	<!-- 根据orgId查询企业信息 -->
+	<select id="selectPubOrgByOrgId" parameterType="DataVo" resultType="DataVo">
+ 		SELECT ORG_ID,NAME_PY,ORG_NO,ORG_NAME,ORG_ABBR,ORG_TYPE,ORG_CODE,ORG_HEAD,MEMBER_PHONE,ORG_EMAIL,ORG_FAX,ORG_PHONE,ORG_ADDR,REMARK,BUSINESSLICENCE 
+ 		,PROV_CODE,CITY_CODE,DIST_CODE,ADDRESS
+ 		FROM PUB_ORG 
+ 		WHERE 
+		ORG_ID=#{orgId}
+	</select>
+
+	<!-- 根据orgId修改企业信息 -->
+	<update id="updatePubOrgByOrgId" parameterType="DataVo">
+		UPDATE PUB_ORG
+        <set>
+            <if test="orgName != null">ORG_NAME=#{orgName},</if>
+            <if test="orgAbbr != null">ORG_ABBR=#{orgAbbr},</if>
+			<if test="orgAddr != null">ORG_ADDR=#{orgAddr},</if>
+            <if test="orgNo != null">org_no=#{orgNo},</if>
+            <if test="orgType != null">ORG_TYPE=#{orgType},</if>
+            <if test="orgCode != null">ORG_CODE=#{orgCode},</if>
+            <if test="orgHead != null">ORG_HEAD=#{orgHead},</if>
+            <if test="memberPhone != null">MEMBER_PHONE=#{memberPhone},</if>
+            <if test="orgEmail != null">ORG_EMAIL=#{orgEmail},</if>
+            <if test="orgFax != null">ORG_FAX=#{orgFax},</if>
+            <if test="orgPhone != null">ORG_PHONE=#{orgPhone},</if>
+            <if test="provCode != null">PROV_CODE=#{provCode},</if>
+            <if test="cityCode != null">CITY_CODE=#{cityCode},</if>
+            <if test="distCode != null">DIST_CODE=#{distCode},</if>
+			<choose>
+				<!-- 如果是总公司，将上级企业置空 -->
+				<when test="orgType=='01'">
+					p_org_id = NULL ,
+				</when>
+				<otherwise>
+					p_org_id=#{pOrgId},
+				</otherwise>
+			</choose>
+            <if test="address != null">ADDRESS=#{address},</if>
+            <if test="remark != null">REMARK=#{remark},</if>
+            <if test="namePy != null">NAME_PY=#{namePy},</if>
+            <if test="operateType != null">operate_type=#{operateType},</if>
+            <if test="businessLicence != null">BUSINESSLICENCE=#{businessLicence},</if>
+            <if test="orgisterTime != null">ORGISTER_TIME=#{orgisterTime},</if>
+            <if test="auditingTime != null">AUDITING_TIME=#{auditingTime},</if>
+            <if test="auditStatus != null">AUDIT_STATUS=#{auditStatus},</if>
+            <if test="noAuditReason != null">NO_AUDIT_REASON=#{noAuditReason},</if>
+            <if test="auditMember != null">AUDIT_MEMBER=#{auditMember},</if>
+        </set>
+        WHERE org_id=#{orgId}
+	</update>
+	
+	
+	<!--根据地区编码  或  企业机构代码,查询 -->
+	<select id="selectPubOrgByDistCode" parameterType="DataVo" resultType="DataVo">		
+		SELECT DIST_CODE,ORG_CODE,ORG_NAME FROM PUB_ORG 
+		 <where>
+			<if test="distCode!=null and distCode!=''">
+				and DIST_CODE=#{distCode} 
+			</if>
+			<if test="orgCode!=null and orgCode!=''">
+				and ORG_CODE=#{orgCode} 
+			</if>
+			<if test="orgNo !=null and orgNo!=''">
+				and ORG_NO=#{orgNo} 
+			</if>
+			<if test="orgName!=null and orgName!=''">
+				and ORG_NAME=#{orgName} 
+			</if>
+			<if test="auditStatus!=null and auditStatus!=''">
+				and AUDIT_STATUS != #{auditStatus} 
+			</if>
+		</where>
+	</select>
+	
+	<!-- 企业审核查询 -->
+	<select id="selectPubOrgAudit" parameterType="DataVo" resultType="DataVo">
+ 		SELECT 
+ 		o.ORG_ID,o.AUDIT_STATUS,o.AUDITING_TIME,o.AUDIT_MEMBER,o.ORGISTER_TIME,u.USER_NAME,u.USER_EMAIL,o.ORG_NO,o.ORG_NAME,o.ORG_HEAD,o.MEMBER_PHONE,uu.USER_NAME as auditPeople
+ 		FROM PUB_ORG o INNER JOIN  PUB_USER u ON o.ORG_ID=u.ORG_ID  LEFT JOIN PUB_USER uu ON o.AUDIT_MEMBER=uu.USER_ID 
+ 		<where>
+  				o.ORGISTER_TIME is not null			 
+			<if test="auditStatus!=null and auditStatus!=''">
+				and o.AUDIT_STATUS=#{auditStatus} 
+			</if>
+			<if test="auditMember!=null and auditMember!=''">
+<!-- 				and o.AUDIT_MEMBER in -->
+<!-- 				<foreach item="item" index="index" collection="auditMember" open="(" separator="," close=")">   -->
+<!--   					#{item} -->
+<!--  				</foreach>   -->
+					and o.AUDIT_MEMBER=#{auditMember}
+			</if>
+			<if test="orgName!=null and orgName!=''">
+				and o.ORG_NAME like concat('%',#{orgName},'%')
+			</if>
+ 			<if test="startDate!=null and startDate!=''"> 
+ 	   			 <![CDATA[ and  DATE_FORMAT(o.ORGISTER_TIME, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')   ]]> 
+ 			</if> 
+ 			<if test="endDate!=null and endDate!=''"> 
+ 	    		 <![CDATA[ and DATE_FORMAT(o.ORGISTER_TIME, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')     ]]> 
+ 			</if>
+		</where>
+		order by o.ORGISTER_TIME desc
+		<if test="pageIndex!=null and rows!=null">
+   		limit #{pageIndex},#{rows}
+		</if>
+		
+	</select>
+	
+	<!-- 企业审核统计-->
+	<select id="countAudit" parameterType="DataVo" resultType="Integer">
+ 		SELECT 
+ 		count(*)
+ 		FROM PUB_ORG o INNER JOIN  PUB_USER u ON o.ORG_ID=u.ORG_ID  LEFT JOIN PUB_USER uu ON o.AUDIT_MEMBER=uu.USER_ID 
+ 		<where>
+  			o.ORGISTER_TIME is not null	
+			<if test="auditStatus!=null and auditStatus!=''">
+				and o.AUDIT_STATUS=#{auditStatus} 
+			</if>
+			<if test="auditMember!=null and auditMember!=''">
+<!-- 				and o.AUDIT_MEMBER in -->
+<!-- 				<foreach item="item" index="index" collection="auditMember" open="(" separator="," close=")">   -->
+<!--   					#{item} -->
+<!--  				</foreach>   -->
+ 				
+ 				and o.AUDIT_MEMBER=#{auditMember}
+ 				 
+			</if>
+			<if test="orgName!=null and orgName!=''">
+				and o.ORG_NAME like concat('%',#{orgName},'%')
+			</if>
+ 			<if test="startDate!=null and startDate!=''"> 
+ 	   			 <![CDATA[ and  DATE_FORMAT(o.ORGISTER_TIME, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')   ]]> 
+ 			</if> 
+ 			<if test="endDate!=null and endDate!=''"> 
+ 	    		 <![CDATA[ and DATE_FORMAT(o.ORGISTER_TIME, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')     ]]> 
+ 			</if>
+		</where>
+	</select>
+	
+	
+	<!-- 企业未审核,审核通过，审核不通过的详细信息查询 -->
+	<!-- 用户表，企业表，地区编码表 -->
+	<select id="detailAudit" parameterType="DataVo" resultType="DataVo">
+ 		SELECT 
+ 		o.ORG_ID,u.USER_ID,u.USER_NAME,u.USER_EMAIL,u.USER_PWD,o.NAME_PY,o.BUSINESSLICENCE,o.ORG_NO,o.ORG_NAME,
+ 		o.ORG_ABBR,o.ORG_TYPE,o.ORG_CODE,o.ORG_HEAD,o.ORG_FAX,o.MEMBER_PHONE,o.ORG_PHONE,
+ 		p1.AREA_NAME as orgSheng,p2.AREA_NAME as orgShi,p3.AREA_NAME as orgQu,o.ADDRESS as orgAddress,o.ORG_EMAIL,o.REMARK,o.BUSINESSLICENCE,
+ 		o.AUDIT_STATUS,o.ORGISTER_TIME,o.AUDIT_MEMBER,o.AUDITING_TIME,o.NO_AUDIT_REASON
+ 		from PUB_USER u,PUB_ORG o,PUB_AREA p1,PUB_AREA p2,PUB_AREA p3
+ 		WHERE 
+ 		o.ORG_ID=u.ORG_ID and 
+ 		o.PROV_CODE=p1.AREA_NO and
+ 		o.CITY_CODE=p2.AREA_NO and
+ 		o.DIST_CODE=p3.AREA_NO and
+ 		o.ORG_ID=#{orgId}
+	</select>
+	
+	<!--场站表，地区编码表 -->
+	<select id="detailAuditChg" parameterType="DataVo" resultType="DataVo">
+		SELECT 
+ 		ch.STATION_MODEL,p1.AREA_NAME as chgSheng,p2.AREA_NAME as chgShi,p3.AREA_NAME as chQu,ch.ADDRESS as chAddress,ch.REMARK as chRemark,
+ 		ch.PLACE,ch.CAPACITY,ch.STATION_TYPE,ch.JIAO_LIU,ch.JIAO_LIU_P,ch.ZHI_LIU,ch.ZHI_LIU_P
+ 		from PUB_ORG o,CHG_STATION_TEMP ch,PUB_AREA p1,PUB_AREA p2,PUB_AREA p3
+ 		WHERE 
+ 		ch.PROV_CODE=p1.AREA_NO and
+ 		ch.CITY_CODE=p2.AREA_NO and
+ 		ch.DIST_CODE=p3.AREA_NO and
+ 		o.ORG_ID=ch.ORG_ID and
+		o.ORG_ID=#{orgId}
+	</select>
+	
+	<!--获取企业审核的审核人列表，查询企业表 -->
+	<select id="queryAuditMember" parameterType="DataVo" resultType="DataVo">
+		SELECT 
+ 		DISTINCT(o.AUDIT_MEMBER),u.USER_NAME
+ 		from PUB_ORG o,PUB_USER u
+ 		WHERE o.AUDIT_MEMBER=u.USER_ID
+	</select>
+
+
+
+
+
+
+
+	<!-- 基础字段 -->
+	<sql id="Base_Column_List">
+		ORG_ID, ORG_NO, ORG_NAME, AUDIT_STATUS, PROV_CODE, CITY_CODE, DIST_CODE, ADDRESS, ORG_ABBR, ORG_INFO,
+	ORG_TYPE, ORG_PHONE, ORG_ADDR, ORG_FAX, ORG_EMAIL, ORG_HEAD, SORT_NO, REMARK, NAME_PY, PAYMENT_PROCESS, OPERATE_TYPE, ORG_CODE
+	</sql>
+
+
+	<!-- 平台新增企业信息不用审核，默认审核通过 -->
+    <insert id="insertOrg" parameterType="DataVo" keyProperty="orgId" useGeneratedKeys="true">
+		INSERT INTO pub_org	 (audit_status,
+		name_py,org_no,org_name,org_abbr,org_addr,org_type,org_code,org_head,member_phone,org_email,org_fax,org_phone,remark,businesslicence
+		,prov_code,city_code,dist_code,address,payment_process,p_org_id) VALUES ('1',
+		#{namePy},#{orgNo},#{orgName},#{orgAbbr},#{orgAddr},#{orgType},#{orgCode},#{orgHead},#{memberPhone},#{orgEmail},#{orgFax},#{orgPhone},#{remark},#{businesslicence}
+		,#{provCode},#{cityCode},#{distCode},#{address},#{paymentProcess},#{pOrgId})
+	</insert>
+
+	<!-- 查询审核企业信息分页 -->
+	<select id="getOrgsByPage" parameterType="Map" resultType="DataVo">
+		SELECT o.org_name AS p_org_name,
+		o2.org_id, o2.org_no, o2.org_name, o2.audit_status, o2.prov_code, o2.city_code, o2.dist_code, o2.address, o2.org_abbr, o2.org_info,
+		o2.org_type, o2.org_phone, o2.org_addr, o2.org_fax, o2.org_email, o2.org_head, o2.sort_no, o2.remark, o2.name_py, o2.payment_process,
+		o2.operate_type, o2.org_code
+		FROM pub_org o2
+		LEFT JOIN pub_org o ON o2.p_org_id = o.org_id
+		WHERE 1=1
+		<if test="orgIds!=null and orgIds.size()>0">
+			AND o2.org_id IN
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				#{orgId,jdbcType=INTEGER}
+			</foreach>
+		</if>
+		<if test="orgName!=null and orgName!=''">
+			AND o2.org_name LIKE concat('%',#{orgName},'%')
+		</if>
+		<if test="orgNo!=null and orgNo!=''">
+			AND o2.org_no LIKE concat('%',#{orgNo},'%')
+		</if>
+		<!-- 原需求平移，过滤掉未审核，审核不通过的企业管理员 -->
+	    AND o2.audit_status = '1'
+		<if test="sort!=null">
+			ORDER BY concat('o2.',${sort}) ${order}
+		</if>
+	</select>
+
+	<!-- 查询未审核企业信息分页，原功能平移 -->
+	<select id="getAuditOrgsByPage" parameterType="Map" resultType="DataVo">
+		SELECT
+		u.login_name AS audit_people,o.org_id,o.auditing_time,o.orgister_time,o.org_name,
+		o.org_no,o.org_head,o.member_phone,u2.login_name AS user_name, u2.email, o.audit_status
+		FROM pub_org o
+		INNER JOIN sys_user u2 ON u2.id = o.user_id
+		LEFT JOIN sys_user u ON o.audit_member = u.id
+		WHERE 1=1
+		AND o.orgister_time IS NOT NULL
+		<choose>
+			<when test="auditStatus !=null and auditStatus != ''">
+				AND o.audit_status=#{auditStatus}
+			</when>
+			<otherwise>
+				AND o.audit_status!='1'
+			</otherwise>
+		</choose>
+		<if test="auditMember!=null and auditMember!=''">
+			AND o.audit_member=#{auditMember,jdbcType=INTEGER}
+		</if>
+		<if test="orgName!=null and orgName!=''">
+			AND o.org_name LIKE concat('%',#{orgName},'%')
+		</if>
+		<if test="startDate!=null and startDate!=''">
+			<![CDATA[ AND  DATE_FORMAT(o.orgister_time, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')   ]]>
+		</if>
+		<if test="endDate!=null and endDate!=''">
+			<![CDATA[ AND DATE_FORMAT(o.orgister_time, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')     ]]>
+		</if>
+		<if test="sort!=null">
+			ORDER BY concat('o.',${sort}) ${order}
+		</if>
+	</select>
+
+	<!-- 根据用户名和密码查询账户 -->
+	<select id="getOrgCountByName" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM pub_org
+		WHERE ${chkFileName} = #{chkValue}
+		<if test="orgId!=null and orgId!=0">
+			AND org_id != #{orgId,jdbcType=INTEGER}
+		</if>
+	</select>
+	<!-- 根据orgId查询企业信息 -->
+	<select id="getOrgById" parameterType="java.lang.Integer" resultType="DataVo">
+		SELECT o.org_id,o.name_py,o.org_no,o.org_name,o.org_abbr,o.org_type,o.org_code,o.org_head,o.member_phone,o.org_email,o.org_fax,o.org_phone,
+		o.org_addr,o.remark,o.businesslicence
+		,o.prov_code,o.city_code,o.dist_code,o.address,o.p_org_id,<!--o2.org_name AS p_org_name,-->o.payment_process,o.org_addr,o.operate_type
+		FROM pub_org o
+		<!--LEFT JOIN pub_org o2 ON o.p_org_id = o2.org_id-->
+		WHERE
+		o.org_id=#{orgId}
+	</select>
+	
+	<!-- 获取运营商信息 -->
+	<select id="getOrg" parameterType="DataVo" resultType="DataVo">
+		SELECT org_id,org_name,p_org_id,sort_no,org_no FROM pub_org where audit_status = 1
+		<if test="orgId != null">
+			AND org_id = #{orgId}
+		</if>
+		<if test="orgName != null and orgName != '' ">
+			AND org_name like concat('%',#{orgName},'%') 
+		</if>
+		<if test="orgIds !=null">
+			AND org_id IN 
+			<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+	</select>
+
+	<!-- 企业未审核,审核通过，审核不通过的详细信息查询(原功能平移) -->
+	<!-- 用户表 -->
+	<select id="getAuditOrgById" parameterType="java.lang.Integer" resultType="DataVo">
+		SELECT
+		o.org_id,o.user_id,u.login_name,u.email,u.password,o.name_py,o.businesslicence,o.org_no,
+		o.org_name,o.org_abbr,o.org_type,o.org_code,o.org_head,o.org_fax,o.member_phone,
+		o.org_phone,o.address,o.org_email,o.remark,o.businesslicence,o.prov_code,o.city_code,o.dist_code,
+		o.audit_status,o.orgister_time,u2.login_name AS audit_people,o.auditing_time,o.no_audit_reason
+		FROM pub_org o
+		LEFT JOIN sys_user u ON o.user_id=u.id
+		LEFT JOIN sys_user u2 ON o.audit_member = u2.id
+		WHERE o.org_id=#{orgId}
+		<!-- 审核未通过的 -->
+		AND o.audit_status!='1'
+	</select>
+
+	<!--场站表，地区编码表 -->
+	<select id="getStationTempByOrgId" parameterType="java.lang.Integer" resultType="DataVo">
+		SELECT
+		ch.station_model,ch.address,ch.remark,ch.place,ch.capacity,ch.prov_code,ch.city_code,
+		ch.dist_code, ch.station_type,ch.jiao_liu,ch.jiao_liu_p,ch.zhi_liu,ch.zhi_liu_p
+		FROM chg_station_temp ch
+		WHERE ch.org_id=#{orgId}
+	</select>
+
+	<!--获取企业审核的审核人列表，查询企业表 -->
+	<select id="getAuditMember" resultType="ComboxVo">
+		SELECT
+		DISTINCT o.audit_member AS id,u.login_name AS text
+		FROM pub_org o,sys_user u
+		WHERE o.audit_member=u.id
+	</select>
+
+
+	<!-- 根据登录用户角色数据权限查询企业 -->
+	<select id="getOrgNameById" parameterType="java.util.Set" resultType="ComboxVo">
+		SELECT concat(org_id,'') AS id, org_name AS text FROM pub_org
+		WHERE 1=1
+		<!-- 原需求平移，过滤掉未审核，审核不通过的企业管理员 -->
+		AND audit_status = '1'
+		<if test="orgIds!=null and orgIds !='' and orgIds.size() > 0">
+			AND org_id IN
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				#{orgId,jdbcType=INTEGER}
+			</foreach>
+		</if>
+	</select>
+	<!-- 根据orgIds查询orgCode -->
+	<select id="getOrgCodeByIds" parameterType="java.util.Set" resultType="DataVo">
+		SELECT org_code FROM pub_org WHERE 1=1
+		<if test="orgIds != null">
+			AND ORG_ID IN 
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId,jdbcType=INTEGER}
+			</foreach>
+		</if> 
+	</select>
+</mapper>

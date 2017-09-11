@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.PileMonitorMapper">
+	<!-- 根据场站ID查询场站总收入，总充电量和总用电量-->
+	<select id="getStationInfoByStationId" parameterType="Map" resultType="Map">
+		SELECT
+			sum(this_.DAILY_INCOME_CHARGE_POWER) charge_power,
+			sum(this_.DAILY_INCOME_TOTAL_INCOME) total_income,
+			sum(this_.DAILY_INCOME_TOTAL_POWER) total_power
+		FROM
+			DAILY_INCOME this_
+		INNER JOIN CHG_PILE chgpile_ 
+		ON this_.PILE_ID = chgpile_.PILE_ID
+		WHERE
+			chgpile_.STATION_ID =#{stationId}
+			<!--结算日期 -->
+			<if test="dateTime != null and '' != dateTime ">
+				AND
+				this_.DAILY_INCOME_DATE = #{dateTime}
+			</if>
+	</select>
+	
+	<!-- 通过场站统计产站下所有的充电枪 -->
+	<select id="guncountByStationId" parameterType="Integer" resultType="Integer">
+		SELECT
+			count(GUN_ID) count
+		FROM
+			chg_gun this_
+		INNER JOIN CHG_PILE chgpile_ 
+		ON this_.PILE_ID = chgpile_.PILE_ID
+		WHERE
+			chgpile_.STATION_ID =#{stationId}
+	</select>
+	
+	<!-- 通过场站Id等查询充电桩信息 -->
+	<select id="getPilesByStationId" parameterType="Map" resultType="Map">
+		select
+        this_.PILE_ID ,
+        this_.PILE_NO ,
+        this_.PILE_NAME ,
+        this_.PILE_LNG ,
+        this_.PILE_LAT ,
+        this_.PILE_TYPE ,
+        this_.PILE_ADDR ,
+        this_.HARD_VERSION ,
+        this_.SOFT_VERSION ,
+        this_.STATION_ID ,
+        this_.PILE_MODEL_ID ,
+        chgstation1_.STATION_NAME ,
+        pubpilemod2_.PILE_MODEL_NO ,
+        pubpilemod2_.GUN_TYPE_CODE  
+    from
+        CHG_PILE this_ 
+    left outer join
+        CHG_STATION chgstation1_ 
+            on this_.STATION_ID=chgstation1_.STATION_ID 
+    left outer join
+        PUB_PILE_MODEL pubpilemod2_ 
+            on this_.PILE_MODEL_ID=pubpilemod2_.PILE_MODEL_ID 
+    where
+        this_.STATION_ID=#{stationId} 
+        and this_.PILE_STATUS='0' 
+        <!--充电桩ID-->
+		<if test="pileId != null and '' != pileId ">
+			AND
+			this_.PILE_ID = #{pileId}
+		</if>
+		<!--充电桩类型-->
+		<if test="pileType != null and '' != pileType ">
+			AND
+			this_.PILE_TYPE = #{pileType}
+		</if>
+		<!--充电桩模型-->
+		<if test="pileModel != null and '' != pileModel ">
+			AND
+			this_.PILE_MODEL_ID = #{pileModel}
+		</if>
+    order by
+        this_.PILE_ID asc 
+	</select>
+	
+	<!-- 通过会员Id查询车辆 -->
+	<select id="vehiclesByConsId" parameterType="Integer" resultType="Map">
+		SELECT
+		this_.vehicle_id,
+		this_.org_id,
+		this_.on_number,
+		this_.station_id,
+		this_.license_plate,
+		this_.manufacturer,
+		this_.brand,
+		this_.model,
+		this_.color,
+		this_.engine_no,
+		this_.vehicle_size,
+		this_.vin,
+		this_.using_roperty,
+		this_.operation_roperty,
+		this_.vehicle_type,
+		this_.line,
+		this_.load_no,
+		this_.load_weight,
+		this_.total_weight,
+		this_.curb_weight,
+		this_.init_mileage,
+		this_.mileage,
+		this_.register_date,
+		this_.belongs_type,
+		this_.belongs_name,
+		this_.driving_url,
+		this_.provice_code,
+		this_.city_code,
+		this_.remark,
+		this_.create_time,
+		this_.update_time,
+		this_.create_by,
+		this_.update_by
+		FROM
+		vehicle this_
+		LEFT JOIN vehicle_member_rel v ON this_.vehicle_id = v.vehicle_id
+		where v.cons_id=#{consId}
+	</select>
+	
+	<!-- 通过cardId查询卡信息 -->
+	<select id="consIdByCardId" parameterType="String" resultType="Map">
+		SELECT
+		this_.CONS_ID
+		FROM
+		c_card this_
+		where this_.CARD_ID=#{cardId}
+	</select>
+	
+	<!-- 通过pileId查询电表信息 -->
+	<select id="chgMeterBypileId" parameterType="Integer" resultType="Map">
+		SELECT
+		this_.METER_ID,
+		this_.PILE_ID,
+		this_.CT,
+		this_.PT
+		FROM
+		chg_meter this_
+		where this_.PILE_ID=#{pileId}
+		And this_.INNER_ID=1
+	</select>
+	
+	<!-- 设备监控下的设备查询 -->
+	<select id="getStationInfos" parameterType="DataVo" resultType="DataVo">
+		SELECT
+			a.pile_Count,
+			this_.ORG_ID,
+			this_.station_id,
+			this_.station_name,
+			this_.station_type,
+			this_.station_status,
+			puborg_.org_name
+		FROM
+			CHG_STATION this_
+		INNER JOIN 
+			(
+				SELECT
+					STATION_ID,
+					count(*) pile_Count
+				FROM
+					chg_pile
+				GROUP BY
+					STATION_ID
+			) a on this_.station_id = a.STATION_ID
+		INNER JOIN PUB_ORG puborg_ ON this_.ORG_ID = puborg_.ORG_ID
+		<include refid="conditions" />
+		ORDER BY this_.ORG_ID ASC,
+		this_.STATION_ID ASC
+	</select>
+	
+	<!-- 查询条件 -->
+	<sql id="conditions">
+		<where>
+		<if test="cityCode!=null and '' != cityCode">
+			AND this_.city_code = #{cityCode}
+		</if>
+		<if test="provCode!=null and '' != provCode">
+			AND this_.prov_code = #{provCode}
+		</if>
+		<if test="orgId!=null and '' != orgId">
+			AND this_.org_id = #{orgId}
+		</if>
+		<if test="orgIds!=null">
+			AND this_.org_id IN
+			<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+		<if test="orgName!=null">
+			AND puborg_.org_name like concat('%',#{orgName},'%')
+		</if>
+		<if test="stationIds!=null">
+			AND this_.station_id IN
+			<foreach collection="stationIds" item="stationId" open="(" separator="," close=")">
+				#{stationId}
+			</foreach>
+		</if>
+		<if test="stationName!=null and '' != stationName">
+			AND this_.STATION_NAME like concat('%',#{stationName},'%')
+		</if>
+		<if test="stationType!=null and '' != stationType">
+			AND this_.STATION_TYPE = #{stationType}
+		</if>
+		<if test="useStatus !=null and '' != useStatus">
+			AND this_.use_status = #{useStatus}
+		</if>
+		</where>
+	</sql>
+	
+	<!-- 条件查询充电桩 -->
+	<select id="getPiles" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+			this_.PILE_ID,
+			this_.PILE_NO,
+			this_.PILE_NAME,
+			this_.PILE_ADDR,
+			this_.ort_mode,
+			this_.PILE_MODEL_ID
+		FROM
+			chg_pile this_
+		INNER JOIN chg_station station_ ON station_.station_id = this_.station_id
+		<where>
+			this_.station_id=#{stationId}
+			<!-- 设备类型 -->
+			<if test="ortMode !=null and '' != ortMode">
+				AND this_.ort_mode = #{ortMode}
+			</if>
+			<!-- 设备型号-->
+			<if test="pileModelId !=null and '' != pileModelId">
+				AND this_.PILE_MODEL_ID = #{pileModelId}
+			</if>
+		</where> 
+	</select>
+	
+	<!-- 查询第三方场站信息 -->
+	<select id="getToStationInfos" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		this_.stationI_D station_id,
+		this_.operatorI_D ORG_ID,
+		this_.stationName station_name,
+		this_.stationType station_type,
+		this_.stationStatus station_status,
+		to_operatorinfo.operatorName org_name
+		FROM
+		to_stationinfo this_
+		inner join to_operatorinfo on  this_.operatorI_D=to_operatorinfo.operatorI_D
+		<include refid="conditions1" />
+	</select>
+	
+	<!-- 查询条件 -->
+	<sql id="conditions1">
+		<where>
+		<if test="provCode!=null and '' != provCode">
+			AND this_.areaCode = #{provCode}
+		</if>
+		<if test="orgId!=null and '' != orgId">
+			AND this_.operatorI_D = #{orgId}
+		</if>
+		<if test="orgIds!=null ">
+			AND this_.operatorI_D IN
+			<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+		<if test="orgName != null">
+			AND to_operatorinfo.operatorName like concat('%',#{orgName},'%')
+		</if>
+		<if test="stationIds!=null">
+			AND this_.stationI_D IN
+			<foreach collection="stationIds" item="stationId" open="(" separator="," close=")">
+				#{stationId}
+			</foreach>
+		</if>
+		<if test="stationName!=null and '' != stationName">
+			AND this_.stationName like concat('%',#{stationName},'%')
+		</if>
+		<if test="stationType!=null and '' != stationType">
+			AND this_.stationType = #{stationType}
+		</if>
+		</where>
+	</sql>
+	
+	<!--通过第三方场站id 查询出充电桩信息 获取充电桩数量 -->
+	<select id="getToPileCountByStationId" parameterType="DataVo" resultType="DataVo">
+		SELECT
+			COUNT(pile_.equipmentI_D) AS count,
+			pile_.stationI_D station_id,
+			station_.stationName station_name
+		FROM
+			to_equipmentinfo pile_
+		INNER JOIN to_stationinfo station_ ON station_.stationI_D = pile_.stationI_D
+		WHERE pile_.stationI_D IN
+		<foreach collection="stationIds" item="stationId" open="("
+			separator="," close=")">
+			#{stationId}
+		</foreach>
+		GROUP BY
+		pile_.stationI_D,station_.stationName
+	</select>
+	
+	<!-- 条件查询第三方充电桩 -->
+	<select id="getToPilesByStationId" parameterType="DataVo"
+		resultType="DataVo">
+			SELECT
+				this_.equipmentI_D pile_id,
+				this_.equipmentType ort_mode,
+				this_.equipmentModel pileModel_Id
+			FROM
+				to_equipmentinfo this_
+			INNER JOIN to_stationinfo station_ ON station_.stationI_D = this_.stationI_D
+		<where>
+			this_.stationI_D=#{stationId}
+			<!-- 设备类型 -->
+			<if test="ortMode !=null and '' != ortMode">
+				AND this_.equipmentType = #{ortMode}
+			</if>
+			<!-- 设备型号-->
+			<if test="pileModelId !=null and '' != pileModelId">
+				AND this_.equipmentModel = #{pileModelId}
+			</if>
+		</where> 
+	</select>
+	
+	<!-- 条件查询第三方枪接口信息 -->
+	<select id="getToConnectorinfosByPileId" parameterType="String"
+		resultType="DataVo">
+			SELECT
+				this_.connectorI_D connector_id,
+				this_.equipmentI_D pile_id,
+				this_.operatorI_D operator_id
+			FROM
+				to_connectorinfo this_
+		<where>
+			this_.equipmentI_D=#{pileId}
+		</where> 
+	</select>
+
+	<!-- 统计订单月度总金额和月度总电量 -->
+	<select id="getMonthTotalPayMoneyPower" parameterType="DataVo" resultType="DataVo">
+		SELECT SUM(amount) amount,SUM(chg_power) chg_power
+		FROM bill_pay
+		WHERE 1=1
+		AND pay_state !='1'
+		AND pile_id = #{pileId}
+		AND end_time BETWEEN #{startDate} AND #{endDate}
+	</select>
+
+	<!-- 统计今天总收入 -->
+	<select id="getTotalPayMoneyToday" parameterType="DataVo" resultType="Double">
+		SELECT SUM(amount) amount
+		FROM bill_pay
+		WHERE 1=1
+		AND pay_state !='1'
+		AND pile_id = #{pileId}
+		AND end_time BETWEEN #{startDate} AND #{endDate}
+	</select>
+
+	
+	
+</mapper>

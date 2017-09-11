@@ -1,0 +1,18 @@
+{
+  	"acctNo": "777",
+	"acctAmount": 777,
+	"acctStateCode": "01",
+	"createTime": "2017-04-28",
+	"updateTime": "2017-04-28",
+	"groupName": "777124",
+	"groupNo": "777124",
+	"groupAddr": "777124",
+	"attentionName": "777124",
+	"attentionPhone": "777124",
+	"attentionEmail": "777124",
+	"payModel": "01",
+	"appFrom": "18",
+	"groupStatus":"1",
+	"groupId":"83",
+	"acctId":10000435
+}

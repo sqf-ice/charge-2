@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.system.mapper.PubUserMapper">
+	<!-- 约束条件 -->
+	<sql id="condition">
+		WHERE 1=1
+		<if test="su_name!=null and su_name!=''">
+			AND su_name like concat('%',#{su_name},'%')
+		</if>
+		<if test="su_type!=null and su_type!=''">
+			<![CDATA[ AND su_type=#{su_type} ]]>
+		</if>
+	</sql>
+
+	<!-- 排序条件 -->
+	<sql id="orderBy">
+		<if test="sort!=null and sort!=''">
+			ORDER BY ${sort} ${order}
+		</if>
+	</sql>
+
+	<!-- 分页条件 -->
+	<sql id="page">
+		<if test="(pageIndex!=null and pageIndex!='') and (pageSize!=null and pageSize!='')">
+			LIMIT #{pageIndex, javaType=java.lang.String,jdbcType=INTEGER},#{pageSize,javaType=java.lang.String,jdbcType=INTEGER}
+		</if>
+	</sql>
+
+	<!-- 按条件统计用户数 -->
+	<select id="count" parameterType="DataVo" resultType="Integer">
+		SELECT count(su_id) FROM sys_user
+		<include refid="condition"></include>
+	</select>
+
+	<!-- 按条件分页查询用户 -->
+	<select id="selectUsers" parameterType="DataVo" resultType="DataVo">
+		SELECT su_id Su_id, su_name, su_type
+		<!-- date_format(birthday,'%Y-%m-%d') birthday, -->
+		FROM sys_user
+		<include refid="condition"></include>
+		<include refid="orderBy"></include>
+		<include refid="page"></include>
+	</select>
+
+	<!-- 根据ID查询用户 -->
+	<select id="selectUserById" parameterType="DataVo" resultType="DataVo">
+		SELECT su_id, su_name, su_type
+		FROM sys_user
+		WHERE su_id=#{id, javaType=java.lang.String, jdbcType=VARCHAR}
+	</select>
+
+	<!-- 新增用户 -->
+	<insert id="insertUser" parameterType="DataVo" keyColumn="su_id" useGeneratedKeys="true">
+		INSERT INTO sys_user (
+		su_name
+		<if test="su_type != null and su_type != ''">,su_type</if>
+		) VALUES(
+		#{su_name}
+		<if test="su_type != null and su_type != ''">,#{su_type}</if>
+		)
+	</insert>
+
+	<!-- 更新用户 -->
+	<update id="updateUser">
+		UPDATE sys_user
+		<set>
+			<if test="su_name != null">su_name=#{su_name},</if>
+			<if test="su_type != null">su_type=#{su_type},</if>
+		</set>
+		<where>
+			su_id=#{su_id,javaType=String,jdbcType=INTEGER}
+		</where>
+	</update>
+
+	<!-- 删除单个用户 -->
+	<delete id="deleteUser" parameterType="DataVo">
+		DELETE FROM sys_user WHERE su_id = #{id}
+	</delete>
+
+	<!-- 删除多个用户 -->
+	<delete id="deleteUsers" parameterType="DataVo">
+		DELETE FROM sys_user WHERE id IN
+		<foreach collection="ids" item="id" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+	
+	
+	
+	
+	<!-- 新增企业管理员基本信息 -->
+	<insert id="insertPubUser" parameterType="DataVo" keyColumn="su_id" useGeneratedKeys="true">
+		<selectKey keyProperty="userId" order="AFTER" resultType="java.lang.Integer">
+            select LAST_INSERT_ID()
+        </selectKey>
+		INSERT INTO PUB_USER (USER_NO,USER_NAME,USER_PWD,USER_EMAIL,USER_STATE_CODE,ORG_ID) 
+		VALUES
+		('nouser',#{orgUserName},#{password},#{email},'02',-1)
+	</insert>
+	
+	<!-- 根据userId修改企业管理员基本信息 -->
+	<update id="updatePubUserByuserId" parameterType="DataVo">
+		UPDATE PUB_USER
+        <set>
+            <if test="orgName != null">USER_NAME=#{orgName},</if>
+            <if test="password != null">USER_PWD=#{password},</if>
+            <if test="email != null">USER_EMAIL=#{email},</if>
+            <if test="userStateCode != null">USER_STATE_CODE=#{userStateCode},</if>
+            <if test="orgId != null">ORG_ID=#{orgId}</if>
+        </set>
+        WHERE  USER_ID=#{userId}
+	</update>
+	
+
+	
+	
+	<!-- 根据用户名，密码，邮箱查询企业管理员的userId -->
+	<select id="selectPubUser" parameterType="DataVo" resultType="DataVo">		
+		SELECT USER_ID FROM PUB_USER WHERE 	USER_NAME=#{orgName} and USER_PWD=#{password} and USER_EMAIL=#{email}
+	</select>
+	
+	<!-- 根据userId查询企业管理员信息 -->
+	<select id="selectPubUserByuserId" parameterType="DataVo" resultType="DataVo">		
+		SELECT USER_NAME,USER_PWD,USER_EMAIL,ORG_ID FROM PUB_USER WHERE USER_ID=#{userId} 
+	</select>
+	
+	<!-- 判断该用户名是否存在  或  邮箱是否被注册-->
+	<select id="selectPubUserByuserName" parameterType="DataVo" resultType="DataVo">		
+		SELECT USER_ID, USER_NAME,USER_EMAIL FROM PUB_USER 
+		<where>
+			<if test="userName!=null and userName!=''">
+				and USER_NAME=#{userName} 
+			</if>
+			<if test="userEmail!=null and userEmail!=''">
+				and USER_EMAIL=#{userEmail} 
+			</if>
+			<if test="userStateCode!=null and userStateCode!=''">
+				and USER_STATE_CODE != #{userStateCode} 
+			</if>
+			<if test="orgId!=null and orgId!=''">
+				and ORG_ID = #{orgId} 
+			</if>
+		</where>
+	</select>
+	
+	<!-- 给企业管理员分配角色 -->
+	<insert id="insertUserRole" parameterType="DataVo" keyColumn="su_id" useGeneratedKeys="true">
+		INSERT INTO pub_user_role_rela(USER_ID,ROLE_ID) 
+		VALUES
+		(#{userId},#{roleId})
+	</insert>
+
+	
+	<insert id="insertPubUserOrgStation" parameterType="DataVo" keyColumn="su_id" useGeneratedKeys="true">
+		INSERT INTO pub_user_org_station (USER_ID,ORG_ID) 
+		VALUES
+		(#{userId},#{orgId})
+	</insert>
+	
+	
+	
+	
+</mapper>

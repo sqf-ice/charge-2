@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.MeterManagementMapper">
+	
+	<!-- 查询表计列表 -->
+	<select id="getMeterManagementAll" parameterType="DataVo" resultType="DataVo">
+		<include refid="selectSql" />
+		<include refid="conditions" />
+	</select>
+	<sql id="selectSql">
+		SELECT
+	        this_.METER_MANAGEMENT_ID,
+	        this_.METER_MANAGEMENT_NO,
+	        this_.METER_MANAGEMENT_NAME,
+	        this_.METER_MANAGEMENT_TYPE,
+	        this_.METER_MANAGEMENT_PROTOCOL,
+	        this_.METER_MANAGEMENT_PURPOSE,
+	        this_.METER_MANAGEMENT_CT,
+	        this_.METER_MANAGEMENT_PT,
+	        this_.METER_MANAGEMENT_ADDR,
+	        this_.METER_MANAGEMENT_RATE,
+	        this_.ORG_ID,
+	        this_.STATION_ID,
+	        this_.TRANS_ID,
+	        this_.METER_MANAGEMENT_CREATETIME,
+	        this_.METER_MANAGEMENT_UPDATETIME,
+	        this_.METER_MANAGEMENT_MEASURE_NO,
+	        this_.TERMINAL_ID,
+	        this_.shelf_life_time,
+	        this_.rated_power,
+	        puborg2x1_.ORG_NAME,
+	        chgstation2_.STATION_NAME,
+	        equiptrans3_.TRANS_NAME,
+	        equiptermi4_.TERMINAL_NAME
+	    FROM
+	        CHG_METER_MANAGEMENT this_ 
+	    LEFT OUTER JOIN
+	        PUB_ORG puborg2x1_ 
+	            ON this_.ORG_ID=puborg2x1_.ORG_ID 
+	    LEFT OUTER JOIN
+	        CHG_STATION chgstation2_ 
+	            ON this_.STATION_ID=chgstation2_.STATION_ID 
+	    LEFT OUTER JOIN
+	        EQUIP_TRANSFORMER equiptrans3_ 
+	            ON this_.TRANS_ID=equiptrans3_.TRANS_ID 
+	    LEFT OUTER JOIN
+	        EQUIP_TERMINAL equiptermi4_ 
+	            ON this_.TERMINAL_ID=equiptermi4_.TERMINAL_ID
+	</sql>
+	<!-- 列表查询条件 -->
+	<sql id="conditions">
+		<where>
+			1=1
+		<if test="orgIds != null">
+			AND this_.ORG_ID IN 
+			<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+		<if test="orgId != null">
+			AND this_.ORG_ID = #{orgId}
+		</if>
+		<if test="stationId != null">
+			AND this_.STATION_ID = #{stationId}
+		</if>
+		<if test="stationName != null">
+			AND chgstation2_.STATION_NAME like concat('%',#{stationName},'%')
+		</if>
+		<if test="transName != null">
+			AND equiptrans3_.TRANS_NAME like concat('%',#{transName},'%')
+		</if>
+		<if test="meterManagementNo != null">
+			AND this_.METER_MANAGEMENT_NO like concat ('%',#{meterManagementNo},'%')
+		</if>
+		</where>
+	</sql>
+	
+	<!-- 根据表计Id获取信息 -->
+	<select id="getMeterManagementById" parameterType="DataVo" resultType="DataVo">
+		<include refid="selectSql" />
+		WHERE this_.METER_MANAGEMENT_ID = #{meterManagementId}
+	</select>
+	<!-- 删除表计信息 -->
+	<delete id="delMeterManagement" parameterType="DataVo">
+		DELETE FROM CHG_METER_MANAGEMENT WHERE METER_MANAGEMENT_ID IN
+		<foreach collection="meterManagementIds" item="id" open="(" separator="," close=")">
+			#{id}
+		</foreach> 
+	</delete>
+	
+	<!-- 新增表计 -->
+	<insert id="saveMeterManagement" parameterType="map">
+		INSERT INTO chg_meter_management (
+			ORG_ID,
+			STATION_ID,
+			TRANS_ID,
+			TERMINAL_ID,
+			METER_MANAGEMENT_NO,
+			METER_MANAGEMENT_NAME,
+			METER_MANAGEMENT_TYPE,
+			METER_MANAGEMENT_PURPOSE,
+			METER_MANAGEMENT_CT,
+			METER_MANAGEMENT_PT,
+			METER_MANAGEMENT_ADDR,
+			METER_MANAGEMENT_RATE,
+			METER_MANAGEMENT_MEASURE_NO,
+			METER_MANAGEMENT_PROTOCOL,
+			shelf_life_time,
+			rated_power,
+			METER_MANAGEMENT_CREATETIME
+		) value (
+			#{orgId},
+			#{stationId},
+			#{transId},
+			#{terminalId},
+			#{meterManagementNo},
+			#{meterManagementName},
+			#{meterManagementType},
+			#{meterManagementPurpose},
+			#{meterManagementCt},
+			#{meterManagementPt},
+			#{meterManagementAddr},
+			#{meterManagementRate},
+			#{meterManagementMeasureNo},
+			#{meterManagementProtocol},
+			#{shelfLifeTime},
+			#{ratedPower},
+			now()
+		)
+	</insert>
+	
+	<!-- 编辑表计 -->
+	<update id="updateMeterManagement" parameterType="DataVo">
+		UPDATE chg_meter_management
+		<set>
+			ORG_ID = #{orgId},
+			STATION_ID = #{stationId},
+			TRANS_ID = #{transId},
+			TERMINAL_ID = #{terminalId},
+			METER_MANAGEMENT_NO = #{meterManagementNo},
+			METER_MANAGEMENT_NAME = #{meterManagementName},
+			METER_MANAGEMENT_TYPE = #{meterManagementType},
+			METER_MANAGEMENT_PURPOSE = #{meterManagementPurpose},
+			METER_MANAGEMENT_CT = #{meterManagementCt},
+			METER_MANAGEMENT_PT = #{meterManagementPt},
+			METER_MANAGEMENT_ADDR = #{meterManagementAddr},
+			METER_MANAGEMENT_RATE = #{meterManagementRate},
+			METER_MANAGEMENT_MEASURE_NO = #{meterManagementMeasureNo},
+			METER_MANAGEMENT_PROTOCOL = #{meterManagementProtocol},
+			shelf_life_time = #{shelf_life_time},
+			rated_power = #{ratedPower},
+			METER_MANAGEMENT_UPDATETIME = now()
+		</set>
+		WHERE METER_MANAGEMENT_ID = #{meterManagementId}
+	</update>
+	<!-- 根据变压器Id,终端Id查询是否有表计信息 -->
+	<select id="getMeterByObjIds" parameterType="DataVo" resultType="java.lang.Integer">
+		SELECT count(*) FROM chg_meter_management WHERE 1=1 
+		<if test="transIds != null">
+			AND TRANS_ID IN 
+			<foreach collection="transIds" item="transId" open="(" close=")" separator=",">
+				#{transId}
+			</foreach> 
+		</if>
+		<if test="terminalIds != null">
+			AND TERMINAL_ID IN 
+			<foreach collection="terminalIds" item="terminalId" open="(" close=")" separator=",">
+				#{terminalId}
+			</foreach>		
+		</if>
+	</select>
+</mapper>

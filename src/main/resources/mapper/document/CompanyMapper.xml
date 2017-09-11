@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.CompanyMapper">
+	
+	<!-- 查询合约企业列表 -->
+	<select id="getCompanyAll" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.C_CON_COMPANY_ID,
+	        this_.C_CON_COMPANY_NAME,
+	        this_.C_CON_CREATE_DATE,
+	        this_.C_CON_UPDATE_DATE
+	    FROM
+	        C_CON_COMPANY this_ 
+		<include refid="conditions" />
+	</select>
+	<!-- 列表查询条件 -->
+	<sql id="conditions">
+		<where>
+			1=1
+		<if test="conCompanyIds != null">
+			AND this_.C_CON_COMPANY_ID IN 
+			<foreach collection="conCompanyIds" item="comId" open="(" separator="," close=")">
+				#{comId}
+			</foreach>
+		</if>
+		<if test="companyId != null">
+			AND this_.C_CON_COMPANY_ID = #{companyId}
+		</if>
+		<if test="orgIds != null">
+			AND this_.ORG_ID IN 
+			<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+		<if test="cConCompanyName != null">
+			AND this_.C_CON_COMPANY_NAME like concat('%',#{cConCompanyName},'%')
+		</if>
+		<if test="conUpdateDateLt !=null">
+			AND this_.C_CON_UPDATE_DATE <![CDATA[ >= ]]> #{conUpdateDateLt}
+		</if>
+		<if test="conUpdateDateRt !=null">
+			AND this_.C_CON_UPDATE_DATE <![CDATA[ <= ]]> #{conUpdateDateRt}
+		</if>
+		<if test="orgIds != null">
+			AND this_.ORG_ID IN 
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				#{orgId}
+			</foreach>
+		</if>
+		</where>
+	</sql>
+	
+	<!-- 根据合约企业Id获取信息 -->
+	<select id="getCompanyById" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.C_CON_COMPANY_ID,
+	        this_.C_CON_COMPANY_NAME,
+	        this_.ORG_ID,
+	        this_.USER_ID,
+	        this_.C_CON_ACCOUNT_ID,
+	        this_.C_CON_PASSWORD,
+	        this_.C_CON_ALIPAY,
+	        this_.C_CON_WECHAT,
+	        this_.C_CON_BANKACCOUNT,
+	        this_.C_CON_TEL,
+	        this_.C_CON_ADDRESS,
+	        this_.C_CON_EMAIL,
+	        this_.C_CON_AMOUNT,
+	        this_.C_CON_CREATE_DATE,
+	        this_.C_CON_UPDATE_DATE,
+	        this_.C_CON_INCOME,
+	        this_.C_CON_CASHOUT,
+	        this_.C_CON_ACCOUNT_STATUS,
+	        this_.C_CON_STATUS
+	    FROM
+	        C_CON_COMPANY this_ 
+		WHERE this_.C_CON_COMPANY_ID = #{companyId}
+	</select>
+	
+	<!-- 查询合约企业列表(业务字典) -->
+	<select id="getCompany" parameterType="DataVo" resultType="DataVo">
+		SELECT C_CON_COMPANY_ID,C_CON_COMPANY_NAME FROM c_con_company  
+		WHERE  1=1 
+		<if test="orgId != null">
+			AND ORG_ID = #{orgId}
+		</if>
+		<if test="orgIds != null">
+			AND ORG_ID IN 
+			<foreach collection="orgIds" item="oId" open="(" separator="," close=")">
+				#{oId}
+			</foreach>
+		</if>
+		<if test="companyName != null">
+			AND C_CON_COMPANY_NAME like concat('%',#{companyName},'%')
+		</if>
+	</select>
+
+	<!-- 根据用户运营商权限查询可查看的角色组成下拉框 -->
+	<select id="getCompanyDict" resultType="ComboxVo">
+		SELECT DISTINCT concat(c_con_company_id,'') AS id, c_con_company_name AS text FROM c_con_company
+		WHERE 1 = 1
+		<if test="companyName != null and companyName != ''">
+			AND c_con_company_name LIKE concat('%',#{companyName},'%')
+		</if>
+		<if test="orgIds!=null and orgIds.size()>0">
+			AND org_id IN
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				#{orgId,jdbcType=INTEGER}
+			</foreach>
+		</if>
+		limit ${limit}
+	</select>
+	
+	<!-- 新增合约企业 -->
+	<insert id="saveCompany" parameterType="map">
+		INSERT INTO `c_con_company` (
+			C_CON_COMPANY_NAME,
+			ORG_ID,
+			C_CON_ALIPAY,
+			C_CON_WECHAT,
+			C_CON_BANKACCOUNT,
+			C_CON_TEL,
+			C_CON_EMAIL,
+			C_CON_ADDRESS,
+			C_CON_CREATE_DATE,
+			C_CON_ACCOUNT_ID,
+			C_CON_ACCOUNT_STATUS,
+			C_CON_PASSWORD,
+			C_CON_AMOUNT,
+			C_CON_INCOME,
+			C_CON_STATUS
+		) value (
+			#{cConCompanyName},
+			#{orgId},
+			#{cConAlipay},
+			#{cConWechat},
+			#{cConBankaccount},
+			#{cConTel},
+			#{cConEmail},
+			#{cConAddress},
+			now(),
+			#{cConAccountId},
+			#{cConAccountStatus},
+			#{cConPassword},
+			#{cConAmount},
+			#{cConInCome},
+			#{cConStatus}
+		)
+	</insert>
+	
+	<!-- 编辑合约企业 -->
+	<update id="updateCompany" parameterType="map">
+		UPDATE c_con_company 
+		<set>
+			C_CON_COMPANY_NAME = #{cConCompanyName},
+			ORG_ID = #{orgId},
+			C_CON_ALIPAY = #{cConAlipay},
+			C_CON_WECHAT = #{cConWechat},
+			C_CON_BANKACCOUNT = #{cConBankaccount},
+			C_CON_TEL = #{cConTel},
+			C_CON_EMAIL = #{cConEmail},
+			C_CON_ADDRESS = #{cConAddress},
+			C_CON_ACCOUNT_ID = #{cConAccountId},
+			C_CON_ACCOUNT_STATUS = #{cConAccountStatus},
+			C_CON_UPDATE_DATE = now()
+		</set>
+		WHERE C_CON_COMPANY_ID = #{cConCompanyId}
+	</update>
+	
+	<!-- 检查合约企业重复性 -->
+	<select id="checkCompany" resultType="Integer" parameterType="DataVo">
+		SELECT COUNT(*) FROM c_con_company WHERE org_id = #{orgId} AND C_CON_COMPANY_NAME = #{conCompanyName} AND C_CON_STATUS = 0
+		<if test="conCompanyId != null">
+		 AND C_CON_COMPANY_ID <![CDATA[ <> ]]> #{conCompanyId}
+		</if>
+	</select>
+</mapper>

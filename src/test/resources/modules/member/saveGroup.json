@@ -1,0 +1,15 @@
+{
+  	"acctNo": "123",
+	"acctAmount": 123,
+	"acctStateCode": "01",
+	"createTime": "2017-04-28",
+	"updateTime": "2017-04-28",
+	"groupName": "123124",
+	"groupNo": "123124",
+	"groupAddr": "123124",
+	"attentionName": "123124",
+	"attentionPhone": "123124",
+	"attentionEmail": "123124",
+	"payModel": "01",
+	"appFrom": "18"
+}

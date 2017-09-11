@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.system.mapper.CoopOperMapper">
+
+
+    <!-- 根据企业ID获取合作运营企业ID集合 -->
+    <select id="getCoopOperOrgIds" resultType="java.lang.Integer">
+        SELECT DISTINCT coop_org_id from coop_operation WHERE org_id IN
+        <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+            #{orgId,jdbcType=INTEGER}
+        </foreach>
+    </select>
+
+    <!-- 根据企业ID获取合作运营企业ID集合 -->
+    <select id="getReverseCoopOperOrgIds" resultType="java.lang.Integer">
+        SELECT DISTINCT coop_org_id from coop_operation WHERE org_id IN
+        <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+            #{orgId,jdbcType=INTEGER}
+        </foreach>
+        UNION
+        SELECT DISTINCT org_id from coop_operation WHERE coop_org_id IN
+        <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+            #{orgId,jdbcType=INTEGER}
+        </foreach>
+    </select>
+
+    <!-- 根据企业ID获取合作运营企业的场站ID集合 -->
+    <select id="getCoopOperStationIds" resultType="java.lang.Integer">
+        SELECT DISTINCT s.station_id from chg_station s
+        LEFT JOIN coop_operation c ON s.org_id = c.coop_org_id
+        WHERE c.org_id IN
+        <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+            #{orgId,jdbcType=INTEGER}
+        </foreach>
+    </select>
+
+    <!-- 根据被合作运营企业ID获取合作企业ID集合 -->
+    <select id="getOrgIdsByCoopOrgId" resultType="java.lang.Integer">
+        SELECT DISTINCT org_id from coop_operation WHERE coop_org_id = #{coopOrgId}
+    </select>
+    <!-- 根据被合作运营企业ID获取合作企业ID集合 -->
+    <select id="getOrgNamesByCoopOrgId" resultType="java.lang.String">
+        SELECT o.org_name from coop_operation co
+        LEFT JOIN pub_org o ON co.org_id = o.org_id
+        WHERE co.coop_org_id = #{coopOrgId}
+    </select>
+
+    <!-- 根据被合作运营企业ID和合作运营企业ID集合删除合作运营关联 -->
+    <delete id="deleteCoopOperByCoopId">
+        DELETE FROM coop_operation WHERE coop_org_id = #{coopOrgId,jdbcType=INTEGER}
+        <if test="orgIds!=null and orgIds.size() >0">
+            AND org_id IN
+            <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                #{orgId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+    </delete>
+
+    <!-- 根据被合作运营企业ID和合作运营企业ID集合新增合作运营关联 -->
+    <insert id="insertCoopOperByCoopId">
+        INSERT INTO coop_operation (org_id,coop_org_id ) VALUES
+        <foreach collection="orgIds" item="orgId" index="index" separator=",">
+            (#{orgId,jdbcType=INTEGER}, #{coopOrgId,jdbcType=INTEGER})
+        </foreach>
+    </insert>
+</mapper>

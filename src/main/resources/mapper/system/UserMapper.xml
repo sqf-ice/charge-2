@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.system.mapper.UserMapper">
+
+    <!-- 约束条件 -->
+    <sql id="condition">
+        WHERE 1=1
+        <if test="loginName!=null and loginName!=''">
+            AND login_name like concat('%',#{loginName},'%')
+        </if>
+    </sql>
+
+    <!-- 排序条件 -->
+    <sql id="orderBy">
+        <if test="sort!=null">
+            ORDER BY concat('u.',${sort}) ${order}
+        </if>
+    </sql>
+    <!-- 查询旧表用户导入新表 -->
+    <select id="findPubUsers" resultType="DataVo">
+        SELECT * FROM pub_user
+    </select>
+
+    <!-- 按条件分页查询用户 -->
+    <select id="getUsersByPage" parameterType="Map" resultType="DataVo">
+        SELECT u.id,u.login_name,r.name AS role_name,o.org_name,u.phone,user_type,u.user_state,u.address,u.remark
+        FROM sys_user u
+        LEFT JOIN pub_org o ON u.org_id = o.org_id
+        LEFT JOIN sys_user_role ur ON ur.user_id = u.id
+        LEFT JOIN sys_role r ON r.id = ur.role_id
+        WHERE 1=1
+        <if test="orgIds!=null and orgIds.size()>0">
+            AND u.org_id IN
+            <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+            #{orgId,jdbcType=INTEGER}
+          </foreach>
+        </if>
+        <if test="loginName!=null and loginName!=''">
+            AND u.login_name like concat('%',#{loginName},'%')
+        </if>
+        <if test="roleId!=null and roleId!=''">
+            AND r.id = #{roleId,jdbcType=INTEGER}
+        </if>
+        <if test="roleName!=null and roleName!=''">
+            AND r.name LIKE concat('%',#{roleName},'%')
+        </if>
+        <if test="orgName!=null">
+            AND o.org_name LIKE concat('%',#{orgName},'%')
+        </if>
+        <include refid="orderBy"></include>
+    </select>
+
+    <!-- 根据用户ID查询 -->
+    <select id="getUserById" resultType="DataVo">
+        SELECT u.*,o.org_name,o.org_code FROM sys_user u
+        LEFT JOIN pub_org o ON u.org_id = o.org_id
+        WHERE u.id=#{id}
+    </select>
+
+    <!-- 根据用户名密码查询 -->
+    <select id="getUserByName" resultType="DataVo">
+        SELECT id, company_id, org_id, login_name,  user_no, name, gender, email,
+        phone, mobile, address,  photo, remark ,password ,salt, login_flag, user_state,update_time
+        FROM sys_user
+        WHERE login_name=#{loginName}
+    </select>
+
+    <!-- 根据用户名密码查询 -->
+    <select id="getUsersByName" resultType="DataVo">
+        SELECT id, company_id, org_id, login_name,  user_no, name, gender, email,phone, mobile, address,  photo, remark ,password ,salt
+        FROM sys_user
+        WHERE  login_name=#{loginName}
+    </select>
+    <!-- 根据用户名和密码查询账户 -->
+    <select id="getUserCountByName" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM sys_user
+        WHERE login_name=#{loginName}
+        <if test="id!=null and id!=0">
+            AND id != #{id,jdbcType=INTEGER}
+        </if>
+    </select>
+    <!-- 根据角色ID集合和数据类型获取当前角色集合所拥有的数据权限ID集合 -->
+    <select id="getUserRoleDataByRoleIds" resultType="java.lang.Integer">
+        SELECT DISTINCT srd.data_id FROM sys_role_data srd
+        LEFT JOIN sys_role sr ON srd.role_id = sr.id
+        WHERE srd.data_type = #{dataType,jdbcType=INTEGER}
+         <if test="roleIds!=null and roleIds.size() >0">
+             AND sr.id IN
+             <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+                 #{roleId,jdbcType=INTEGER}
+             </foreach>
+             OR
+             <foreach collection="roleIds" item="roleId" open="(" separator="or" close=")">
+             sr.pids LIKE concat('%,',#{roleId},',%')
+            </foreach>
+         </if>
+
+
+    </select>
+    <!-- 根据用户IDs查询角色IDs -->
+    <select id="getRoleIdsByUserId" parameterType="Integer" resultType="Integer">
+        SELECT role_id FROM sys_user_role
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 根据用户ID查询角色列表 -->
+    <select id="getRolesByUserId" parameterType="Integer" resultType="DataVo">
+        SELECT _this.* FROM sys_role _this
+        LEFT JOIN sys_user_role _ur
+        ON _this.id = _ur.role_id
+        WHERE _this.role_state = 1 AND _ur.user_id=#{userId}
+    </select>
+
+    <!-- 根据用户ID查询角色类型列表 -->
+    <select id="getRoleTypeByUserId" parameterType="Integer" resultType="Integer">
+        SELECT _this.role_type FROM sys_role _this
+        LEFT JOIN sys_user_role _ur
+        ON _this.id = _ur.role_id
+        WHERE _this.role_state = 1 AND _ur.user_id=#{userId}
+    </select>
+
+    <select id="getRoleNamesByUserId" parameterType="Integer" resultType="String">
+        SELECT _this.name FROM sys_role _this
+        LEFT JOIN sys_user_role _ur ON _this.id = _ur.role_id
+        WHERE role_state = 1
+        AND user_id=#{userId}
+    </select>
+
+    <!-- 查询用户的权限列表 -->
+    <select id="getPermsByUserId" resultType="TreeNode"><!-- Map -->
+        SELECT
+        DISTINCT perm.*,perm.perm_type AS level
+        FROM
+        (
+        SELECT
+        rperm.perm_id,
+        urole.role_id,
+        urole.user_id
+        FROM
+        sys_user_role urole
+        LEFT JOIN sys_role_perm rperm ON urole.role_id = rperm.role_id
+        WHERE
+        urole.user_id = #{userId}
+        ) _this
+        LEFT JOIN sys_perm perm ON perm.id = _this.perm_id
+        WHERE perm.id IS NOT NULL
+        <if test="permTypes !=null and permTypes.size()>0">
+            AND perm.perm_type IN
+            <foreach collection="permTypes" item="type" open="(" separator="," close=")">
+                #{type}
+            </foreach>
+        </if>
+        ORDER BY perm.sort
+    </select>
+
+    <!-- 前端按钮权限对应生成  临时用，可删除 -->
+    <select id="getAllPerm" resultType="DataVo"><!-- Map -->
+        SELECT perm.* FROM
+        sys_perm perm
+        ORDER BY perm.sort ASC
+    </select>
+
+    <!-- 系统初始化时获取目标URL地址和对应权限组成权限资源 -->
+    <select id="getAllPermTarget" resultType="DataVo"><!-- Map -->
+        SELECT target,method,permission FROM
+        sys_perm
+        WHERE target IS NOT NULL
+        AND method IS NOT NULL
+        ORDER BY id ASC
+    </select>
+
+    <select id="getPermissionsByUserId" resultType="DataVo"><!-- Map -->
+        SELECT
+        DISTINCT perm.id,perm.permission
+        FROM
+        (
+        SELECT
+        rperm.perm_id,
+        urole.role_id,
+        urole.user_id
+        FROM
+        sys_user_role urole
+        LEFT JOIN sys_role_perm rperm ON urole.role_id = rperm.role_id
+        WHERE
+        urole.user_id = #{userId}
+        ) _this
+        LEFT JOIN sys_perm perm ON perm.id = _this.perm_id
+        WHERE perm.id IS NOT NULL
+        <if test="permType !=null">
+            AND perm.perm_type=#{permType}
+        </if>
+        ORDER BY perm.sort
+    </select>
+
+    <select id="getPermNamesByUserId" resultType="java.util.Map"><!-- Map -->
+        SELECT
+        DISTINCT perm.id, perm.pid,perm.name,perm.permission
+        FROM
+        (
+        SELECT
+        rperm.perm_id,
+        urole.role_id,
+        urole.user_id
+        FROM
+        sys_user_role urole
+        LEFT JOIN sys_role_perm rperm ON urole.role_id = rperm.role_id
+        WHERE
+        urole.user_id = #{userId}
+        ) _this
+        LEFT JOIN sys_perm perm ON perm.id = _this.perm_id
+        WHERE perm.id IS NOT NULL
+        <if test="permType !=null">
+            AND perm.perm_type=#{permType}
+        </if>
+        ORDER BY perm.sort
+    </select>
+    <!-- 根据用户Ids查询用户s -->
+    <select id="getUsersByIds" resultType="DataVo" parameterType="DataVo"><!-- Map -->
+        SELECT id,login_name from sys_user WHERE id IN
+        <foreach collection="userIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 根据用户ID新增角色关联 -->
+    <insert id="insertRolesByUserId">
+        INSERT INTO sys_user_role (user_id,role_id ) VALUES
+        <foreach collection="roleIds" item="roleId" index="index" separator=",">
+            (#{userId,jdbcType=INTEGER}, #{roleId,jdbcType=INTEGER})
+        </foreach>
+    </insert>
+
+    <!-- 新增用户 -->
+    <insert id="insertUser" parameterType="Map" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO sys_user (
+        create_time,update_time
+        <if test="companyId != null and companyId!=''">,company_id</if>
+        <if test="orgId != null and orgId!=''">,org_id</if>
+        <if test="loginName != null">,login_name</if>
+        <if test="password != null">,password</if>
+        <if test="salt != null">,salt</if>
+        <if test="userNo != null">,user_no</if>
+        <if test="name != null">,name</if>
+        <if test="gender != null">,gender</if>
+        <if test="email != null">,email</if>
+        <if test="phone != null">,phone</if>
+        <if test="mobile != null">,mobile</if>
+        <if test="address != null">,address</if>
+        <if test="userState != null">,user_state</if>
+        <if test="userType != null">,user_type</if>
+        <if test="photo != null">,photo</if>
+        <if test="loginIp != null">,login_ip</if>
+        <if test="loginTime != null">,login_time</if>
+        <if test="loginFlag != null">,login_flag</if>
+        <if test="createBy != null">,create_by</if>
+        <if test="updateBy != null">,update_by</if>
+        <if test="remark != null">,remark</if>
+        <if test="delFlag != null">,del_flag</if>
+        ) VALUES(
+        now(),now()
+        <if test="companyId != null and companyId!=''">,#{companyId}</if>
+        <if test="orgId != null and orgId!=''">,#{orgId}</if>
+        <if test="loginName != null">,#{loginName}</if>
+        <if test="password != null">,#{password}</if>
+        <if test="salt != null">,#{salt}</if>
+        <if test="userNo != null">,#{userNo}</if>
+        <if test="name != null">,#{name}</if>
+        <if test="gender != null">,#{gender}</if>
+        <if test="email != null">,#{email}</if>
+        <if test="phone != null">,#{phone}</if>
+        <if test="mobile != null">,#{mobile}</if>
+        <if test="address != null">,#{address}</if>
+        <if test="userState != null">,#{userState}</if>
+        <if test="userType != null">,#{userType}</if>
+        <if test="photo != null">,#{photo}</if>
+        <if test="loginIp != null">,#{loginIp}</if>
+        <if test="loginTime != null">,#{loginTime}</if>
+        <if test="loginFlag != null">,#{loginFlag}</if>
+        <if test="createBy != null">,#{createBy}</if>
+        <if test="updateBy != null">,#{updateBy}</if>
+        <if test="remark != null">,#{remark}</if>
+        <if test="delFlag != null">,#{delFlag}</if>
+        )
+    </insert>
+
+    <!-- 新增多个用户，用于旧表数据导入新表 -->
+    <insert id="insertUsers" parameterType="List">
+        INSERT INTO sys_user (id,create_time,update_time,login_time,org_id,company_id
+        ,login_name,password,salt,user_no,`name`,gender,email,phone,mobile
+        ,address,user_state,user_type,photo,create_by,update_by,remark)
+        VALUES
+        <foreach collection="list" item="user" index="index" separator=",">
+            (#{user.id},now(),now(),now()
+            ,#{user.orgId},
+            <choose>
+                <when test="user.companyId!=null and user.companyId!=''">
+                    #{user.companyId},
+                </when>
+                <otherwise>
+                    NULL ,
+                </otherwise>
+            </choose>
+
+
+            #{user.loginName},#{user.password}
+            ,#{user.salt},#{user.userNo},#{user.name},#{user.gender},#{user.email}
+            ,#{user.phone},#{user.mobile},#{user.address},#{user.userState},#{user.userType}
+            ,#{user.photo},#{user.createBy},#{user.updateBy},#{user.remark})
+        </foreach>
+    </insert>
+
+    <update id="updateUsers" parameterType="List">
+        <foreach collection="list" item="user" index="index" open="" close="" separator=";">
+            UPDATE sys_user
+            <set>
+                login_name=#{user.loginName}
+            </set>
+            WHERE id = #{user.id}
+        </foreach>
+    </update>
+
+    <!-- 更新用户 -->
+    <update id="updateUserById">
+        UPDATE sys_user
+        <set>
+            update_time=now(),
+            <choose>
+                <when test="companyId != null and companyId!=''">
+                    company_id=#{companyId},
+                </when>
+                <otherwise>
+                    company_id = NULL ,
+                </otherwise>
+            </choose>
+            <if test="orgId != null and orgId!=''">org_id=#{orgId},</if>
+            <if test="loginName != null">login_name=#{loginName},</if>
+            <if test="password != null">password=#{password},</if>
+            <if test="salt != null">salt=#{salt},</if>
+            <if test="userNo != null">user_no=#{userNo},</if>
+            <if test="name != null">name=#{name},</if>
+            <if test="gender != null">gender=#{gender},</if>
+            <if test="email != null">email=#{email},</if>
+            <if test="phone != null">phone=#{phone},</if>
+            <if test="mobile != null">mobile=#{mobile},</if>
+            <if test="address != null">address=#{address},</if>
+            <if test="userState != null">user_state=#{userState},</if>
+            <if test="userType != null">user_type=#{userType},</if>
+            <if test="photo != null">photo=#{photo},</if>
+            <if test="loginIp != null">login_ip=#{loginIp},</if>
+            <if test="loginTime != null">login_time=#{loginTime},</if>
+            <if test="loginFlag != null">login_flag=#{loginFlag},</if>
+            <if test="remark != null">remark=#{remark},</if>
+            <if test="updateBy != null and updateBy!=''">update_by=#{updateBy},</if>
+            <if test="delFlag != null">del_flag=#{delFlag},</if>
+            <if test="sysFlag != null">sys_flag=#{sysFlag}</if>
+        </set>
+        <where>
+            id=#{id}
+        </where>
+    </update>
+
+    <!-- 根据用户ID新增用户数据权限关联 -->
+    <insert id="insertUserDataByUserId">
+        INSERT INTO sys_user_data (user_id,data_id,data_type) VALUES
+        <foreach collection="dataIds" item="dataId" index="index" separator=",">
+            (#{userId,jdbcType=INTEGER}, #{dataId,jdbcType=INTEGER}, #{dataType,jdbcType=INTEGER})
+        </foreach>
+    </insert>
+
+    <!-- 根据用户ID获取可查看的数据权限ID集合 -->
+    <select id="getUserDataByUserId" parameterType="java.lang.Integer" resultType="DataVo">
+        SELECT DISTINCT data_id,data_type FROM sys_user_data
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 根据用户ID获取可查看的数据权限ID集合 -->
+    <select id="getUserDataIdsByUserId" resultType="Integer">
+        SELECT DISTINCT data_id FROM sys_user_data
+        WHERE user_id = #{userId}
+        AND data_type=#{dataType}
+    </select>
+
+    <!-- 根据用户ID和数据类型删除角色对应的数据权限 -->
+    <delete id="deleteDatasByUserId">
+        DELETE FROM sys_user_data WHERE user_id = #{userId,jdbcType=INTEGER}
+        <if test="dataType!=null and dataType!=''">
+            AND data_type = #{dataType,jdbcType=INTEGER}
+        </if>
+        <if test="dataIds!=null and dataIds.size() > 0">
+            AND data_id IN
+            <foreach collection="dataIds" item="dataId" open="(" separator="," close=")">
+                #{dataId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+    </delete>
+
+    <!-- 根据运营商ID集合获取orgName,TreeNode对象 -->
+    <select id="getOrgNameById" parameterType="java.util.Set" resultType="TreeNode">
+        SELECT org_id AS id, org_name AS name, 0 AS pid,1 AS level FROM pub_org
+        WHERE 1=1
+        <!-- 原需求平移，过滤掉未审核，审核不通过的企业管理员 -->
+        AND audit_status = '1'
+        <if test="orgIds!=null and orgIds.size() > 0">
+            AND org_id IN
+            <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                #{orgId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+    </select>
+    <!-- 根据运营商名称获取orgName,TreeNode对象 -->
+    <select id="getOrgNameByName" parameterType="java.lang.String" resultType="TreeNode">
+        SELECT org_id AS id, org_name AS name, 0 AS pid,1 AS level FROM pub_org
+        WHERE 1=1
+        <!-- 原需求平移，过滤掉未审核，审核不通过的企业管理员 -->
+        AND audit_status = '1'
+        AND org_name LIKE concat('%',#{orgName},'%')
+    </select>
+
+    <!-- 根据场站ID集合查询场站，返回TreeNode集合 -->
+    <select id="getStationNameById" parameterType="java.util.Set" resultType="TreeNode">
+        SELECT station_id AS id, station_name AS name, org_id  AS pid,2 AS level FROM chg_station
+        WHERE 1=1 AND org_id IS NOT NULL
+        <!-- 只查有效的场站 -->
+        AND use_status = '0'
+        <if test="stationIds!=null and stationIds.size() > 0">
+            AND station_id IN
+            <foreach collection="stationIds" item="stationId" open="(" separator="," close=")">
+                #{stationId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 根据场站名称查询场站，返回TreeNode集合 -->
+    <select id="getStationNameByName" parameterType="java.lang.String" resultType="TreeNode">
+        SELECT station_id AS id, station_name AS name, org_id  AS pid,2 AS level FROM chg_station
+        WHERE 1=1 AND org_id IS NOT NULL
+        <!-- 只查有效的场站 -->
+        AND use_status = '0'
+        AND station_name LIKE concat('%',#{stationName},'%')
+    </select>
+
+    <!-- 根据orgIds查询场站 -->
+    <select id="getStationNameByOrgId" parameterType="java.util.Set" resultType="TreeNode">
+        SELECT station_id AS id, station_name AS name, org_id AS pid FROM chg_station
+        WHERE 1=1
+        AND use_status = '0'
+        <if test="orgIds!=null and orgIds.size() > 0">
+            AND org_id IN
+            <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                #{orgId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 删除多个用户对应数据权限关联 -->
+    <delete id="deleteUserDataByUserIds" parameterType="List">
+        DELETE FROM sys_user_data WHERE user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId,jdbcType=INTEGER}
+        </foreach>
+    </delete>
+
+    <!-- 删除单个用户 -->
+    <delete id="deleteUserById" parameterType="Integer">
+        DELETE FROM sys_user WHERE id = #{userId}
+    </delete>
+
+    <!-- 删除多个用户 -->
+    <delete id="deleteUsersById">
+        UPDATE sys_user
+        SET user_state = #{status}
+        WHERE id IN
+        <foreach collection="userIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据用户ID和角色ID删除用户角色关联表数据 -->
+    <delete id="deleteRolesByUserId">
+        DELETE FROM sys_user_role WHERE user_id = #{userId}
+        <if test="roleIds!=null">
+            AND role_id IN
+            <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+                #{roleId}
+            </foreach>
+        </if>
+    </delete>
+
+    <!-- 根据用户ids删除用户角色关联表 -->
+    <delete id="deleteUserRolesByUserIds">
+        DELETE FROM sys_user_role WHERE user_id IN
+            <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                #{userId}
+            </foreach>
+    </delete>
+
+	<!-- 用户业务下拉 -->
+	<select id="getUsersSelect" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.`id`,this_.`login_name` as name FROM sys_user this_ where 1=1
+		<if test="orgIds != null">
+			AND this_.org_id IN 
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				#{orgId}
+			</foreach>
+		</if>
+		<if test="userAppId != null">
+			AND this_.id = #{userAppId}
+		</if>
+		order by this_.id,this_.login_name
+	</select>
+
+    <!-- 存储过程，查询传入企业的所有子企业org_id -->
+    <select id="getAllChildren" parameterType="Integer" statementType="CALLABLE"
+            resultType="Integer">
+        {call pro_getallchildrentypes(#{orgId,mode=IN})}
+    </select>
+
+
+    <!-- 查询所有父节点不为空的企业 -->
+    <select id="getAllOrgs" resultType="DataVo">
+        SELECT org_id,p_org_id FROM pub_org
+        WHERE p_org_id IS NOT NULL;
+    </select>
+
+    <select id="area" resultType="DataVo">
+        SELECT a.`AREA_NAME`,
+        a.`AREA_NO` ,
+        s.STATION_LNG,
+        s.STATION_LAT
+        FROM `chg_station` s
+        LEFT JOIN `pub_area` a on (a.`AREA_NO`= s.`CITY_CODE`)
+        WHERE `STATION_LNG` IS NOT NULL
+        AND `STATION_LAT` IS NOT NULL;
+    </select>
+</mapper>

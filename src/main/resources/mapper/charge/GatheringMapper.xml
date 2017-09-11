@@ -1,0 +1,877 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.charge.mapper.GatheringMapper">
+	<!-- 查询集团信息 -->
+ 	<select id="getGroup" parameterType="DataVo" resultType="DataVo"> 
+  	 select
+ 	        GROUP_ID ,GROUP_NAME,APP_FROM  
+ 	    from 
+ 	        C_GROUP 
+          <where> 
+ 			<if test="appFrom!=null and appFrom!=''">
+ 				 and APP_FROM in  
+ 				 <foreach collection="appFrom" index="index" item="item" open="(" separator="," close=")">
+            		#{item}
+        		</foreach>    
+ 			</if> 
+ 		</where> 
+ 	    order by 
+ 	        GROUP_NAME asc 
+ 	</select>
+	<!-- 查询充值记录-->
+	<select id="selectRecharge" parameterType="DataVo" resultType="DataVo">
+ 	 SELECT
+		this_.BILL_RECHARGE_ID ,
+		this_.BILL_RECHARGE_NO ,
+		this_.OUT_BILL_NO ,
+		this_.PREPAY_ID ,
+		this_.CONS_ID ,
+		this_.RECHARGE_TYPE ,
+		this_.AMOUNT ,
+		this_.CREATE_TIME ,
+		this_.RECHARGE_STATE ,
+		this_.CHECK_STATE ,
+		this_.BILL_DESC ,
+		this_.FINISH_TIME ,
+		ccons2x1_.CONS_NO ,
+		ccons2x1_.CONS_NAME ,
+		ccons2x1_.CONS_PHONE ,
+		ccons2x1_.CONS_TYPE_CODE ,
+		ccons2x1_.GROUP_ID ,
+		cgroup3x2_.GROUP_NAME ,
+		ccons2x1_.APP_FROM ,
+		cacct3x3_.ACCT_NO 
+	FROM
+		BILL_RECHARGE this_
+		LEFT OUTER JOIN C_CONS ccons2x1_ ON this_.CONS_ID = ccons2x1_.CONS_ID
+		LEFT OUTER JOIN C_ACCT cacct3x3_ ON ccons2x1_.ACCT_ID = cacct3x3_.ACCT_ID
+		LEFT OUTER JOIN C_GROUP cgroup3x2_ ON ccons2x1_.GROUP_ID = cgroup3x2_.GROUP_ID
+	 <where>
+	 	this_.RECHARGE_STATE = '02'
+		<if test="consName!=null and consName!=''">
+			and ccons2x1_.CONS_NAME like concat('%',#{consName},'%')
+		</if>
+		<if test="consTypeCode!=null and consTypeCode!='-1'">
+			and ccons2x1_.CONS_TYPE_CODE = #{consTypeCode}
+		</if>
+		<if test="groupId!=null and groupId!=''">
+			and ccons2x1_.GROUP_ID = #{groupId} 
+		</if>
+		<if test="groupName!=null and groupName!=''">
+			and cgroup3x2_.GROUP_NAME like concat('%',#{groupName},'%') 
+		</if>
+		<if test="phoneNo!=null and phoneNo!=''">
+			and ccons2x1_.CONS_PHONE like concat('%',#{phoneNo},'%')
+		</if>
+		<if test="startDate!=null">
+   			 <![CDATA[ and  DATE_FORMAT(this_.CREATE_TIME, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')   ]]> 
+		</if> 
+		<if test="endDate!=null ">
+    		 <![CDATA[ and DATE_FORMAT(this_.CREATE_TIME, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')     ]]> 
+		</if>
+		<if test="rechargeType!=null and rechargeType!='-1'">
+			and this_.RECHARGE_TYPE = #{rechargeType}
+
+		</if>
+		<if test="billRechargeNo!=null and billRechargeNo!=''">
+			and this_.BILL_RECHARGE_NO like concat('%',#{billRechargeNo},'%')
+		</if>
+		<if test="appFrom!=null and appFrom.size()>0">
+			 and ccons2x1_.APP_FROM in 
+			<foreach item="item" index="index" collection="appFrom" open="(" separator="," close=")"> 
+  				#{item} 
+			</foreach>   
+		</if>
+	</where>
+	ORDER BY
+		this_.CREATE_TIME DESC
+	</select>
+	<!-- 查询充值记录合计-->
+	<select id="selectRechargeCount" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		sum(this_.AMOUNT)  AMOUNT
+		FROM
+		BILL_RECHARGE this_
+		LEFT OUTER JOIN C_CONS ccons2x1_ ON this_.CONS_ID = ccons2x1_.CONS_ID
+		LEFT OUTER JOIN C_ACCT cacct3x3_ ON ccons2x1_.ACCT_ID = cacct3x3_.ACCT_ID
+		LEFT OUTER JOIN C_GROUP cgroup3x2_ ON ccons2x1_.GROUP_ID = cgroup3x2_.GROUP_ID
+		<where>
+			this_.RECHARGE_STATE = '02'
+			<if test="consName!=null and consName!=''">
+				and ccons2x1_.CONS_NAME like concat('%',#{consName},'%')
+			</if>
+			<if test="consTypeCode!=null and consTypeCode!='-1'">
+				and ccons2x1_.CONS_TYPE_CODE = #{consTypeCode}
+			</if>
+			<if test="groupId!=null and groupId!=''">
+				and ccons2x1_.GROUP_ID = #{groupId}
+			</if>
+			<if test="groupName!=null and groupName!=''">
+				and cgroup3x2_.GROUP_NAME like concat('%',#{groupName},'%')
+			</if>
+			<if test="phoneNo!=null and phoneNo!=''">
+				and ccons2x1_.CONS_PHONE like concat('%',#{phoneNo},'%')
+			</if>
+			<if test="startDate!=null">
+				<![CDATA[ and  DATE_FORMAT(this_.CREATE_TIME, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')   ]]>
+			</if>
+			<if test="endDate!=null ">
+				<![CDATA[ and DATE_FORMAT(this_.CREATE_TIME, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')     ]]>
+			</if>
+			<if test="rechargeType!=null and rechargeType!='-1'">
+				and this_.RECHARGE_TYPE = #{rechargeType}
+
+			</if>
+			<if test="billRechargeNo!=null and billRechargeNo!=''">
+				and this_.BILL_RECHARGE_NO like concat('%',#{billRechargeNo},'%')
+			</if>
+			<if test="appFrom!=null and appFrom.size()>0">
+				and ccons2x1_.APP_FROM in
+				<foreach item="item" index="index" collection="appFrom" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+	</select>
+    <!--月结合计-->
+	<select id="selectYuejieCount" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		sum(this_.CHG_AMOUNT) CHG_AMOUNT
+		FROM
+		C_ACCT_SEQ this_
+		INNER JOIN C_GROUP cgroup2x1_ ON this_.ACCT_ID = cgroup2x1_.ACCT_ID
+		LEFT OUTER JOIN C_ACCT cacct3x2_ ON cgroup2x1_.ACCT_ID = cacct3x2_.ACCT_ID
+		<where>
+			this_.CHG_TYPE = '02'
+			<if test="groupId!=null and groupId!=''">
+				and cgroup2x1_.GROUP_ID = #{groupId}
+			</if>
+			<if test="groupName!=null and groupName!=''">
+				and cgroup2x1_.GROUP_NAME  like concat('%',#{groupName},'%')
+			</if>
+			<if test="gatherPerson!=null and gatherPerson!=''">
+				and this_.GATHER_PERSON  like concat('%',#{gatherPerson},'%')
+			</if>
+			<if test="appFrom!=null and appFrom.size()>0">
+				and cgroup2x1_.APP_FROM in
+				<foreach item="item" index="index" collection="appFrom" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test="startDate!=null">
+				<![CDATA[ and  DATE_FORMAT(this_.CREATE_TIME, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')]]>
+			</if>
+			<if test="endDate!=null">
+				<![CDATA[ and DATE_FORMAT(this_.CREATE_TIME, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')]]>
+			</if>
+		</where>
+	</select>
+	<!-- 查询月結记录-->
+	<select id="selectYuejie" parameterType="DataVo" resultType="DataVo">
+ 	 SELECT
+		this_.SEQ_ID ,
+		this_.ACCT_ID ,
+		this_.SEQ_FLAG ,
+		this_.PRE_AMOUNT ,
+		this_.CUR_AMOUNT ,
+		this_.CHG_AMOUNT ,
+		this_.CHG_TYPE ,
+		this_.BILL_RECHARGE_ID ,
+		this_.BILL_PAY_ID ,
+		this_.GROUP_BILL_ID ,
+		this_.SEQ_DESC ,
+		this_.IS_INVOICE ,
+		this_.GATHER_PERSON ,
+		this_.GATHER_WAY ,
+		this_.CREATE_TIME ,
+		cgroup2x1_.GROUP_NO ,
+		cgroup2x1_.GROUP_NAME ,
+		cgroup2x1_.PAY_MODEL ,
+		cgroup2x1_.ATTENTION_NAME ,
+		cacct3x2_.ACCT_NO ,
+		cacct3x2_.ACCT_AMOUNT 
+	FROM
+		C_ACCT_SEQ this_
+		INNER JOIN C_GROUP cgroup2x1_ ON this_.ACCT_ID = cgroup2x1_.ACCT_ID
+		LEFT OUTER JOIN C_ACCT cacct3x2_ ON cgroup2x1_.ACCT_ID = cacct3x2_.ACCT_ID
+	<where>
+		this_.CHG_TYPE = '02'
+		<if test="groupId!=null and groupId!=''">
+			and cgroup2x1_.GROUP_ID = #{groupId} 
+		</if>
+		<if test="groupName!=null and groupName!=''">
+			and cgroup2x1_.GROUP_NAME  like concat('%',#{groupName},'%') 
+		</if>
+		<if test="gatherPerson!=null and gatherPerson!=''">
+			and this_.GATHER_PERSON  like concat('%',#{gatherPerson},'%') 
+		</if>
+		<if test="appFrom!=null and appFrom.size()>0">
+			 and cgroup2x1_.APP_FROM in 
+			<foreach item="item" index="index" collection="appFrom" open="(" separator="," close=")"> 
+  				#{item} 
+			</foreach>   
+		</if>
+		<if test="startDate!=null">
+   			 <![CDATA[ and  DATE_FORMAT(this_.CREATE_TIME, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')]]>
+		</if> 
+		<if test="endDate!=null">
+    		 <![CDATA[ and DATE_FORMAT(this_.CREATE_TIME, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')]]>
+		</if>
+	</where>
+	ORDER BY
+		this_.CREATE_TIME DESC
+	</select>
+
+	<!-- 卡充值记录查询 -->
+	<select id="selectKczCount" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		sum(this_.AMOUNT) AMOUNT
+		FROM
+		C_CARD_RECHARGE this_
+		LEFT OUTER JOIN C_CARD ccard2x1_ ON this_.CARD_ID = ccard2x1_.CARD_ID
+		LEFT OUTER JOIN C_CONS ccons3x2_ ON ccard2x1_.CONS_ID = ccons3x2_.CONS_ID
+		LEFT OUTER JOIN C_GROUP cgroup4x3_ ON ccons3x2_.GROUP_ID = cgroup4x3_.GROUP_ID
+		LEFT OUTER JOIN CHG_STATION chgstation4_ ON this_.STATION_ID = chgstation4_.STATION_ID
+		<where>
+			<if test="startDate!=null and startDate!=''">
+				<![CDATA[ and  DATE_FORMAT(this_.RECHARGE_TIME, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')]]>
+			</if>
+			<if test="endDate!=null and endDate!=''">
+				<![CDATA[ and DATE_FORMAT(this_.RECHARGE_TIME, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')]]>
+			</if>
+			<if test="cardId!=null and cardId!=''">
+				and this_.CARD_ID like concat('%',#{cardId},'%')
+			</if>
+			<if test="stationId!=null and stationId!=''">
+				and this_.station_Id = #{stationId}
+			</if>
+			<if test="stationName!=null and stationName!=''">
+				and chgstation4_.STATION_NAME  like concat('%',#{stationName},'%')
+			</if>
+			<if test="consName!=null and consName!=''">
+				and ccons3x2_.CONS_NAME like concat('%',#{consName},'%')
+			</if>
+			<if test="consTypeCode!=null and consTypeCode!='-1'">
+				and ccons3x2_.CONS_TYPE_CODE = #{consTypeCode}
+			</if>
+			<if test="groupId!=null and groupId!='-1'">
+				and ccons3x2_.GROUP_ID = #{groupId}
+			</if>
+			<if test="groupName!=null and groupName!=''">
+				and cgroup4x3_.GROUP_NAME  like concat('%',#{groupName},'%')
+			</if>
+			<if test="appFrom!=null and appFrom.size()>0">
+				and ccons3x2_.APP_FROM in
+				<foreach item="item" index="index" collection="appFrom" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test="stationIds !=null and stationIds.size()>0">
+				and this_.station_Id in
+				<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+	</select>
+	<!-- 卡充值记录查询 -->
+	<select id="selectKcz" parameterType="DataVo" resultType="DataVo">
+	    SELECT
+			this_.SEQ_ID ,
+			this_.CARD_ID ,
+			this_.RECHARGE_TIME ,
+			this_.AMOUNT ,
+			this_.RECHARGE_TYPE ,
+			this_.STATION_ID ,
+			chgstation4_.STATION_NAME ,
+			this_.USER_ID ,
+			ccard2x1_.CARD_ID ,
+			ccons3x2_.CONS_NAME ,
+			ccons3x2_.CONS_TYPE_CODE ,
+			ccons3x2_.GROUP_ID ,
+			cgroup4x3_.GROUP_NAME
+		FROM
+			C_CARD_RECHARGE this_
+			LEFT OUTER JOIN C_CARD ccard2x1_ ON this_.CARD_ID = ccard2x1_.CARD_ID
+			LEFT OUTER JOIN C_CONS ccons3x2_ ON ccard2x1_.CONS_ID = ccons3x2_.CONS_ID
+			LEFT OUTER JOIN C_GROUP cgroup4x3_ ON ccons3x2_.GROUP_ID = cgroup4x3_.GROUP_ID
+			LEFT OUTER JOIN CHG_STATION chgstation4_ ON this_.STATION_ID = chgstation4_.STATION_ID
+		<where>
+			<if test="startDate!=null and startDate!=''"> 
+   			 	<![CDATA[ and  DATE_FORMAT(this_.RECHARGE_TIME, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')]]> 
+			</if> 
+			<if test="endDate!=null and endDate!=''"> 
+	    		 <![CDATA[ and DATE_FORMAT(this_.RECHARGE_TIME, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')]]> 
+			</if>
+			<if test="cardId!=null and cardId!=''">
+				and this_.CARD_ID like concat('%',#{cardId},'%')
+			</if>
+			<if test="stationId!=null and stationId!=''">
+				and this_.station_Id = #{stationId}
+			</if>
+			<if test="stationName!=null and stationName!=''">
+				and chgstation4_.STATION_NAME  like concat('%',#{stationName},'%') 
+			</if>
+			<if test="consName!=null and consName!=''">
+				and ccons3x2_.CONS_NAME like concat('%',#{consName},'%')
+			</if>
+			<if test="consTypeCode!=null and consTypeCode!='-1'">
+				and ccons3x2_.CONS_TYPE_CODE = #{consTypeCode}
+			</if>
+			<if test="groupId!=null and groupId!='-1'">
+				and ccons3x2_.GROUP_ID = #{groupId}
+			</if>
+			<if test="groupName!=null and groupName!=''">
+				and cgroup4x3_.GROUP_NAME  like concat('%',#{groupName},'%') 
+			</if>
+			<if test="appFrom!=null and appFrom.size()>0">
+			 	and ccons3x2_.APP_FROM in 
+				<foreach item="item" index="index" collection="appFrom" open="(" separator="," close=")"> 
+	  				#{item} 
+				</foreach>   
+			</if>
+			<if test="stationIds !=null and stationIds.size()>0">
+			 	and this_.station_Id in
+				<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")"> 
+	  				#{item} 
+				</foreach>   
+			</if>
+		</where>
+		ORDER BY
+			this_.RECHARGE_TIME DESC
+	</select>
+	<!-- 查询集团表 -->
+	<select id="selectCgroup" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		GROUP_ID GROUP_NO,
+		GROUP_NAME,
+		GROUP_ADDR,
+		ATTENTION_NAME,
+		ATTENTION_PHONE,
+		ATTENTION_EMAIL,
+		PAY_MODEL,
+		ACCT_ID,
+		GROUP_STATUS,
+		REMARK,
+		APP_FROM
+			FROM C_GROUP
+		<where>
+			<if test="groupId !=null and groupId !=''">
+				and GROUP_ID = #{groupId}
+			</if>
+		</where>
+	</select>
+	<!--  新增月结中获取合约名称-->
+	<select id="getConTractName" parameterType="DataVo" resultType="DataVo">
+      		 SELECT
+	                  CONTRACT_ID,
+	                 CONTRACT_NAME
+               FROM
+	                 c_contract
+              WHERE
+	         CONTRACT_ID IN (
+		SELECT
+			DISTINCT(TRACT_ID)
+		FROM
+			c_group_bill
+		WHERE
+			GROUP_BILL_MONTH = #{groupBillMonth}
+		AND GROUP_ID = #{groupId}
+	)
+	</select>
+	<!--  新增月结中获取结款时间 -->
+	<select id="getGroupBillMonth" parameterType="DataVo" resultType="DataVo">
+		SELECT distinct(GROUP_BILL_MONTH)  from c_group_bill
+	</select>
+	<!--  得到月结新增的缴费用户 -->
+	<select id="getGroupName" parameterType="DataVo" resultType="DataVo">
+		SELECT GROUP_NAME,GROUP_ID from c_group
+		WHERE
+		GROUP_ID in (
+		SELECT distinct(GROUP_ID)  from c_group_bill
+		WHERE
+		GROUP_BILL_MONTH = #{groupBillMonth}
+		)
+		<if test="appFrom!=null and appFrom.size()>0">
+			and APP_FROM in
+			<foreach item="item" index="index" collection="appFrom" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	<!--  得到月结新增的收款金额 -->
+	<select id="getYuejieMoney" parameterType="DataVo" resultType="DataVo">
+		SELECT GROUP_BILL_STATUS,GROUP_BILL_AMOUNT,GROUP_BILL_ID FROM c_group_bill b
+		LEFT JOIN
+		c_group c
+		ON
+		b.GROUP_ID = c.GROUP_ID
+		LEFT JOIN
+		c_acct a
+		ON
+		a.ACCT_ID = c.ACCT_ID
+		WHERE
+		b.GROUP_ID =#{groupId}
+		AND
+		b.TRACT_ID= #{contractId}
+		AND
+		b.GROUP_BILL_MONTH= #{groupBillMonth}
+		<if test="appFrom!=null and appFrom.size()>0">
+			and APP_FROM in
+			<foreach item="item" index="index" collection="appFrom" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+
+
+	<!-- 查询会员账户信息表 -->
+	<select id="selectCacct" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		ACCT_ID,
+		ACCT_NO,
+		ACCT_PWD,
+		ACCT_AMOUNT,
+		UPDATE_TIME,
+		ACCT_STATE_CODE,
+		ACCT_CASH_LIMIT,
+		CREATE_TIME
+			FROM C_ACCT
+		<where>
+			<if test="acctId !=null and acctId !=''">
+				and ACCT_ID = #{acctId}
+			</if>
+		</where>
+	</select>
+	  <!--得到cacct-->
+	<select id="findCacct" parameterType="DataVo" resultType="DataVo">
+                SELECT
+	               ACCT_ID,ACCT_AMOUNT,CREATE_TIME
+                FROM
+	                c_acct
+              WHERE
+	            ACCT_ID = (
+		           SELECT
+			           ACCT_ID
+	              	FROM
+			          c_group
+		           WHERE
+			    GROUP_ID = #{groupId}
+	)
+	</select>
+
+	<!--得到cacct-->
+	<select id="selectCGrupBill" parameterType="DataVo" resultType="DataVo">
+		SELECT GROUP_ID,TRACT_ID,GROUP_BILL_ID from
+               c_group_bill
+                 WHERE
+             GROUP_BILL_ID = #{groupBillId}
+	</select>
+	<!--得到stations根据tractId-->
+	<select id="getStationRela" parameterType="DataVo" resultType="Integer">
+		  SELECT
+	      DISTINCT(STATION_ID)
+          FROM
+	    c_contract_station_rela
+         WHERE
+	CONTRACT_ID = #{tractId}
+	</select>
+	<!--得到月结bill-->
+	<select id="getyujieBill" parameterType="DataVo" resultType="DataVo">
+	     SELECT
+	          b.bill_Pay_Id, c.CONS_PHONE,
+	        c.CONS_NAME,p.STATION_ID
+         FROM
+	     bill_pay b
+          LEFT JOIN c_cons c ON b.CONS_ID = c.CONS_ID
+         INNER JOIN c_group g on c.GROUP_ID = g.GROUP_ID
+        LEFT JOIN chg_pile p on b.PILE_ID = p.PILE_ID
+          LEFT JOIN chg_station s on p.STATION_ID = s.STATION_ID
+        WHERE
+       g.GROUP_ID = #{groupId}
+		<![CDATA[ and  DATE_FORMAT(b.END_TIME, '%Y-%m') =  #{groupBillMonth} ]]>
+		<if test="appFrom!=null and appFrom.size()>0">
+		 and g.APP_FROM in
+		<foreach item="item" index="index" collection="appFrom" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+		</if>
+		<if test="stationIds!=null and stationIds.size()>0">
+			and p.STATION_ID in
+			<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+           ORDER BY b.CREATE_TIME
+	</select>
+	<update id="updateCacct" parameterType="DataVo">
+		UPDATE c_acct
+		<set>
+			<if test="acctAmount != null">acct_Amount=#{acctAmount}</if>
+		</set>
+		WHERE
+		acct_id = #{acctId}
+	</update>
+	<insert id="intoCacctSeq" parameterType="DataVo" useGeneratedKeys="true" >
+		INSERT INTO C_Acct_Seq (
+		acct_id,seq_flag,pre_Amount,cur_Amount,chg_Amount,chg_Type,seq_Desc,is_Invoice,create_Time,gather_Person,gather_Way
+         ,group_Bill_Id
+		) VALUES(
+		#{acctId},#{seqFlag},#{preAmount},#{curAmount},#{chgAmount},#{chgType},#{seqDesc},#{isInvoice},#{createTime},
+		#{gatherPerson},#{gatherWay},#{groupBillId}
+		)
+	</insert>
+	<update id="updateBillPay"  parameterType="DataVo">
+		UPDATE bill_pay
+		<set>
+			PAY_STATE=3,
+			pay_type=2
+		</set>
+		WHERE
+		bill_Pay_Id in
+			<foreach item="item" index="index" collection="billPayIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+	</update>
+	<update id="updateBgb" parameterType="DataVo">
+		UPDATE c_group_bill
+		<set>
+			GROUP_BILL_STATUS=1
+		</set>
+		WHERE
+		GROUP_BILL_ID = #{groupBillId}
+	</update>
+	<select id="getBillPay" parameterType="int" resultType="DataVo">
+				SELECT
+				 BILL_PAY_ID,
+				 BILL_PAY_NO,
+				 START_TIME,
+				 END_TIME,
+				 PILE_ID,
+				 INNER_ID,
+				 START_TYPE,
+				 PRE_AMOUNT,
+				 AMOUNT,
+				 CHG_POWER,
+				 ELCE_FEE,
+				 SERV_FEE,
+				 PARK_FEE,
+				 CREATE_TIME,
+				 FINISH_TIME,
+				 PAY_STATE,
+				 CHECK_STATE,
+				 BILL_DESC,
+				 ORG_ID,
+				 CONS_ID,
+				 IS_STOP,
+				 SETTLE_TIMES,
+				 PAY_TYPE,
+				 PREPAY_ID,
+				 OUT_BILL_NO,
+				 POWER_ZXYG1,
+				 POWER_ZXYG2,
+				 POWER_ZXYG3,
+				 POWER_ZXYG4,
+				 PRC_ZXYGZ1,
+				 PRC_ZXYGZ2,
+				 PRC_ZXYGZ3,
+				 PRC_ZXYGZ4,
+				 SERV_PRICE,
+				 CAR_ID,
+				 COUPON_ID,
+				 MINUTES,
+				 ORDER_STATUS,
+				 DISCOUNT_FEE,
+				 FIG
+				 from bill_pay
+				WHERE BILL_PAY_ID=#{billPayId}
+	</select>
+	<select id="getPile" parameterType="int" resultType="DataVo">
+			SELECT
+			 p.PILE_ID,
+			 p.PILE_NO,
+			 p.PILE_NAME,
+			 p.PILE_ADDR,
+			 p.PILE_TYPE,
+			 p.PILE_STATUS,
+			 p.PILE_PROTOCOL,
+			 p.GUN_TYPE_CODE,
+			p.CON_CYCLE,
+			 p.PRC_ID_PRE,
+			 p.PRC_ID_RES,
+			 p.PRC_CHG_TIME,
+			 p.MANUFACTURER_ID,
+			 p.PILE_MODEL_ID,
+			p.SOFT_VERSION,
+			p.HARD_VERSION,
+			 p.PRODUCTION_DATE,
+			 p.INSTALL_DATE,
+			 p.PILE_LNG,
+			p.PILE_LAT,
+			p.ORG_ID,
+			 p.STATION_ID,
+			 p.RAT_VOLT,
+			 p.RAT_CURR,
+			p. POWER_UP,
+			 p.POWER_UP_RECOV,
+			 p.VOLT_UP,
+			 p.VOLT_UP_RECOV,
+			 p.VOLT_DOWN,
+			 p.VOLT_DOWN_RECOV,
+			 p.CUR_MIN,
+			 p.CUR_MAX,
+			 p.INNER_PILE_NO,
+			 p.INNER_PILE_NAME,
+			 p.PILE_CAP,
+			 p.PILE_GB_PROTOCOL,
+			 p.QR_CODE_STATE,
+			 p.HLHT_QRCODE_STATE,
+			 p.IS_QRCODE,
+			 p.number_gun,
+			 p.ort_mode,
+			 p.power_mode,
+			 p.serial_number,
+			 p.screen_version,
+			 p.auxi_power,
+			 p.rate_power,
+			 p.pass_date,
+			 pp.PRC_ID,
+			 pp.PRC_NAME,
+			 pp.PRC_TYPE_CODE,
+			 pp.PRC_ZXYGZ1,
+			 pp.PRC_ZXYGZ2,
+			 pp.PRC_ZXYGZ3,
+			 pp.PRC_ZXYGZ4,
+			 pp.PRC_ZXYGZ5,
+			 pp.PRC_ZXYGZ6,
+			 pp.PRC_ZXYGZ7,
+			 pp.PRC_ZXYGZ8,
+			 pp.PRC_SERVICE,
+			 pp.USER_ID,
+			 pp.ORG_ID,
+			 pp.CREATE_TIME,
+			 pp.AGREEMENT,
+			 pp.PRC_SERVICE_BILI
+
+			 from chg_pile p
+			LEFT JOIN pub_price pp
+			on p.PRC_ID_PRE = pp.PRC_ID
+			WHERE
+			p.PILE_ID = #{pileId}
+	</select>
+	<select id="getPileNew" parameterType="int" resultType="DataVo">
+		SELECT
+		 PILE_ID,
+		 PILE_NO,
+		 PILE_NAME,
+		 PILE_ADDR,
+		 PILE_TYPE,
+		 PILE_STATUS,
+		 PILE_PROTOCOL,
+		 GUN_TYPE_CODE,
+		 CON_CYCLE,
+		 PRC_ID_PRE,
+		 PRC_ID_RES,
+		 PRC_CHG_TIME,
+		 MANUFACTURER_ID,
+		 PILE_MODEL_ID,
+		 SOFT_VERSION,
+		 HARD_VERSION,
+		 PRODUCTION_DATE,
+		 INSTALL_DATE,
+		 PILE_LNG,
+		 PILE_LAT,
+		 ORG_ID,
+		 STATION_ID,
+		 RAT_VOLT,
+		 RAT_CURR,
+		 POWER_UP,
+		 POWER_UP_RECOV,
+		 VOLT_UP,
+		 VOLT_UP_RECOV,
+		 VOLT_DOWN,
+		 VOLT_DOWN_RECOV,
+		 CUR_MIN,
+		 CUR_MAX,
+		 INNER_PILE_NO,
+		 INNER_PILE_NAME,
+		 PILE_CAP,
+		 PILE_GB_PROTOCOL,
+		 QR_CODE_STATE,
+		 HLHT_QRCODE_STATE,
+		 IS_QRCODE,
+		 number_gun,
+		 ort_mode,
+		 power_mode,
+		 serial_number,
+		 screen_version,
+		 auxi_power,
+		 rate_power,
+		 pass_date
+		 from chg_pile p
+		WHERE
+		p.PILE_ID = #{pileId}
+	</select>
+
+	<select id="ChgRecord" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		SEQ_ID,
+		PILE_NO,
+		GUN_NO,
+		CHG_TYPE,
+		STA_TIME,
+		END_TIME,
+		PRE_AMOUNT,
+		CUR_AMOUNT,
+		ELCE_FEE,
+		PRC_ZXYGZ1,
+		PRE_ZXYGZ,
+		CUR_ZXYGZ,
+		PILE_SEQ_ID,
+		AREA_CODE,
+		CARD_NO1,
+		CARD_NO2,
+		CARD_TYPE1,
+		CARD_TYPE2,
+		PRE_ZXYGZ1,
+		PRE_ZXYGZ2,
+		PRE_ZXYGZ3 P,
+		RE_ZXYGZ4,
+		CUR_ZXYGZ1,
+		CUR_ZXYGZ2,
+		CUR_ZXYGZ3,
+		CUR_ZXYGZ4,
+		PRC_ZXYGZ2,
+		PRC_ZXYGZ3,
+		PRC_ZXYGZ4,
+		PRC_PARK,
+		SERV_FEE,
+		PARK_FEE,
+		CARD_COUNT,
+		CARD_VERSION,
+		POS_NUMBER,
+		CARD_STATE_CODE,
+		CAR_VIN,
+		WRITE_TIME
+		from chg_record cr
+		WHERE
+		<choose>
+			<when test="rechargeCard !=null and rechargeCard != ''">
+				cr.CARD_NO1 = #{rechargeCard}
+				AND cr.PILE_SEQ_ID=#{pileSeqId}
+			</when>
+			<otherwise>
+				cr.CARD_NO1 =#{cardNo}
+			</otherwise>
+		</choose>
+		order BY CHG_TYPE desc
+	</select>
+
+	<!--更改订单-->
+	<update id="updateBill" parameterType="DataVo">
+	UPDATE   bill_pay
+	<set>
+		<if test="billPayNo != null and billPayNo != ''">BILL_PAY_NO=#{billPayNo},</if>
+		<if test="startDate != null">START_TIME=#{startDate},</if>
+		<if test="endDate != null">END_TIME=#{endDate},</if>
+		<if test="pileId != null and pileId != ''">PILE_ID=#{pileId},</if>
+		<if test="innerId != null and innerId != ''">INNER_ID=#{innerId},</if>
+		<if test="startType != null and startType != ''">START_TYPE=#{startType},</if>
+		<if test="preAmount != null and preAmount != ''">PRE_AMOUNT=#{preAmount},</if>
+		<if test="amount != null and amount != ''">AMOUNT=#{amount},</if>
+		<if test="chgPower != null and chgPower != ''">CHG_POWER=#{chgPower},</if>
+		<if test="elceFee != null and elceFee != ''">ELCE_FEE=#{elceFee},</if>
+		<if test="servFee != null and servFee != ''">SERV_FEE=#{servFee},</if>
+		<if test="parkFee != null and parkFee != ''">PARK_FEE=#{parkFee},</if>
+		<if test="createTime != null">CREATE_TIME=#{createTime},</if>
+		<if test="finishTime != null">FINISH_TIME=#{finishTime},</if>
+		<if test="payState != null and payState != ''">PAY_STATE=#{payState},</if>
+		<if test="checkState != null and checkState != ''">CHECK_STATE=#{checkState},</if>
+		<if test="billDesc != null and billDesc != ''">BILL_DESC=#{billDesc},</if>
+		<if test="orgId != null and orgId != ''">ORG_ID=#{orgId},</if>
+		<if test="consId != null and consId != ''">CONS_ID=#{consId},</if>
+		<if test="isStop != null and isStop != ''">IS_STOP=#{isStop},</if>
+		<if test="payType != null and payType != ''">PAY_TYPE=#{payType},</if>
+		<if test="prepayId != null and prepayId != ''">PREPAY_ID=#{prepayId},</if>
+		<if test="outBillNo != null and outBillNo != ''">OUT_BILL_NO=#{outBillNo},</if>
+		<if test="powerZxyg1 != null and powerZxyg1 != ''">OUT_BILL_NO=#{powerZxyg1},</if>
+		<if test="powerZxyg2 != null and powerZxyg2 != ''">POWER_ZXYG3=#{powerZxyg2},</if>
+		<if test="powerZxyg3 != null and powerZxyg3 != ''">POWER_ZXYG3=#{powerZxyg3},</if>
+		<if test="powerZxyg4 != null and powerZxyg4 != ''">POWER_ZXYG4=#{powerZxyg4},</if>
+		<if test="prcZxygz1 != null and prcZxygz1 != ''">PRC_ZXYGZ1=#{prcZxygz1},</if>
+		<if test="prcZxygz2 != null and prcZxygz2 != ''">PRC_ZXYGZ2=#{prcZxygz2},</if>
+		<if test="prcZxygz3 != null and prcZxygz3 != ''">PRC_ZXYGZ3=#{prcZxygz3},</if>
+		<if test="prcZxygz4 != null and prcZxygz4 != ''">PRC_ZXYGZ4=#{prcZxygz4},</if>
+		<if test="servPrice != null and servPrice != ''">SERV_PRICE=#{servPrice},</if>
+		<if test="carId != null and carId != ''">CAR_ID=#{carId},</if>
+		<if test="couponId != null and couponId != ''">COUPON_ID=#{couponId},</if>
+		<if test="minutes != null and minutes != ''">MINUTES=#{minutes},</if>
+		<if test="orderStatus != null and orderStatus != ''">ORDER_STATUS=#{orderStatus},</if>
+		<if test="discountFee != null and discountFee != ''">DISCOUNT_FEE=#{discountFee},</if>
+		<if test="fig != null and fig != ''">FIG=#{fig},</if>
+	</set>
+	WHERE
+	BILL_PAY_ID = #{billPayId}
+	</update>
+
+	<select id="getChgRecord" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		SEQ_ID,
+		 PILE_NO,
+		 GUN_NO,
+		 CHG_TYPE,
+		 STA_TIME,
+		 END_TIME,
+		 PRE_AMOUNT,
+		 CUR_AMOUNT,
+		 ELCE_FEE,
+		 PRC_ZXYGZ1,
+		 PRE_ZXYGZ,
+		 CUR_ZXYGZ,
+		 PILE_SEQ_ID,
+		 AREA_CODE,
+		 CARD_NO1,
+		 CARD_NO2,
+		 CARD_TYPE1,
+		 CARD_TYPE2,
+		 PRE_ZXYGZ1,
+		 PRE_ZXYGZ2,
+		 PRE_ZXYGZ3 P,
+		 RE_ZXYGZ4,
+		 CUR_ZXYGZ1,
+		 CUR_ZXYGZ2,
+		 CUR_ZXYGZ3,
+		 CUR_ZXYGZ4,
+		 PRC_ZXYGZ2,
+		 PRC_ZXYGZ3,
+		 PRC_ZXYGZ4,
+		 PRC_PARK,
+		 SERV_FEE,
+		 PARK_FEE,
+		 CARD_COUNT,
+		 CARD_VERSION,
+		 POS_NUMBER,
+		 CARD_STATE_CODE,
+		 CAR_VIN,
+		 WRITE_TIME
+		from chg_record
+		WHERE
+		SEQ_ID = #{seqId}
+	</select>
+	<select id="getYuejiList" parameterType="DataVo" resultType="Integer">
+		 SELECT
+		count(*)
+	FROM
+		C_ACCT_SEQ this_
+		INNER JOIN C_GROUP cgroup2x1_ ON this_.ACCT_ID = cgroup2x1_.ACCT_ID
+		LEFT  JOIN C_ACCT cacct3x2_ ON cgroup2x1_.ACCT_ID = cacct3x2_.ACCT_ID
+		LEFT  JOIN  c_group_bill g on g.GROUP_BILL_ID = this_.GROUP_BILL_ID
+  WHERE
+		this_.CHG_TYPE = '02'
+	AND
+      cacct3x2_.ACCT_ID  = #{acctId}
+	and g.GROUP_BILL_MONTH = #{groupBillMonth}
+		AND
+		this_.GROUP_BILL_ID=#{groupBillId}
+	</select>
+</mapper>

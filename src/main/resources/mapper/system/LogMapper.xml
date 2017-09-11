@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.system.mapper.LogMapper">
+  <!-- 排序条件 -->
+  <sql id="orderBy">
+    <if test="sort!=null">
+      ORDER BY concat('log.',${sort}) ${order}
+    </if>
+  </sql>
+
+  <!-- 查询日志列表 -->
+  <select id="getLogsByPage" parameterType="DataVo" resultType="DataVo">
+    SELECT log.*<!--, u.login_name, o.org_name-->
+    FROM sys_log log
+    <!--LEFT JOIN sys_user u ON log.create_by = u.id
+    LEFT JOIN pub_org o ON log.org_id = o.org_id-->
+    WHERE 1=1
+    <if test="orgName !=null">
+        AND log.org_name LIKE concat('%',#{orgName},'%')
+    </if>
+    <if test="orgIds !=null">
+      AND log.org_id IN
+      <foreach collection="orgIds" item="id" open="(" separator="," close=")">
+        #{id}
+      </foreach>
+    </if>
+    <if test="type!=null">
+      AND log.type = #{type}
+    </if>
+    <if test="loginName!=null">
+      AND log.login_name LIKE concat('%',#{loginName},'%')
+    </if>
+    <if test="title!=null">
+      AND log.title LIKE concat('%',#{title},'%')
+    </if>
+    <if test="desc!=null">
+      AND log.desc LIKE concat('%',#{desc},'%')
+    </if>
+    <if test="startDate!=null and startDate!=''">
+      <![CDATA[ AND create_date>= #{startDate}]]>
+    </if>
+    <if test="endDate!=null and endDate!=''">
+      <![CDATA[ AND create_date<= #{endDate}]]>
+    </if>
+    <!--<include refid="orderBy"></include>-->
+    ORDER BY create_date DESC
+  </select>
+
+  <!-- 根据ID查询日志详情 -->
+  <select id="getLogById" parameterType="java.lang.Integer" resultType="DataVo">
+    SELECT *
+    FROM sys_log
+    WHERE id = #{id}
+  </select>
+
+  <!-- 添加业务日志信息 -->
+  <insert id="insertLog" parameterType="Map" keyProperty="id" useGeneratedKeys="true">
+    INSERT INTO sys_log
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      create_date,
+      <if test="title != null">
+        title,
+      </if>
+      <if test="loginName != null">
+        login_name,
+      </if>
+      <if test="type != null">
+        `type`,
+      </if>
+      <if test="createBy != null and createBy !=''">
+        create_by,
+      </if>
+      <if test="orgId != null and orgId !=''">
+        org_id,
+      </if>
+      <if test="orgName != null">
+        org_name,
+      </if>
+      <if test="objectId != null and objectId !=''">
+        object_id,
+      </if>
+      <if test="remoteAddr != null">
+        remote_addr,
+      </if>
+      <if test="userAgent != null">
+        user_agent,
+      </if>
+      <if test="requestUri != null">
+        request_uri,
+      </if>
+      <if test="method != null">
+        method,
+      </if>
+      <if test="params != null">
+        params,
+      </if>
+      <if test="exception != null">
+        `exception`,
+      </if>
+      <if test="desc != null">
+        `desc`,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      now(),
+      <if test="title != null">
+        #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="loginName != null">
+        #{loginName,jdbcType=VARCHAR},
+      </if>
+      <if test="type != null">
+        #{type,jdbcType=VARCHAR},
+      </if>
+      <if test="createBy != null and createBy !=''">
+        #{createBy,jdbcType=VARCHAR},
+      </if>
+      <if test="orgId != null and orgId !=''">
+        #{orgId,jdbcType=INTEGER},
+      </if>
+      <if test="orgName != null">
+        #{orgName,jdbcType=VARCHAR},
+      </if>
+      <if test="objectId != null and objectId !=''">
+        #{objectId,jdbcType=INTEGER},
+      </if>
+      <if test="remoteAddr != null">
+        #{remoteAddr,jdbcType=VARCHAR},
+      </if>
+      <if test="userAgent != null">
+        #{userAgent,jdbcType=VARCHAR},
+      </if>
+      <if test="requestUri != null">
+        #{requestUri,jdbcType=DECIMAL},
+      </if>
+      <if test="method != null">
+        #{method,jdbcType=INTEGER},
+      </if>
+      <if test="params != null">
+        #{params,jdbcType=VARCHAR},
+      </if>
+      <if test="exception != null">
+        #{exception,jdbcType=VARCHAR},
+      </if>
+      <if test="desc != null">
+        #{desc,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+</mapper>

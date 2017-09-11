@@ -1,0 +1,11 @@
+{
+    "orgId":1,
+    "taskName":"1111111111",
+    "stationId":22,
+    "wqConsId":1,
+    "taskLevel":"S",
+    "taskStartHour":"2017-05-02 18:00:00",
+    "taskEndHour":"2017-05-02 23:59:59",
+    "patternId":11,
+    "taskFreq":0
+}

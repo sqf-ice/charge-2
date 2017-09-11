@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.vehicle.mapper.DriverMapper">
+
+	<!-- 查询驾驶员列表 -->
+	<select id="queryDrivers" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	    this_.driverId driver_Id,
+		this_.driverName driver_Name,
+		this_.sex,
+		this_.address,
+		this_.nationality,
+		DATE_FORMAT(this_.birthday, '%Y-%m-%d') birthday,
+		DATE_FORMAT(this_.cardTime, '%Y-%m-%d') card_Time,
+		this_.models,
+		this_.certificateImgUrl certificate_Img_Url,
+		this_.orgId org_Id,
+		puborg2x1_.org_name,
+		this_.mobilePhone mobile_Phone,
+		this_.operatingTime operating_Time,
+		this_.vehicleId vehicle_Id,
+		DATE_FORMAT(this_.validTerm, '%Y-%m-%d') valid_Term,
+		DATE_FORMAT(this_.endValidTerm, '%Y-%m-%d') end_Valid_Term,
+		this_.identity_card
+		FROM
+		driver this_
+		LEFT OUTER JOIN PUB_USER pubuser2x2_ ON this_.userId =
+		pubuser2x2_.USER_ID
+		LEFT OUTER JOIN PUB_ORG puborg2x1_ ON this_.orgId =
+		puborg2x1_.ORG_ID
+		<where>
+			<if test="orgIds != null">
+				AND this_.orgId IN
+				<foreach collection="orgIds" item="item" open="("
+					separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			<!-- 驾驶员姓名 -->
+			<if test="driverName != null and '' != driverName">
+				AND this_.driverName like concat('%',#{driverName},'%')
+			</if>
+			<!--手机号 -->
+			<if test="mobilePhone != null and '' != mobilePhone ">
+				AND this_.mobilePhone like concat('%',#{mobilePhone},'%')
+			</if>
+			<!-- 初次领证时间的开始查询时间 -->
+			<if test="bigCardTime != null ">
+				AND this_.cardTime <![CDATA[ >= ]]> #{bigCardTime}
+			</if>
+			<!-- 初次领证时间的结束查询时间 -->
+			<if test="endCardTime != null">
+				AND  this_.cardTime <![CDATA[ <= ]]> #{endCardTime}
+			</if>
+			<!-- 车辆ID -->
+			<if test="vehicleId != null and '' != vehicleId ">
+				AND this_.vehicleId = #{vehicleId}
+			</if>
+		</where>
+	</select>
+	
+	<select id="getDriver" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		this_.driverId driver_Id,
+		this_.driverName driver_Name,
+		this_.sex,
+		this_.address,
+		this_.nationality,
+		DATE_FORMAT(this_.birthday, '%Y-%m-%d') birthday,
+		DATE_FORMAT(this_.cardTime, '%Y-%m-%d') card_Time,
+		this_.models,
+		this_.certificateImgUrl certificate_Img_Url,
+		this_.orgId org_Id,
+		c.org_name,
+		this_.mobilePhone mobile_Phone,
+		this_.operatingTime operating_Time,
+		this_.vehicleId vehicle_Id,
+		DATE_FORMAT(this_.validTerm, '%Y-%m-%d') valid_Term,
+		DATE_FORMAT(this_.endValidTerm, '%Y-%m-%d') end_Valid_Term,
+		this_.identity_card
+		FROM
+		driver this_
+		LEFT  JOIN pub_org c ON this_.orgId = c.org_id
+		WHERE this_.driverId = #{driverId}
+	</select>
+	
+	<select id="queryDriverExist" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		driverId
+		FROM
+		driver
+		<where>
+		    <if test="driverId != null">
+				AND driverId != #{driverId}
+			</if>
+			<if test="mobilePhone != null and mobilePhone !=''">
+				AND mobilePhone = #{mobilePhone}
+			</if>
+			<if test="orgId != null ">
+				AND orgId = #{orgId}
+			</if>
+		</where>
+	</select>
+	
+	<!-- 通过车辆Id查询驾驶员列表 -->
+	<select id="queryDriversByvehicleId" parameterType="Integer" resultType="DataVo">
+		SELECT
+		this_.driverId driver_Id,
+		this_.driverName driver_Name,
+		this_.sex,
+		this_.address,
+		this_.nationality,
+		DATE_FORMAT(this_.birthday, '%Y-%m-%d') birthday,
+		DATE_FORMAT(this_.cardTime, '%Y-%m-%d') card_Time,
+		this_.models ,
+		this_.orgId org_Id,
+		c.org_name,
+		this_.mobilePhone mobile_Phone,
+		this_.operatingTime operating_Time,
+		DATE_FORMAT(this_.validTerm, '%Y-%m-%d') valid_Term,
+		DATE_FORMAT(this_.endValidTerm, '%Y-%m-%d') end_Valid_Term,
+		this_.identity_card
+		FROM
+		vehicle_driver_rel v
+		LEFT JOIN driver this_ ON this_.driverId =
+		v.driver_id
+		LEFT JOIN pub_org c ON this_.orgId = c.org_id
+		WHERE  v.vehicle_id = #{vehicleId}
+	</select>
+
+	<!-- 新增驾驶员 -->
+	<insert id="insertDriver" parameterType="Map" useGeneratedKeys="true">
+		INSERT INTO driver
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="orgId != null">orgId,</if>
+			<if test="userId != null">userId,</if>
+			<if test="driverName != null and driverName !=''">driverName,</if>
+			<if test="sex != null">sex,</if>
+			<if test="nationality != null and nationality !=''">nationality,</if>
+			<if test="address != null and address !=''">address,</if>
+			<if test="birthday != null">birthday,</if>
+			<if test="cardTime != null">cardTime,</if>
+			<if test="models != null and models !=''">models,</if>
+			<if test="validTerm != null ">validTerm,</if>
+			<if test="mobilePhone != null and mobilePhone !=''">mobilePhone,</if>
+			<if test="certificateImgUrl != null and certificateImgUrl !=''">certificateImgUrl,</if>
+			operatingTime,
+			<if test="endValidTerm != null">endValidTerm,</if>
+			<if test="vehicleId != null ">vehicleId,</if>
+			<if test="identityCard != null and identityCard !=''">identity_card</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="orgId != null">#{orgId},</if>
+			<if test="userId != null">#{userId},</if>
+			<if test="driverName != null and driverName !=''">#{driverName},</if>
+			<if test="sex != null ">#{sex,jdbcType=INTEGER},</if>
+			<if test="nationality != null and nationality !=''">#{nationality},</if>
+			<if test="address != null and address !=''">#{address},</if>
+			<if test="birthday != null">#{birthday},</if>
+			<if test="cardTime != null and cardTime !=''">#{cardTime},</if>
+			<if test="models != null and models !=''">#{models},</if>
+			<if test="validTerm != null">#{validTerm},</if>
+			<if test="mobilePhone != null and mobilePhone !=''">#{mobilePhone},</if>
+			<if test="certificateImgUrl != null and certificateImgUrl !=''">#{certificateImgUrl},</if>
+			now(),
+			<if test="endValidTerm != null">#{endValidTerm},</if>
+			<if test="vehicleId != null">#{vehicleId},</if>
+			<if test="identityCard != null and identityCard !=''">#{identityCard}</if>
+		</trim>
+	</insert>
+
+	<!-- 编辑驾驶员 -->
+	<update id="updateDriverByDriverId" parameterType="Map">
+		UPDATE driver
+		<set>
+			sex=#{sex},
+			nationality=#{nationality},
+			address=#{address},
+			driverName=#{driverName},
+			birthday=#{birthday},
+			cardTime=#{cardTime},
+		    models=#{models},
+			validTerm=#{validTerm},
+			mobilePhone=#{mobilePhone},
+			certificateImgUrl=#{certificateImgUrl},
+			userId=#{userId},
+			orgId=#{orgId},
+			operatingTime=#{operatingTime},
+			endValidTerm=#{endValidTerm},
+			vehicleId=#{vehicleId},
+			identity_card=#{identityCard}
+		</set>
+		WHERE driverId=#{driverId}
+	</update>
+	<!-- 根据证号集合查询驾驶证信息 7 -->
+	<select id="getDriverByVars" parameterType="Map" resultType="DataVo">
+		SELECT
+		driverId,identity_card
+		FROM
+		driver
+		<where>
+			<if test="identityCards != null ">
+				AND identity_card IN
+				<foreach collection="identityCards" item="item" open="("
+					separator="," close=")">#{item}</foreach>
+			</if>
+		</where>
+	</select>
+	<insert id="insertDrivers" parameterType="Map">
+		INSERT INTO driver(driverName,sex,nationality,address,birthday,
+		cardTime,models,validTerm,mobilePhone,certificateImgUrl,userId,
+		orgId,operatingTime,endValidTerm,identity_card,vehicleId
+		)VALUES
+		<foreach collection="drivers" item="driver" index="index" separator=",">
+			(#{driverName},#{sex},#{nationality},#{address},#{birthday},
+			#{cardTime},#{models},#{validTerm},#{mobilePhone},#{certificateImgUrl},
+			#{userId},#{orgId},#{operatingTime},#{endValidTerm},#{identityCard},#{vehicleId})
+		</foreach>
+	</insert>
+
+	<update id="updateDrivers" parameterType="Map">
+		<foreach collection="identitys" item="identity" index="index"
+			open="" close="" separator=";">
+			UPDATE driver
+			<set>
+				sex=#{identity.sex},
+				nationality=#{identity.nationality},
+				address=#{identity.address},
+				driverName=#{identity.driverName},
+				birthday=#{identity.birthday},
+				cardTime=#{identity.cardTime},
+				models=#{identity.models},
+				validTerm=#{identity.validTerm},
+				mobilePhone=#{identity.mobilePhone},
+				certificateImgUrl=#{identity.certificateImgUrl},
+				userId=#{identity.userId},
+				orgId=#{identity.orgId},
+				operatingTime=#{identity.operatingTime},
+				endValidTerm=#{identity.endValidTerm},
+				vehicleId=#{identity.vehicleId}
+			</set>
+			<where>
+				identityCard = #{cons.identityCard}
+			</where>
+		</foreach>
+	</update>
+</mapper>

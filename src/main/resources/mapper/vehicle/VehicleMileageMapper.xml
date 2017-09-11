@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--namespace必须是接口的全类名 -->
+<mapper namespace="com.clouyun.charge.modules.vehicle.mapper.VehicleMileageMapper">
+	
+	
+	<select id="queryHistory" resultType="Map">
+		SELECT
+			vehicle_id,
+			date(timetag) day,
+			min(mileages) min,
+			max(mileages) max
+		FROM
+			vehicle_history
+		<where>
+			<if test="endTime != null">
+				AND timetag <![CDATA[ < ]]> #{endTime}
+			</if>
+		</where>
+		GROUP BY
+			vehicle_id,
+			day
+		ORDER BY
+			vehicle_id;
+	</select>
+
+	<select id="queryMileageCount" resultType="Integer">
+		select
+			count(1)
+		from
+			vehicle_mileage vm
+		<where>
+			<if test="endTime != null">
+				vm.day <![CDATA[ < ]]> #{endTime}
+			</if>
+
+		</where>
+	</select>
+
+	<insert id="batchInser" parameterType="java.util.List">
+		INSERT INTO vehicle_mileage(
+			vehicle_id,
+			mileage,
+			day,
+			year,
+			month
+		)
+		VALUES
+		<foreach collection="list" item="item" index="index" separator=",">
+			(
+				#{item.vehicleId},
+				#{item.mileage},
+				#{item.day},
+				#{item.year},
+				#{item.month}
+			)
+		</foreach>
+	</insert>
+</mapper>

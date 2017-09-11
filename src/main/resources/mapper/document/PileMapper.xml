@@ -1,0 +1,814 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.PileMapper">
+
+	<!-- 查询充电桩列表 -->
+	<select id="getPileAll" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		this_.PILE_ID,
+		this_.PILE_NO,
+		this_.PILE_NAME,
+		this_.PILE_ADDR,
+		this_.PILE_PROTOCOL,
+		this_.CON_CYCLE,
+		this_.PRC_ID_PRE,
+		this_.PRC_ID_RES,
+		this_.PRC_CHG_TIME,
+		this_.MANUFACTURER_ID,
+		this_.PILE_TYPE,
+		this_.PILE_MODEL_ID,
+		this_.SOFT_VERSION,
+		this_.HARD_VERSION,
+		this_.PRODUCTION_DATE,
+		this_.INSTALL_DATE,
+		this_.PILE_LNG,
+		this_.PILE_LAT,
+		this_.ORG_ID,
+		this_.STATION_ID,
+		this_.PILE_STATUS,
+		this_.INNER_PILE_NO,
+		this_.INNER_PILE_NAME,
+		this_.IS_QRCODE,
+		this_.QR_CODE_STATE,
+		this_.HLHT_QRCODE_STATE,
+		this_.PILE_CAP,
+		this_.PILE_GB_PROTOCOL,
+		this_.rate_power,
+		this_.number_gun,
+		this_.ort_mode,
+		this_.power_mode,
+		chgstation1_.STATION_NO,
+		chgstation1_.STATION_NAME,
+		puborg_.ORG_NAME,
+		puborg_.ORG_CODE,
+		price_.PRC_NAME,
+		price_.PRC_TYPE_CODE,
+		price_.PRC_ZXYGZ1,
+		price_.PRC_ZXYGZ2,
+		price_.PRC_ZXYGZ3,
+		price_.PRC_ZXYGZ4,
+		price_.PRC_SERVICE
+		FROM
+		CHG_PILE this_
+		LEFT OUTER JOIN
+		CHG_STATION chgstation1_ ON
+		this_.STATION_ID=chgstation1_.STATION_ID
+		LEFT OUTER JOIN PUB_ORG
+		puborg_ ON this_.ORG_ID = puborg_.ORG_ID
+		LEFT
+		OUTER JOIN PUB_PRICE price_ ON price_.PRC_ID = this_.PRC_ID_PRE
+		<include refid="conditions" />
+		ORDER BY this_.ORG_ID ASC,
+		this_.STATION_ID ASC,
+		this_.PILE_NO ASC
+	</select>
+	<!-- 查询条件 -->
+	<sql id="conditions">
+		<where>
+			<if test="cityCode!=null">
+				AND chgstation1_.city_code = #{cityCode}
+			</if>
+			<if test="provCode!=null">
+				AND chgstation1_.prov_code = #{provCode}
+			</if>
+			<if test="orgId != null">
+				AND this_.org_id = #{orgId}
+			</if>
+			<if test="orgIds!=null">
+				AND this_.org_id IN
+				<foreach collection="orgIds" item="id" open="(" separator=","
+					close=")">
+					#{id}
+				</foreach>
+			</if>
+			<if test="stationIds!=null">
+				AND this_.station_id IN
+				<foreach collection="stationIds" item="subId" open="("
+					separator="," close=")">
+					#{subId}
+				</foreach>
+			</if>
+			<if test="stationId !=null">
+				AND this_.station_id = #{stationId}
+			</if>
+			<if test="stationName !=null and stationName != '' ">
+				AND chgstation1_.station_name like
+				concat('%',#{stationName},'%')
+			</if>
+			<if test="factoryId!=null">
+				AND this_.manufacturer_id = #{factoryId}
+			</if>
+			<if test="pileName !=null">
+				AND this_.pile_name like concat('%',#{pileName},'%')
+			</if>
+			<if test="pileId !=null">
+				AND this_.pile_id = #{pileId}
+			</if>
+			<!--<if test="pileType!=null"> AND this_.pile_type = #{pileType} </if> -->
+			<if test="ortMode!=null">
+				AND this_.ort_mode = #{ortMode}
+			</if>
+			<if test="pileStatus!=null">
+				AND this_.pile_status =#{pileStatus}
+			</if>
+			<if test="pileProtocol !=null">
+				AND this_.pile_protocol = #{pileProtocol}
+			</if>
+			<if test="pileAddr != null">
+				AND this_.pile_addr = #{pileAddr}
+			</if>
+		</where>
+	</sql>
+	<!-- 根据场站编号获取设备数量 -->
+	<select id="getPileCountByStationId" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT COUNT(STATION_ID) as count,station_id FROM chg_pile
+		WHERE
+		STATION_ID IN
+		<foreach collection="stationIds" item="stationId" open="("
+			separator="," close=")">
+			#{stationId}
+		</foreach>
+		GROUP BY STATION_ID
+	</select>
+
+	<!-- 根据场站Id获取设备有效数量 -->
+	<select id="getUsePileCountByStationId" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT COUNT(pile_.station_id) as
+		count,pile_.station_id,station_.station_name FROM chg_pile pile_
+		LEFT
+		OUTER JOIN chg_station station_ ON station_.station_id =
+		pile_.station_id
+		WHERE pile_.station_id IN
+		<foreach collection="stationIds" item="stationId" open="("
+			separator="," close=")">
+			#{stationId}
+		</foreach>
+		AND pile_.pile_status = 0
+		GROUP BY
+		pile_.station_id,station_.station_name
+	</select>
+
+	<!-- 充电桩置为无效 -->
+	<update id="dissPile" parameterType="DataVo">
+		UPDATE chg_pile SET pile_status = 1,pass_date = now() WHERE pile_id IN
+		<if test="pileIds !=null">
+			<foreach collection="pileIds" item="id" open="(" separator=","
+				close=")">
+				#{id}
+			</foreach>
+		</if>
+	</update>
+
+	<!-- 根据充电桩Id查询充电桩信息 增加pub_org的关联不会对之前的造成影响 -->
+	<select id="getPileById" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		this_.pile_id,
+		this_.pile_no,
+		this_.pile_name,
+		this_.pile_addr,
+		this_.pile_protocol,
+		this_.con_cycle,
+		this_.prc_id_pre,
+		this_.prc_id_res,
+		this_.prc_chg_time,
+		this_.manufacturer_id,
+		this_.pile_type,
+		this_.pile_model_id,
+		this_.soft_version,
+		this_.hard_version,
+		this_.production_date,
+		this_.install_date,
+		this_.pile_lng,
+		this_.pile_lat,
+		this_.org_id,
+		this_.station_id,
+		this_.pile_status,
+		this_.inner_pile_no,
+		this_.inner_pile_name,
+		this_.is_qrcode,
+		this_.qr_code_state,
+		this_.hlht_qrcode_state,
+		this_.pile_cap,
+		this_.pile_gb_protocol,
+		this_.number_gun,
+		this_.ort_mode,
+		this_.power_mode,
+		this_.serial_number,
+		this_.screen_version,
+		this_.auxi_power,
+		this_.rate_power,
+		chgstation1_.station_no,
+		price_.PRC_NAME,
+		price_.PRC_TYPE_CODE,
+		price_.PRC_ZXYGZ1,
+		price_.PRC_ZXYGZ2,
+		price_.PRC_ZXYGZ3,
+		price_.PRC_ZXYGZ4,
+		price_.PRC_SERVICE,
+		org.ORG_NO
+		FROM
+		chg_pile this_
+		LEFT OUTER JOIN
+		chg_station chgstation1_
+		ON
+		this_.station_id=chgstation1_.station_id
+		LEFT JOIN
+		pub_org org
+		ON
+		this_.org_id=org.org_id
+		LEFT OUTER JOIN pub_price
+		price_ ON price_.PRC_ID = this_.prc_id_pre
+		WHERE
+		this_.pile_id=#{pileId}
+	</select>
+
+	<!-- 根据充电桩Id查询表计信息 -->
+	<select id="getMeterInfo" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		this_.METER_ID,
+		this_.METER_NAME,
+		this_.METER_TYPE,
+		this_.METER_POWER,
+		this_.ORG_ID,
+		this_.PILE_ID,
+		this_.INNER_ID,
+		this_.METER_RATIO,
+		this_.METER_POWER
+		FROM
+		CHG_METER this_
+		WHERE 1=1
+		<if test="pileId != null">
+			AND this_.PILE_ID = #{pileId}
+		</if>
+		ORDER BY
+		this_.INNER_ID DESC;
+	</select>
+
+	<!-- 查询第三方充电桩列表数据 -->
+	<select id="getToEquipmentinfoAll" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		this_.id,
+		this_.equipmentI_D AS equipmentId,
+		this_.manufacturerI_D AS manufacturerId,
+		this_.manufacturerName,
+		this_.equipmentModel,
+		this_.productionDate,
+		this_.equipmentType,
+		this_.equipmentLng,
+		this_.equipmentLat,
+		this_.power,
+		this_.equipmentName,
+		this_.stationI_D AS stationId,
+		this_.operatorI_D AS operatorId,
+		tostationi1_.stationName,
+		tooperator2_.operatorName
+		FROM
+		TO_EquipmentInfo this_
+		LEFT OUTER JOIN
+		TO_StationInfo tostationi1_
+		ON
+		this_.stationI_D=tostationi1_.stationI_D
+		LEFT OUTER JOIN
+		TO_OperatorInfo tooperator2_
+		ON
+		tostationi1_.operatorI_D=tooperator2_.operatorI_D
+		<include refid="toEquipmentConditions" />
+		ORDER BY this_.id ASC
+	</select>
+	<!-- 第三方充电桩列表查询条件 -->
+	<sql id="toEquipmentConditions">
+		WHERE 1=1
+		<if test="operatorId != null">
+			AND this_.operatorI_D = #{operatorId}
+		</if>
+		<if test="operatorIds != null">
+			AND this_.operatorI_D IN
+			<foreach collection="operatorIds" item="operId" open="("
+				separator="," close=")">
+				#{operId}
+			</foreach>
+		</if>
+		<if test="stationId !=null">
+			AND this_.stationI_D = #{stationId}
+		</if>
+		<if test="equipmenttype !=null">
+			AND this_.equipmentType = #{equipmenttype}
+		</if>
+		<if test="equipmentname !=null">
+			AND this_.equipmentName LIKE
+			concat('%',#{equipmentname},'%')
+		</if>
+		<if test="manufacturername !=null">
+			AND this_.manufacturerName LIKE
+			concat('%',#{manufacturername},'%')
+		</if>
+		<if test="equipmentmodel !=null">
+			AND this_.equipmentModel LIKE
+			concat('%',#{equipmentmodel},'%')
+		</if>
+	</sql>
+
+	<!-- 根据第三方充电桩id查询第三方充电桩信息 -->
+	<select id="getToEquipmentinById" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		this_.id,
+		this_.equipmentI_D AS equipmentId,
+		this_.manufacturerI_D AS manufacturerId,
+		this_.manufacturerName,
+		this_.equipmentModel,
+		this_.productionDate,
+		this_.equipmentType,
+		this_.equipmentLng,
+		this_.equipmentLat,
+		this_.power,
+		this_.equipmentName,
+		this_.stationI_D AS stationId,
+		this_.operatorI_D AS
+		operatorId,
+		tostationi1_.stationName,
+		tooperator2_.operatorName
+		FROM
+		TO_EquipmentInfo this_
+		LEFT OUTER JOIN
+		TO_StationInfo tostationi1_
+		ON
+		this_.stationI_D=tostationi1_.stationI_D
+		LEFT OUTER JOIN
+		TO_OperatorInfo tooperator2_
+		ON
+		tostationi1_.operatorI_D=tooperator2_.operatorI_D
+		WHERE this_.id =
+		#{id}
+	</select>
+
+	<!-- 根据设备编码equipmentId查询充电设备接口信息 -->
+	<select id="getToConnectorinfoById" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		this_.id,
+		this_.connectorI_D AS connectorId,
+		this_.connectorName,
+		this_.connectorType,
+		this_.voltageUpperLimits,
+		this_.voltageLowerLimits,
+		this_.current,
+		this_.power,
+		this_.parkNo,
+		this_.equipmentI_D AS equipmentId,
+		this_.operatorI_D AS operatorId,
+		this_.nationalStandard
+		FROM
+		TO_ConnectorInfo this_
+		WHERE
+		this_.equipmentI_D=#{equipmentId}
+	</select>
+
+	<!-- 查询充电桩业务字典 -->
+	<select id="getPile" parameterType="DataVo" resultType="DataVo">
+		SELECT PILE_ID,PILE_NO,PILE_NAME FROM chg_pile WHERE 1=1
+		<if test="orgId != null">
+			AND ORG_ID = #{orgId}
+		</if>
+		<if test="orgIds != null">
+			AND ORG_ID IN
+			<foreach collection="orgIds" item="id" open="(" separator=","
+				close=")">
+				#{id}
+			</foreach>
+		</if>
+		<if test="stationId != null">
+			AND STATION_ID = #{stationId}
+		</if>
+		<if test="stationIds != null">
+			AND STATION_ID IN
+			<foreach collection="stationIds" item="subId" open="("
+				separator="," close=")">
+				#{subId}
+			</foreach>
+		</if>
+		<if test="pileName != null">
+			AND PILE_NAME like concat('%',#{pileName},'%')
+		</if>
+		<if test="pileProtocol != null and pileProtocol!=''">
+			AND PILE_PROTOCOL  = #{pileProtocol}
+		</if>
+	</select>
+
+	<!-- 批量插入桩信息 -->
+	<insert id="insertPiles" parameterType="Map">
+		INSERT INTO `chg_pile` (
+		`pile_no`,
+		`pile_name`,
+		`pile_addr`,
+		`pile_type`,
+		`pile_status`,
+		`pile_protocol`,
+		`con_cycle`,
+		`manufacturer_id`,
+		`pile_model_id`,
+		`production_date`,
+		`install_date`,
+		`org_id`,
+		`station_id`,
+		`inner_pile_no`,
+		`inner_pile_name`,
+		`rate_power`,
+		`pile_gb_protocol`,
+		`is_qrcode`,
+		`ort_mode`,
+		`number_gun`,
+		`power_mode`,
+		`serial_number`
+		)
+		VALUES
+		<foreach collection="piles" item="chgPile" index="index"
+			separator=",">
+			(#{chgPile.pileNo},#{chgPile.pileName},#{chgPile.pileAddr},#{chgPile.pileType},
+			#{chgPile.pileStatus},#{chgPile.pileProtocol},#{chgPile.conCycle},#{chgPile.manufacturerId},
+			#{chgPile.pileModelId},#{chgPile.productionDate},now(),
+			#{chgPile.orgId},#{chgPile.stationId},#{chgPile.innerPileNo},#{chgPile.innerPileName},
+			#{chgPile.ratePower},#{chgPile.pileGbProtocol},#{chgPile.isQrcode},#{chgPile.ortMode},#{chgPile.numberGun}
+			,#{chgPile.powerMode},#{chgPile.serialNumber}
+			)
+		</foreach>
+	</insert>
+	<!-- 批量更新充电桩 -->
+	<update id="batchUpdatePiles" parameterType="Map">
+		<foreach collection="piles" item="pile" index="index" open=""
+			close="" separator=";">
+			UPDATE chg_pile
+			<set>
+				<if test="pile.pileName != null and pile.pileName!=''">pile_name=#{pile.pileName,jdbcType=VARCHAR},</if>
+				<if test="pile.pileAddr != null and pile.pileAddr!=''">pile_addr=#{pile.pileAddr,jdbcType=VARCHAR},</if>
+				<if test="pile.pileType != null and pile.pileType!=''">pile_type=#{pile.pileType,jdbcType=VARCHAR},</if>
+				<if test="pile.pileStatus != null and pile.pileStatus!=''">pile_status=#{pile.pileStatus,jdbcType=VARCHAR},</if>
+				<if test="pile.pileProtocol != null and pile.pileProtocol !=''">pile_protocol=#{pile.pileProtocol,jdbcType=VARCHAR},</if>
+				<if test="pile.gunTypeCode!= null and pile.gunTypeCode!=''">gun_type_code=#{pile.gunTypeCode,jdbcType=VARCHAR},</if>
+				<if test="pile.conCycle!= null">con_cycle=#{pile.conCycle,jdbcType=INTEGER},</if>
+				<if test="pile.prcIdPre != null and pile.prcIdPre != ''">prc_id_pre=#{pile.prcIdPre,jdbcType=INTEGER},</if>
+				<if test="pile.prcIdRes != null and pile.prcIdRes != '' ">prc_id_res=#{pile.prcIdRes,jdbcType=INTEGER},</if>
+				<if test="pile.prcChgTime != null and pile.prcChgTime != '' ">prc_chg_time=#{pile.prcChgTime,jdbcType=TIMESTAMP},</if>
+				<if test="pile.manufacturerId != null and pile.manufacturerId!=''">manufacturer_id=#{pile.manufacturerId,jdbcType=VARCHAR},</if>
+				<if test="pile.pileModelId != null">pile_model_id=#{pile.pileModelId,jdbcType=INTEGER},</if>
+				<if test="pile.softVersion != null and pile.softVersion!=''">soft_version=#{pile.softVersion,jdbcType=VARCHAR},</if>
+				<if test="pile.hardVersion != null and pile.hardVersion!=''">hard_version=#{pile.hardVersion,jdbcType=VARCHAR},</if>
+				<if test="pile.productionDate != null and productionDate != '' ">production_date=#{pile.productionDate,jdbcType=TIMESTAMP},</if>
+				<if test="pile.installDate != null  and pile.installDate != '' ">install_date=#{pile.installDate,jdbcType=TIMESTAMP},</if>
+				<if test="pile.pileLng != null and pile.pileLng != ''">pile_lng=#{pile.pileLng,jdbcType=DECIMAL},</if>
+				<if test="pile.pileLat != null and pile.pileLat != ''">pile_lat=#{pile.pileLat,jdbcType=DECIMAL},</if>
+				<if test="pile.orgId != null">org_id=#{pile.orgId,jdbcType=INTEGER},</if>
+				<if test="pile.stationId != null">station_id=#{pile.stationId,jdbcType=INTEGER},</if>
+				<if test="pile.ratVolt != null">rat_volt=#{pile.ratVolt,jdbcType=DECIMAL},</if>
+				<if test="pile.ratCurr != null">rat_curr=#{pile.ratCurr,jdbcType=DECIMAL},</if>
+				<if test="pile.powerUp != null">power_up=#{pile.powerUp,jdbcType=DECIMAL},</if>
+				<if test="pile.powerUpRecov != null">power_up_recov=#{pile.powerUpRecov,jdbcType=DECIMAL},</if>
+				<if test="pile.voltUp!= null ">volt_up=#{pile.voltUp,jdbcType=DECIMAL},</if>
+				<if test="pile.voltUpRecov != null">volt_up_recov=#{pile.voltUpRecov,jdbcType=DECIMAL},</if>
+				<if test="pile.voltUp != null">volt_up=#{pile.voltUp,jdbcType=DECIMAL},</if>
+				<if test="pile.voltUpRecov != null">volt_up_recov=#{pile.voltUpRecov,jdbcType=DECIMAL},</if>
+				<if test="pile.voltDown != null">volt_down=#{pile.voltDown,jdbcType=DECIMAL},</if>
+				<if test="pile.voltDownRecov != null">volt_down_recov=#{pile.voltDownRecov,jdbcType=DECIMAL},</if>
+				<if test="pile.curMin != null">cur_min=#{pile.curMin,jdbcType=DECIMAL},</if>
+				<if test="pile.curMax != null">cur_max=#{pile.curMax,jdbcType=DECIMAL},</if>
+				<if test="pile.innerPileNo != null and pile.innerPileNo!=''">inner_pile_no=#{pile.innerPileNo,jdbcType=VARCHAR},</if>
+				<if test="pile.innerPileName != null and pile.innerPileName!=''">inner_pile_name=#{pile.innerPileName,jdbcType=VARCHAR},</if>
+				<if test="pile.pileCap != null and pile.pileCap != '' ">pile_cap=#{pile.pileCap,jdbcType=DECIMAL},</if>
+				<if test="pile.pileGbProtocol != null and pile.pileGbProtocol!=''">pile_gb_protocol=#{pile.pileGbProtocol,jdbcType=VARCHAR},</if>
+				<if test="pile.isQrcode != null">is_qrcode=#{pile.isQrcode,jdbcType=INTEGER},</if>
+				<if test="pile.qrCodeState != null">qr_code_state=#{pile.qrCodeState,jdbcType=INTEGER},</if>
+				<if test="pile.hlhtQrcodeState != null">hlht_qrcode_state=#{pile.hlhtQrcodeState,jdbcType=INTEGER},</if>
+				<if test="pile.numberGun != null">number_gun = #{pile.numberGun},</if>
+				<if test="pile.ortMode != null">ort_mode = #{pile.ortMode},</if>
+				<if test="pile.powerMode != null">power_mode = #{pile.powerMode},</if>
+				<if test="pile.ratePower != null and pile.ratePower !=''">rate_power = #{pile.ratePower},</if>
+				<if test="pile.serialNumber != null">serial_number = #{pile.serialNumber},</if>
+				<if test="pile.screenVersion != null">screen_version = #{pile.screenVersion},</if>
+				<if test="pile.auxiPower != null and pile.auxiPower != '' ">auxi_power = #{pile.auxiPower}</if>
+			</set>
+			<where>
+				pile_no=#{pile.pileNo,jdbcType=VARCHAR}
+			</where>
+		</foreach>
+	</update>
+
+	<!-- 充电桩新增 7 -->
+	<insert id="insertPile" parameterType="DataVo" keyProperty="pileId"
+		useGeneratedKeys="true">
+		INSERT INTO chg_pile
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="pileNo != null and pileNo!=''">pile_no,</if>
+			<if test="pileName != null and pileName!=''">pile_name,</if>
+			<if test="pileAddr != null and pileAddr!=''">pile_addr,</if>
+			<if test="pileType != null and pileType!=''">pile_type,</if>
+			<if test="pileStatus != null and pileStatus!=''">pile_status,</if>
+			<if test="pileProtocol!= null and pileProtocol!=''">pile_protocol,</if>
+			<if test="gunTypeCode!= null and gunTypeCode!=''">gun_type_code,</if>
+			<if test="conCycle!= null">con_cycle,</if>
+			<if test="prcIdPre != null">prc_id_pre,</if>
+			<if test="prcIdRes != null">prc_id_res,</if>
+			<if test="prcChgTime != null">prc_chg_time,</if>
+			<if test="manufacturerId != null and manufacturerId!=''">manufacturer_id,</if>
+			<if test="pileModelId != null">pile_model_id,</if>
+			<if test="softVersion != null and softVersion!=''">soft_version,</if>
+			<if test="hardVersion != null and hardVersion!=''">hard_version,</if>
+			<if test="productionDate != null and productionDate != '' ">production_date,</if>
+			<if test="installDate != null  and installDate != '' ">install_date,</if>
+			<if test="pileLng != null and pileLng != ''">pile_lng,</if>
+			<if test="pileLat != null and pileLat != ''">pile_lat,</if>
+			<if test="orgId != null">org_id,</if>
+			<if test="stationId != null">station_id,</if>
+			<if test="ratVolt != null">rat_volt,</if>
+			<if test="ratCurr != null">rat_curr,</if>
+			<if test="powerUp != null">power_up,</if>
+			<if test="powerUpRecov != null">power_up_recov,</if>
+			<if test="voltUp!= null ">volt_up,</if>
+			<if test="voltUpRecov!= null">volt_up_recov,</if>
+			<if test="voltUp!= null">volt_up,</if>
+			<if test="voltUpRecov != null">volt_up_recov,</if>
+			<if test="voltDown != null">volt_down,</if>
+			<if test="voltDownRecov != null">volt_down_recov,</if>
+			<if test="curMin != null">cur_min,</if>
+			<if test="curMax != null">cur_max,</if>
+			<if test="innerPileNo != null and innerPileNo!=''">inner_pile_no,</if>
+			<if test="innerPileName != null and innerPileName!=''">inner_pile_name,</if>
+			<if test="pileCap != null and pileCap != '' ">pile_cap,</if>
+			<if test="pileGbProtocol != null and pileGbProtocol!=''">pile_gb_protocol,</if>
+			<if test="isQrcode != null">is_qrcode,</if>
+			<if test="qrCodeState != null  and '' != qrCodeState">qr_code_state,</if>
+			<if test="hlhtQrcodeState != null">hlht_qrcode_state,</if>
+			<if test="numberGun != null">number_gun,</if>
+			<if test="ortMode != null">ort_mode,</if>
+			<if test="powerMode != null">power_mode,</if>
+			<if test="ratePower != null and ratePower !='' ">rate_power,</if>
+			<if test="serialNumber != null">serial_number,</if>
+			<if test="screenVersion != null">screen_version,</if>
+			<if test="auxiPower != null and auxiPower != '' ">auxi_power</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="pileNo != null and pileNo!=''">#{pileNo,jdbcType=VARCHAR},</if>
+			<if test="pileName != null and pileName!=''">#{pileName,jdbcType=VARCHAR},</if>
+			<if test="pileAddr != null and pileAddr!=''">#{pileAddr,jdbcType=VARCHAR},</if>
+			<if test="pileType != null and pileType!=''">#{pileType,jdbcType=VARCHAR},</if>
+			<if test="pileStatus != null and pileStatus!=''">#{pileStatus,jdbcType=VARCHAR},</if>
+			<if test="pileProtocol != null and pileProtocol !=''">#{pileProtocol,jdbcType=VARCHAR},</if>
+			<if test="gunTypeCode!= null and gunTypeCode!=''">#{gunTypeCode,jdbcType=VARCHAR},</if>
+			<if test="conCycle!= null">#{conCycle,jdbcType=INTEGER},</if>
+			<if test="prcIdPre != null and prcIdPre != ''">#{prcIdPre,jdbcType=INTEGER},</if>
+			<if test="prcIdRes != null and prcIdRes != '' ">#{prcIdRes,jdbcType=INTEGER},</if>
+			<if test="prcChgTime != null and prcChgTime != '' ">#{prcChgTime,jdbcType=TIMESTAMP},</if>
+			<if test="manufacturerId != null and manufacturerId!=''">#{manufacturerId,jdbcType=VARCHAR},</if>
+			<if test="pileModelId != null">#{pileModelId,jdbcType=INTEGER},</if>
+			<if test="softVersion != null and softVersion!=''">#{softVersion,jdbcType=VARCHAR},</if>
+			<if test="hardVersion != null and hardVersion!=''">#{hardVersion,jdbcType=VARCHAR},</if>
+			<if test="productionDate != null and productionDate != '' ">#{productionDate,jdbcType=TIMESTAMP},</if>
+			<if test="installDate != null  and installDate != '' ">#{installDate,jdbcType=TIMESTAMP},</if>
+			<if test="pileLng != null and pileLng != '' ">#{pileLng,jdbcType=DECIMAL},</if>
+			<if test="pileLat != null and pileLat != '' ">#{pileLat,jdbcType=DECIMAL},</if>
+			<if test="orgId != null">#{orgId,jdbcType=INTEGER},</if>
+			<if test="stationId != null">#{stationId,jdbcType=INTEGER},</if>
+			<if test="ratVolt != null">#{ratVolt,jdbcType=DECIMAL},</if>
+			<if test="ratCurr != null">#{ratCurr,jdbcType=DECIMAL},</if>
+			<if test="powerUp != null">#{powerUp,jdbcType=DECIMAL},</if>
+			<if test="powerUpRecov != null">#{powerUpRecov,jdbcType=DECIMAL},</if>
+			<if test="voltUp!= null ">#{voltUp,jdbcType=DECIMAL},</if>
+			<if test="voltUpRecov != null">#{voltUpRecov,jdbcType=DECIMAL},</if>
+			<if test="voltUp != null">#{voltUp,jdbcType=DECIMAL},</if>
+			<if test="voltUpRecov != null">#{voltUpRecov,jdbcType=DECIMAL},</if>
+			<if test="voltDown != null">#{voltDown,jdbcType=DECIMAL},</if>
+			<if test="voltDownRecov != null">#{voltDownRecov,jdbcType=DECIMAL},</if>
+			<if test="curMin != null">#{curMin,jdbcType=DECIMAL},</if>
+			<if test="curMax != null">#{curMax,jdbcType=DECIMAL},</if>
+			<if test="innerPileNo != null and innerPileNo!=''">#{innerPileNo,jdbcType=VARCHAR},</if>
+			<if test="innerPileName != null and innerPileName!=''">#{innerPileName,jdbcType=VARCHAR},</if>
+			<if test="pileCap != null and pileCap != ''">#{pileCap,jdbcType=DECIMAL},</if>
+			<if test="pileGbProtocol != null and pileGbProtocol!=''">#{pileGbProtocol,jdbcType=VARCHAR},</if>
+			<if test="isQrcode != null">#{isQrcode,jdbcType=INTEGER},</if>
+			<if test="qrCodeState != null  and '' != qrCodeState">#{qrCodeState,jdbcType=INTEGER},</if>
+			<if test="hlhtQrcodeState != null">#{hlhtQrcodeState,jdbcType=INTEGER},</if>
+			<if test="numberGun != null">#{numberGun},</if>
+			<if test="ortMode != null">#{ortMode},</if>
+			<if test="powerMode != null">#{powerMode},</if>
+			<if test="ratePower != null and ratePower !=''">#{ratePower},</if>
+			<if test="serialNumber != null">#{serialNumber},</if>
+			<if test="screenVersion != null">#{screenVersion},</if>
+			<if test="auxiPower != null and auxiPower != '' ">#{auxiPower}</if>
+		</trim>
+	</insert>
+	<!-- 表计新增 7 -->
+	<insert id="insertMeter" parameterType="DataVo" keyProperty="meterId"
+		useGeneratedKeys="true">
+		INSERT INTO chg_meter
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="pileId != null">pile_id,</if>
+			<if test="innerId != null">inner_id,</if>
+			<if test="meterNo != null and meterNo !=''">meter_no,</if>
+			<if test="meterName != null and meterName !=''">meter_name,</if>
+			<if test="meterProtocol != null and meterProtocol !=''">meter_protocol,</if>
+			<if test="meterAddr != null and meterAddr !=''">meter_addr,</if>
+			<if test="meterType != null and meterType !=''">meter_type,</if>
+			<if test="meterModel != null and meterModel != ''">meter_model,</if>
+			<if test="orgId != null">org_id,</if>
+			<if test="pt != null and pt !=''">pt,</if>
+			<if test="ct != null and ct !=''">ct,</if>
+			<if test="ratVolt != null">rat_volt,</if>
+			<if test="ratCurr != null">rat_curr,</if>
+			<if test="ratPower != null">rat_power,</if>
+			<if test="maxPower != null">max_power,</if>
+			<if test="voltUp != null">volt_up,</if>
+			<if test="voltUpRecov != null">volt_up_recov,</if>
+			<if test="voltDown != null">volt_down,</if>
+			<if test="voltDownRecov != null">volt_down_recov,</if>
+			<if test="curMax != null">cur_max,</if>
+			<if test="meterRatio != null">meter_ratio,</if>
+			<if test="meterPower != null and '' != meterPower">meter_power</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="pileId != null">#{pileId,jdbcType=INTEGER},</if>
+			<if test="innerId != null">#{innerId,jdbcType=INTEGER},</if>
+			<if test="meterNo != null and meterNo !=''">#{meterNo,jdbcType=VARCHAR},</if>
+			<if test="meterName != null and meterName !=''">#{meterName,jdbcType=VARCHAR},</if>
+			<if test="meterProtocol != null and meterProtocol !=''">#{meterProtocol,jdbcType=VARCHAR},</if>
+			<if test="meterAddr != null and meterAddr !=''">#{meterAddr,jdbcType=VARCHAR},</if>
+			<if test="meterType != null and meterType !=''">#{meterType,jdbcType=VARCHAR},</if>
+			<if test="meterModel != null and meterModel != ''">#{meterModel,jdbcType=VARCHAR},</if>
+			<if test="orgId != null">#{pileId,jdbcType=INTEGER},</if>
+			<if test="pt != null and pt !=''">#{pt,jdbcType=VARCHAR},</if>
+			<if test="ct != null and ct !=''">#{ct,jdbcType=VARCHAR},</if>
+			<if test="ratVolt != null">#{pileId,jdbcType=DECIMAL},</if>
+			<if test="ratCurr != null">#{ratVolt,jdbcType=DECIMAL},</if>
+			<if test="ratPower != null">#{ratPower,jdbcType=DECIMAL},</if>
+			<if test="maxPower != null">#{maxPower,jdbcType=DECIMAL},</if>
+			<if test="voltUp != null">#{voltUp,jdbcType=DECIMAL},</if>
+			<if test="voltUpRecov != null">#{voltUpRecov,jdbcType=DECIMAL},</if>
+			<if test="voltDown != null">#{voltDown,jdbcType=DECIMAL},</if>
+			<if test="voltDownRecov != null">#{voltDownRecov,jdbcType=DECIMAL},</if>
+			<if test="curMax != null">#{curMax,jdbcType=DECIMAL},</if>
+			<if test="meterRatio != null">#{meterRatio,jdbcType=DOUBLE},</if>
+			<if test="meterPower != null  and '' != meterPower">#{meterPower}</if>
+		</trim>
+	</insert><select id="getPileExistByVar" parameterType="Map" resultType="java.lang.Integer">
+		SELECT count(1) FROM chg_pile
+		<where>
+			<if test="pileId != null">
+				AND pile_id != #{pileId,jdbcType=VARCHAR}
+			</if>
+			<if test="pileNo != null and pileNo !=''">
+				AND pile_no = #{pileNo,jdbcType=VARCHAR}
+			</if>
+			<if test="pileAddr != null and pileAddr !=''">
+				AND pile_addr = #{pileAddr,jdbcType=VARCHAR}
+			</if>
+		</where>
+	</select>
+
+	<select id="getPilesByVars" parameterType="Map" resultType="Map">
+		SELECT pile_id,pile_no,pile_addr,ort_mode,number_gun FROM chg_pile
+		<where>
+			<if test="pileNos != null">
+				AND pile_no IN
+				<foreach collection="pileNos" item="item" open="("
+					separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test="pileAddrs != null">
+				AND pile_addr IN
+				<foreach collection="pileAddrs" item="item" open="("
+					separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+	</select>
+
+	<delete id="deleteMeterByPileId" parameterType="Map">
+		DELETE FROM chg_meter
+		<where>
+			pile_id IN
+			<foreach collection="pileIds" item="pileId" open="("
+				separator="," close=")">
+				#{pileId}
+			</foreach>
+		</where>
+	</delete>
+
+	<update id="modifyPileByPileId" parameterType="Map">
+		UPDATE chg_pile
+		<set>
+			pile_no=#{pileNo,jdbcType=VARCHAR},
+			pile_name=#{pileName,jdbcType=VARCHAR},
+			pile_addr=#{pileAddr,jdbcType=VARCHAR},
+			pile_type=#{pileType,jdbcType=VARCHAR},
+			pile_status=#{pileStatus,jdbcType=VARCHAR},
+			pile_protocol=#{pileProtocol,jdbcType=VARCHAR},
+			gun_type_code=#{gunTypeCode,jdbcType=VARCHAR},
+			con_cycle=#{conCycle,jdbcType=INTEGER},
+			prc_id_pre=#{prcIdPre,jdbcType=INTEGER},
+			prc_id_res=#{prcIdRes,jdbcType=INTEGER},
+			prc_chg_time=#{prcChgTime,jdbcType=TIMESTAMP},
+			manufacturer_id=#{manufacturerId,jdbcType=VARCHAR},
+			pile_model_id=#{pileModelId,jdbcType=INTEGER},
+			soft_version=#{softVersion,jdbcType=VARCHAR},
+			hard_version=#{hardVersion,jdbcType=VARCHAR},
+			production_date=#{productionDate,jdbcType=TIMESTAMP},
+			install_date=#{installDate,jdbcType=TIMESTAMP},
+			pile_lng=#{pileLng,jdbcType=DECIMAL},
+			pile_lat=#{pileLat,jdbcType=DECIMAL},
+			org_id=#{orgId,jdbcType=INTEGER},
+			station_id=#{stationId,jdbcType=INTEGER},
+			rat_volt=#{ratVolt,jdbcType=DECIMAL},
+			rat_curr=#{ratCurr,jdbcType=DECIMAL},
+			power_up=#{powerUp,jdbcType=DECIMAL},
+			power_up_recov=#{powerUpRecov,jdbcType=DECIMAL},
+			volt_up=#{voltUp,jdbcType=DECIMAL},
+			volt_up_recov=#{voltUpRecov,jdbcType=DECIMAL},
+			volt_up=#{voltUp,jdbcType=DECIMAL},
+			volt_up_recov=#{voltUpRecov,jdbcType=DECIMAL},
+			volt_down=#{voltDown,jdbcType=DECIMAL},
+			volt_down_recov=#{voltDownRecov,jdbcType=DECIMAL},
+			cur_min=#{curMin,jdbcType=DECIMAL},
+			cur_max=#{curMax,jdbcType=DECIMAL},
+			inner_pile_no=#{innerPileNo,jdbcType=VARCHAR},
+			inner_pile_name=#{innerPileName,jdbcType=VARCHAR},
+			pile_cap=#{pileCap,jdbcType=DECIMAL},
+			pile_gb_protocol=#{pileGbProtocol,jdbcType=VARCHAR},
+			is_qrcode=#{isQrcode,jdbcType=INTEGER},
+			qr_code_state=#{qrCodeState,jdbcType=INTEGER},
+			hlht_qrcode_state=#{hlhtQrcodeState,jdbcType=INTEGER},
+			number_gun = #{numberGun},
+			ort_mode = #{ortMode},
+			power_mode = #{powerMode},
+			rate_power = #{ratePower},
+			serial_number = #{serialNumber},
+			screen_version = #{screenVersion},
+			auxi_power = #{auxiPower}
+		</set>
+		<where>
+			pile_id=#{pileId,jdbcType=INTEGER}
+		</where>
+	</update>
+
+	<select id="queryPileStationInfo" resultType="DataVo">
+		select
+		cp.pile_id,
+		cp.pile_type,
+		cp.pile_no,
+		cs.station_name
+		from
+		chg_pile cp
+		left outer join
+		chg_station cs
+		on cp.station_id = cs.station_id
+		where cp.pile_id =
+		#{pileId}
+	</select>
+
+	<!-- 设备名称或编号业务字典 -->
+	<select id="getPileNoAndNameDict" resultType="DataVo">
+		SELECT
+		pile_id,
+		pile_no,
+		pile_name
+		FROM chg_pile
+		<where>
+			<if test=" orgIds != null">
+				AND org_id IN
+				<foreach collection="orgIds" item="item" open="(" separator=","
+					close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test=" stationIds != null">
+				AND station_id IN
+				<foreach collection="stationIds" item="item" open="("
+					separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test=" orgId != null">
+				AND org_id = #{orgId}
+			</if>
+			<if test=" stationId != null">
+				AND station_id = #{stationId}
+			</if>
+			<if test=" pileId != null">
+				AND pile_id = #{pileId}
+			</if>
+		</where>
+	</select>
+	<!-- 检查桩名称是否重复 -->
+	<select id="checkPileName" parameterType="DataVo" resultType="Integer">
+		select count(*) from chg_pile where 1=1 AND pile_name = #{pileName} and STATION_ID = #{stationId}
+		<if test="pileId != null">
+			AND pile_id <![CDATA[<>]]> #{pileId}
+		</if>
+	</select>
+	<!-- 检查枪二维码是否重复 -->
+	<select id="checkQrCode" parameterType="String" resultType="Integer">
+		SELECT COUNT(*) FROM chg_gun WHERE QR_CODE = #{qrCode}
+	</select>
+</mapper>

@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.OperationMapper">
+	
+	<!-- 查询充电站建设 -->
+	<select id="getStationConstruction"  parameterType="Map" resultType="Integer">
+		SELECT COUNT(*) from CHG_STATION s
+		<where>
+			<if test="orgIds != null">
+				 s.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+		</where>
+		UNION ALL 
+		SELECT COUNT(*) from CHG_PILE p 
+		<where>
+			<if test="orgIds != null">
+				 p.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+		</where>
+		UNION ALL 
+		SELECT COUNT(*)  from CHG_STATION s1 
+		<where>
+		    s1.create_time LIKE #{createTime}
+		    <if test="orgIds != null">
+				and s1.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+				
+			</if>
+		</where>
+		
+	</select>
+	
+	<!-- 查询用户情况 -->
+	<select id="getCcons"  parameterType="Map" resultType="Integer">
+		SELECT COUNT(c.CONS_ID) FROM C_CONS c 
+		<where>
+			<if test="orgIds != null">
+				 c.APP_FROM IN 
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+		</where>
+		UNION ALL 
+		SELECT COUNT(DISTINCT p.CONS_ID) FROM BILL_PAY p 
+		<where>
+			p.CONS_ID IS NOT NULL
+			<if test="orgIds != null">
+				 AND p.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+		</where>
+		UNION ALL 
+		SELECT COUNT(s.CONS_ID) FROM C_CONS s 
+		<where>
+		    s.REG_TIME LIKE #{regTime}
+		    <if test="orgIds != null">
+				AND s.APP_FROM IN
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+		</where>	 
+	</select>
+	
+	<!-- 查询收入情况 -->
+	<select id="getIncomeInfo" parameterType="Map" resultType="Map">	
+			SELECT
+				A.AREA_NAME,
+				IFNULL(SUM(P.AMOUNT), 0) sum
+			FROM
+				BILL_PAY P
+			LEFT JOIN CHG_PILE I ON P.PILE_ID = I.PILE_ID
+			LEFT JOIN CHG_STATION S ON I.STATION_ID = S.STATION_ID
+			INNER JOIN PUB_AREA A ON A.AREA_NO = S.PROV_CODE
+			<where>
+				P.PAY_STATE = '3'
+			    AND S.PROV_CODE IS NOT NULL
+			<if test="orgIds != null">
+				AND P.ORG_ID in 
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+			</where>
+				
+			GROUP BY
+				S.PROV_CODE
+			ORDER BY
+				AMOUNT DESC
+			LIMIT 3;
+		
+	</select>
+	<!-- 查询总收入 -->
+	<select id="getIncomeCount"  parameterType="Map" resultType="Double">
+		SELECT
+			IFNULL(SUM(P.AMOUNT), 0) amount
+		FROM
+			BILL_PAY P
+		LEFT JOIN CHG_PILE I ON P.PILE_ID = I.PILE_ID
+		LEFT JOIN CHG_STATION S ON I.STATION_ID = S.STATION_ID
+		<where>
+				P.PAY_STATE = '3'
+			<if test="orgIds != null">
+				AND P.ORG_ID in 
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+		</where>
+	</select>
+	
+	<!-- 查询充电服务和月统计-->
+	   <select id="getInitData" parameterType="Map" resultType="Double">
+			SELECT COUNT(*) 
+			FROM BILL_PAY p 
+			<where>
+				 p.PAY_STATE != '1'
+				AND p.END_TIME LIKE #{endTime}
+		      <if test="orgIds != null">
+				AND p.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			  </if>
+			</where>
+			UNION ALL 
+			SELECT IFNULL(SUM(p1.CHG_POWER),0) 
+			FROM BILL_PAY p1 
+			<where>
+				 p1.PAY_STATE != '1'
+				AND p1.END_TIME LIKE #{endTime}
+		      <if test="orgIds != null">
+				AND p1.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			  </if>
+			</where> 	
+			UNION ALL 
+			SELECT IFNULL(SUM(p4.AMOUNT),0) 
+			FROM BILL_PAY p4 
+			<where>
+				 p4.PAY_STATE != '1'
+				AND p4.END_TIME LIKE #{endTime}
+		      <if test="orgIds != null">
+				AND p4.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			  </if>
+			</where> 		
+			UNION ALL 
+			SELECT COUNT(*) 
+			FROM BILL_PAY p2 
+			<where>
+				 p2.PAY_STATE != '1'
+		      <if test="orgIds != null">
+				AND p2.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			  </if>
+			</where> 
+			UNION ALL 
+			SELECT COUNT(DISTINCT p3.CAR_ID)
+			FROM BILL_PAY p3 
+			<where>
+				 p3.PAY_STATE != '1'
+		      <if test="orgIds != null">
+				AND p3.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			  </if>
+			</where>  
+	</select>   
+	
+	<!-- 获取运营中所有场站的当月每日的日期 -->
+	<select id="getDate" parameterType="Map" resultType="String">
+		SELECT
+			DATE_FORMAT(END_TIME, '%Y-%m-%d') AS date
+		FROM
+			BILL_PAY 
+		WHERE
+		 	 END_TIME >=#{startTime}
+		AND  #{endTime}>=END_TIME
+		AND  PAY_STATE != 1
+		<if test="orgIds != null">
+			and ORG_ID IN  
+			 	<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+		</if>
+		GROUP BY 
+			DATE_FORMAT(END_TIME, '%Y-%m-%d')
+	</select>
+	
+	<!-- 获取运营中所有场站的当月每日充电量及充电收入和充电量 -->
+	<select id="getPowerAndMoney" parameterType="Map" resultType="Map">
+		SELECT
+			SUM(chg_power) AS power,
+			SUM(AMOUNT) AS amount,
+			DATE_FORMAT(END_TIME, '%Y-%m-%d') AS date
+		FROM
+			BILL_PAY 
+		WHERE
+		 	 END_TIME >=#{startTime}
+		AND  #{endTime}>=END_TIME
+		AND  PAY_STATE != 1
+		<if test="orgIds != null">
+			and ORG_ID IN  
+			 	<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+		</if>
+		GROUP BY 
+			DATE_FORMAT(END_TIME, '%Y-%m-%d')
+	</select>
+	
+	<!-- [0]：上个月总收入 [1]：上上个月总收入  -->
+	<select id="getAountByMonth" parameterType="Map" resultType="Double">
+		SELECT IFNULL(SUM(P.AMOUNT),0) AMOUNT 
+		FROM BILL_PAY P  
+		<where>
+			  P.PAY_STATE = '3' 
+			  AND P.END_TIME LIKE #{endTime1}	
+		      <if test="orgIds != null">
+				AND P.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			  </if>
+		</where>
+		UNION ALL 
+		SELECT IFNULL(SUM(P1.AMOUNT),0) AMOUNT 
+		FROM BILL_PAY P1 
+		 <where>
+			   P1.PAY_STATE = '3' 
+			   AND  P1.END_TIME LIKE #{endTime2}
+			   <if test="orgIds != null">
+				AND P1.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			  </if>
+		</where>
+	</select>
+	
+	<!-- 查询每月各省收入列表， -->
+	<select id="getMoneyByMonth" parameterType="Map" resultType="Map">
+		SELECT A.AREA_NAME code,IFNULL(SUM(P.AMOUNT), 0) amount
+		FROM
+			BILL_PAY P
+		LEFT JOIN CHG_PILE I ON P.PILE_ID = I.PILE_ID
+		LEFT JOIN CHG_STATION S ON I.STATION_ID = S.STATION_ID
+		INNER JOIN PUB_AREA A ON A.AREA_NO = S.PROV_CODE
+		WHERE
+			S.PROV_CODE IS NOT NULL
+		AND P.PAY_STATE = '3'
+		AND P.END_TIME LIKE #{endTime}
+		GROUP BY
+			S.PROV_CODE
+		 <where>
+		      <if test="orgIds != null">
+				AND P.ORG_ID IN  
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			  </if>
+		</where>
+	</select>
+	
+	<!-- 根据场站ID获取所有直交流桩地址 -->
+	<select id="getPilesByStationId" parameterType="Map" resultType="String">
+		SELECT PILE_ADDR
+		FROM chg_pile c
+		<where>
+		 STATION_ID=#{stationId}
+		      <if test="pileTypes != null">
+				AND c.PILE_TYPE IN  
+				<foreach collection="pileTypes" item="pileType" open="(" separator="," close=")">
+					#{pileType}
+				</foreach>
+			  </if>
+		</where>
+	</select>
+		
+	<!-- 查询告警数量和告警修复数量 -->
+	<select id="getWarmByStationId" parameterType="Map" resultType="Integer">
+	select
+        count(*) as amount
+    from
+        PILE_WARM_RECORD this_ 
+    inner join
+        CHG_PILE chgpile2x1_ 
+            on this_.TRM_ADDR=chgpile2x1_.PILE_ADDR 
+    where
+        chgpile2x1_.STATION_ID=#{stationId} 
+        and this_.DATA_TIME like #{dataTime}
+        <if test="handleFlag != null">
+        	 and this_.HANDLE_FLAG=#{handleFlag}
+        </if>       
+	</select>
+	<!-- 查询累计充电量/损耗 -->
+	<select id="getLossByStationId" parameterType="Map" resultType="Map">
+	select
+        sum(this_.SL_TOTAL_LOSS) loss,
+        sum(this_.SL_STATION_ELEC) elec,
+        sum(this_.SL_STATION_CHG)  chg
+    from
+        STATION_LOSS this_ 
+    where
+        this_.SL_STATION_ID=#{stationId}
+        <if test="slDate != null">
+        	 and this_.SL_DATE = #{slDate}
+        </if>
+	</select>
+	
+	<select id="getPileNamesByStationId" parameterType="Map" resultType="Map">
+		SELECT PILE_Name ,PILE_ADDR
+		FROM chg_pile c
+		<where>
+		 STATION_ID=#{stationId}
+		</where>
+	</select>
+	
+	<!-- 当月充电桩损耗率排行榜 -->
+	<select id="getPileLossByStationId" parameterType="Map" resultType="Map">
+		 SELECT 
+		 t1.PILE_ID,
+		 t2.PILE_NAME,
+		 SUM(CHG_LOSS) AS TOTAL_LOSS,
+		 SUM(PILE_CHG) AS TOTAL_ELEC 
+		 FROM PILE_LOSS t1,CHG_PILE t2 
+		 WHERE t1.PILE_ID=t2.PILE_ID 
+		 AND t2.STATION_ID=#{stationId}
+		<if test="plMonth != null">
+        	 AND t1.PL_MONTH = #{plMonth}
+        </if>
+		 GROUP BY PILE_ID 
+		 ORDER BY TOTAL_LOSS DESC, TOTAL_ELEC ASC LIMIT 0,5;
+	
+	</select>
+	
+	<!-- 当月充电桩收入排行榜 -->
+	<select id="getPileIncomeByStationId" parameterType="Map" resultType="Map">
+		SELECT
+			sum(this_.DAILY_INCOME_CHARGE_POWER) power,
+			sum(this_.DAILY_INCOME_TOTAL_INCOME) income,
+			chgpile_.PILE_NAME
+		FROM
+			DAILY_INCOME this_
+		INNER JOIN CHG_PILE chgpile_ 
+		ON this_.PILE_ID = chgpile_.PILE_ID
+		WHERE
+			chgpile_.STATION_ID =#{stationId}
+		 	AND DAILY_INCOME_DATE like #{incomeDate}
+		GROUP BY
+			chgpile_.PILE_ID,
+			chgpile_.PILE_NAME
+		ORDER BY
+			sum(this_.DAILY_INCOME_TOTAL_INCOME) 
+		DESC
+		LIMIT 0,5;
+	</select>
+	
+	<!-- 充电统计查询 -->
+	<select id="getTotalByStationId" parameterType="Map" resultType="Map">
+		select
+	        sum(this_.DAILY_INCOME_CHARGE_POWER) as power,
+	        sum(this_.DAILY_INCOME_TOTAL_INCOME) as income,
+	        sum(this_.DAILY_INCOME_TOTAL_SERVICE_FEE) as fee,
+	        sum(this_.DAILY_INCOME_TOTAL_CONTRACT_SERVICE_FEE) as confee 
+	    from
+	        DAILY_INCOME this_ 
+	    inner join
+	        CHG_PILE chgpile2x1_ 
+	            on this_.PILE_ID=chgpile2x1_.PILE_ID 
+	    where
+	        DAILY_INCOME_DATE like #{incomeDate}
+	        and chgpile2x1_.STATION_ID=#{stationId}
+	</select>
+	
+	<!-- 获取当月服务次数 -->
+	<select id="getCountByStationId" parameterType="Map" resultType="Integer">
+		SELECT
+			count(*) AS y0_
+		FROM
+			BILL_PAY this_
+		INNER JOIN CHG_PILE chgpile2x1_ ON this_.PILE_ID = chgpile2x1_.PILE_ID
+		WHERE
+			this_.END_TIME like #{incomeDate} 
+		AND chgpile2x1_.STATION_ID = #{stationId}
+		AND this_.PAY_STATE != '1'
+	</select>
+	
+	<!-- 获取总分成收入 -->
+	<select id="getFcsrByStationId" parameterType="Map" resultType="Map">
+		select
+	        this_.CCID as y0_,
+	        this_.CONTRACT_ID as y1_,
+	        this_.TR_COMPANY_ID as y2_,
+	        this_.TR_GROUP_ID as y3_,
+	        this_.PERCENTAGE as percentage 
+	    from
+	        IN_CONTRACT_COMPANY this_ 
+	    inner join
+		      C_CONTRACT c
+		      on this_.CONTRACT_ID=c.CONTRACT_ID
+	    where
+	         c.STATION_ID=#{stationId}
+	        and c.CONTRACT_STATUS=0
+	</select>
+	
+	<!--根据stationId查询该企业的充电量和充电收入数据 -->
+	<select id="getPowerAndMoneyByStationId" parameterType="Map" resultType="Map">
+		 select
+        sum(this_.DAILY_INCOME_CHARGE_POWER) power,
+        sum(this_.DAILY_INCOME_TOTAL_INCOME) income,
+        this_.DAILY_INCOME_DATE date 
+    from
+        DAILY_INCOME this_ 
+    inner join
+        CHG_PILE chgpile2x1_ 
+            on this_.PILE_ID=chgpile2x1_.PILE_ID 
+    where
+        chgpile2x1_.STATION_ID=#{stationId} 
+        and this_.DAILY_INCOME_DATE>=#{startTime}
+        and #{endTime}>=this_.DAILY_INCOME_DATE 
+    group by
+        this_.DAILY_INCOME_DATE 
+    order by
+        this_.DAILY_INCOME_DATE ASC
+	</select>
+	
+	<!-- 获取场站的当月每日收入的日期 -->
+	<select id="getDateByStationId" parameterType="Map" resultType="String">
+	select
+        this_.DAILY_INCOME_DATE date 
+    from
+        DAILY_INCOME this_ 
+    inner join
+        CHG_PILE chgpile2x1_ 
+            on this_.PILE_ID=chgpile2x1_.PILE_ID 
+    where
+        chgpile2x1_.STATION_ID=#{stationId} 
+        and this_.DAILY_INCOME_DATE>=#{startTime}
+        and #{endTime}>=this_.DAILY_INCOME_DATE 
+    group by
+        this_.DAILY_INCOME_DATE 
+    order by
+        this_.DAILY_INCOME_DATE ASC
+	</select>
+	
+	<!-- 获取运营商的所有场站充电时间 -->
+	<select id="getAllTimes" parameterType="Map" resultType="Integer">
+	SELECT SUM(TIME_TO_SEC(TIMEDIFF(END_TIME,START_TIME))) from bill_pay this_
+		<where>
+			this_.PAY_STATE='3'
+			<!--当月时间-->
+			<if test="finishTime != null and '' != finishTime" >
+				AND this_.FINISH_TIME like concat('%',#{finishTime},'%')
+			</if>
+			<if test="orgIds != null">
+				AND this_.ORG_ID IN  
+			   <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				   #{orgId}
+			   </foreach>
+		 	</if>
+		</where>
+	</select>
+	
+	<!-- 分别获取公共、公交、物流三种场站的当月充电时间 -->
+	<select id="getTimesList" parameterType="Map" resultType="Map">
+		SELECT SUM(TIME_TO_SEC(TIMEDIFF(END_TIME,START_TIME))) count,STATION_TYPE type from bill_pay this_
+		inner join
+	    CHG_PILE chgpile2x1_ 
+	    on this_.PILE_ID=chgpile2x1_.PILE_ID 
+		inner join
+	    chg_station s
+	    on s.STATION_ID=chgpile2x1_.STATION_ID 
+		<where>
+			s.STATION_TYPE in('1','100','102')
+ 			AND this_.PAY_STATE='3' 
+			<!--当月时间-->
+			<if test="finishTime != null and '' != finishTime" >
+				AND this_.FINISH_TIME like concat('%',#{finishTime},'%')
+			</if>
+			<if test="orgIds != null">
+				AND this_.ORG_ID IN  
+			   <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				   #{orgId}
+			   </foreach>
+		 	</if>
+		</where>
+		GROUP BY STATION_TYPE
+	</select>
+	
+	<!-- 获取冲过电的充电枪数 -->
+	<select id="getGunCount" parameterType="Map" resultType="Integer">
+			SELECT count(*) from chg_gun
+			WHERE
+			PILE_ID
+			in(
+			SELECT  DISTINCT(PILE_ID) from chg_gun
+			WHERE
+			PILE_ID 
+			in 
+			(
+			SELECT DISTINCT(PILE_ID) from bill_pay b
+			<where>
+			 b.PAY_STATE='3' 
+			<!--当月时间-->
+			<if test="finishTime != null and '' != finishTime" >
+				AND b.FINISH_TIME like concat('%',#{finishTime},'%')
+			</if>
+			<if test="orgIds != null">
+				AND b.ORG_ID IN  
+			   <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				   #{orgId}
+			   </foreach>
+		 	</if>
+		</where>
+			)
+			)
+		
+	</select>
+	
+</mapper>

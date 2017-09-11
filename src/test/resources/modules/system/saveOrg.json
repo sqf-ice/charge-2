@@ -1,0 +1,37 @@
+{
+  "loginName":"test",
+  "email":"222@qq.com",
+  "password":"123456",
+  "rePassword":"123456",
+  "namePy":"1.jpg",
+  "orgName":"test",
+  "orgAbbr":"test",
+  "orgCode":"123",
+  "orgFax":"11",
+  "orgPhone":"2879315",
+  "orgEmail":"123456@qq.com",
+  "provCode":"1",
+  "cityCode":"1",
+  "distCode": "1",
+  "address":"sddssd",
+  "remark":"1111",
+  "businessLicence":"1.jpg",
+  "orgHead":"1",
+  "memberPhone":"15889754654",
+   "station": [{
+     "provCode": "1",
+     "cityCode": "1",
+     "distCode": "1",
+     "address": "111",
+     "stationModel": "1",
+     "stationType": "1",
+     "place": "1",
+     "jiaoLiu": "1",
+     "jiaoLiuP": "1",
+     "zhiLiu": "1",
+     "zhiLiuP": "1",
+     "remark": "1"
+     }
+   ],
+"orgId":"1"
+}

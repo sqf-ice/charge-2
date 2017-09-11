@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.AlertMapper">
+	<select id="findAlertByRecId" parameterType="DataVo" resultType="DataVo">
+	   SELECT 
+	   a.mat_id,
+	   a.task_id,
+	   SUM(a.material_quant) as quants,
+	   SUM(a.material_total) as totals,
+	   b.mat_name,
+	   b.mat_price 
+	   FROM yxg_alert a 
+	   LEFT JOIN yxg_material b 
+	   ON a.mat_id=b.mat_id 
+	   WHERE 
+	   rec_id=#{recId} 
+	   GROUP BY a.mat_id
+	</select>
+
+	<insert id="addAlert" parameterType="DataVo" >
+		INSERT INTO yxg_alert (
+		<if test="matId != null and matId != ''">MAT_ID,</if>
+		<if test="taskId != null and taskId != ''">TASK_ID,</if>
+		<if test="recId != null and recId != ''">REC_ID,</if>
+		<if test="materialQuant != null and materialQuant != ''">MATERIAL_QUANT,</if>
+		<if test="materialTotal != null and materialTotal != ''">MATERIAL_TOTAL</if>
+		) VALUES(
+		<if test="matId != null and matId != ''">#{matId},</if>
+		<if test="taskId != null and taskId != ''">#{taskId},</if>
+		<if test="recId != null and recId != ''">#{recId},</if>
+		<if test="materialQuant != null and materialQuant != ''">#{materialQuant},</if>
+		<if test="materialTotal != null and materialTotal != ''">#{materialTotal}</if>
+		)
+	</insert>
+
+	<!-- 删除 -->
+	<delete id="deleteAlertById" parameterType="DataVo">
+		DELETE FROM yxg_alert WHERE REC_ID =#{recId}
+	</delete>
+	
+	<select id="getAlertByRecId" parameterType="Integer" resultType="Map">
+	   SELECT 
+	   a.mat_id,
+	   a.task_id,
+	   SUM(a.material_quant) as quants,
+	   SUM(a.material_total) as totals,
+	   b.mat_name,
+	   b.mat_price 
+	   FROM yxg_alert a 
+	   LEFT JOIN yxg_material b 
+	   ON a.mat_id=b.mat_id 
+	   WHERE rec_id=#{recId} 
+	   GROUP BY a.mat_id
+	</select>
+</mapper>

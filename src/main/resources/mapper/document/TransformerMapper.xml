@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.TransformerMapper">
+	
+	<!-- 查询变压器列表 -->
+	<select id="getTransformerAll" parameterType="DataVo" resultType="DataVo">
+		<include refid="selectSql" />
+		<include refid="conditions" />
+	</select>
+	<sql id="selectSql">
+		SELECT
+	        this_.TRANS_ID ,
+	        this_.STATION_ID ,
+	        this_.ORG_ID,
+	        this_.TRANS_NAME,
+	        this_.TRANS_STATUS,
+	        this_.TRANS_VOLUME,
+	        this_.TRANS_MARK,
+	        this_.TRANS_TH_LOSS,
+	        this_.TRANS_TEST_LOSS,
+	        this_.TRANS_ASSET_ID,
+	        this_.TRANS_NO,
+	        this_.TRANS_TYPE,
+	        this_.TRANS_CREATETIME,
+	        this_.TRANS_UPDATETIME,
+	        this_.shelf_life_time,
+			this_.rated_power,
+	        puborg2x1_.ORG_NAME,
+	        chgstation2_.STATION_NAME
+	    FROM
+	        EQUIP_TRANSFORMER this_ 
+		LEFT OUTER JOIN
+	        PUB_ORG puborg2x1_ 
+	            ON this_.ORG_ID=puborg2x1_.ORG_ID 
+	    LEFT OUTER JOIN
+	        CHG_STATION chgstation2_ 
+	            ON this_.STATION_ID=chgstation2_.STATION_ID
+	</sql>
+	<!-- 列表查询条件 -->
+	<sql id="conditions">
+		<where>
+			1=1
+		<if test="orgId !=null" >
+			AND this_.ORG_ID = #{orgId}
+		</if>
+		<if test="orgIds != null">
+			AND this_.ORG_ID IN 
+			<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+		<if test="transName != null">
+			AND this_.TRANS_NAME like concat('%',#{transName},'%')
+		</if>
+		<if test="transStatus != null">
+			AND this_.TRANS_STATUS = #{transStatus}
+		</if>
+		</where>
+	</sql>
+	
+	<!-- 根据变压器Id获取信息 -->
+	<select id="getTransformerById" parameterType="DataVo" resultType="DataVo">
+		<include refid="selectSql" />
+		WHERE this_.TRANS_ID = #{transId}
+	</select>
+	<!-- 删除变压器信息 -->
+	<delete id="delTransformer" parameterType="DataVo">
+	 	delete from EQUIP_TRANSFORMER WHERE TRANS_ID IN
+	 	<foreach collection="transIds" item="id" open="(" separator="," close=")">
+	 		#{id}
+	 	</foreach>
+	</delete>
+	
+	<!-- 查询终端信息(业务字典) -->
+	<select id="getTransformer" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.TRANS_ID,
+	        this_.TRANS_NAME
+	    FROM
+	        EQUIP_TRANSFORMER this_ 
+	    LEFT OUTER JOIN
+	        CHG_STATION chgstation1_ 
+	            ON this_.STATION_ID=chgstation1_.STATION_ID
+        LEFT OUTER JOIN pub_org org_ ON org_.`ORG_ID` = this_.`ORG_ID`
+	    WHERE  1=1 
+	     <if test="provCode != null">
+	     	AND  chgstation1_.PROV_CODE  = #{provCode}
+	     </if>
+	     <if test="cityCode != null">
+     	 	AND chgstation1_.CITY_CODE = #{cityCode}	
+	     </if>
+	     <if test="distCode != null">
+	     	AND chgstation1_.DIST_CODE = #{distCode} 
+	     </if>
+	     <if test="stationId != null">
+	     	AND chgstation1_.`STATION_ID` = #{stationId}
+	     </if>
+	     <if test="stationIds != null">
+	     	AND chgstation1_.`STATION_ID` IN 
+	     	<foreach collection="stationIds" item="subId" open="(" separator="," close=")">
+	     		#{subId}
+	     	</foreach>
+	     </if>
+	     <if test="stationName != null">
+	     	AND chgstation1_.`STATION_NAME` LIKE concat('%',#{stationName},'%')
+	     </if>
+	     <if test="orgId != null">
+	     	AND this_.`ORG_ID` = #{orgId}
+	     </if>
+	     <if test="orgName != null">
+	     	AND org_.orgName like concat('%',#{orgName},'%')
+	     </if>
+	     <if test="orgIds != null">
+	     	AND this_.`ORG_ID` IN 
+	     	<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+	     		#{id}
+	     	</foreach>
+	     </if>
+	     <if test="transName !=null and transName !=''">
+	     	AND this_.`TRANS_NAME` LIKE concat('%',${transName},'%')
+	     </if>
+	</select>
+	
+	<!-- 新增变压器 -->
+	<insert id="saveTransformer" parameterType="map">
+		INSERT INTO EQUIP_TRANSFORMER (
+			ORG_ID,
+			STATION_ID,
+			TRANS_NO,
+			TRANS_TEST_LOSS,
+			TRANS_NAME,
+			TRANS_TH_LOSS,
+			TRANS_TYPE,
+			TRANS_ASSET_ID,
+			TRANS_STATUS,
+			TRANS_MARK,
+			TRANS_VOLUME,
+			shelf_life_time,
+			rated_power,
+			TRANS_CREATETIME
+		) VALUES (
+			#{orgId},
+			#{stationId},
+			#{transNo},
+			#{transTestLoss},
+			#{transName},
+			#{transThLoss},
+			#{transType},
+			#{transAssetId},
+			#{transStatus},
+			#{transMark},
+			#{transVolume},
+			#{shelfLifeTime},
+			#{ratedPower},
+			now()
+		)
+	</insert>
+	<!-- 编辑变压器 -->
+	<update id="updateTransformer" parameterType="map">
+		UPDATE EQUIP_TRANSFORMER
+		<set>
+			ORG_ID = #{orgId},
+			STATION_ID = #{stationId},
+			TRANS_NO = #{transNo},
+			TRANS_TEST_LOSS =#{transTestLoss},
+			TRANS_NAME = #{transName},
+			TRANS_TH_LOSS = #{transThLoss},
+			TRANS_TYPE = #{transType},
+			TRANS_ASSET_ID = #{transAssetId},
+			TRANS_STATUS = #{transStatus},
+			TRANS_MARK = #{transMark},
+			TRANS_VOLUME = #{transVolume},
+			shelf_life_time = #{shelfLifeTime},
+			rated_power = #{ratedPower},
+			TRANS_UPDATETIME = now()
+		</set>
+		where TRANS_ID = #{transId}
+	</update>
+</mapper>

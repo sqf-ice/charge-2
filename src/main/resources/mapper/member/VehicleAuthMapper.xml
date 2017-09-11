@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.member.mapper.VehicleAuthMapper">
+	<select id="getVehicleAuths" parameterType="Map" resultType="Map">
+		SELECT
+		this_.cons_id,
+		this_.car_id vehicle_id,
+		org.org_name,
+		this_.cons_truename,
+		this_.cons_type_code,
+		this_.cons_phone,
+		gp.group_name,
+		this_.cons_from,
+		this_.app_from,
+		that_.auth_status,
+		that_.create_time time
+		FROM
+		c_cons this_
+		LEFT JOIN vehicle
+		that_ ON this_.car_id = that_.vehicle_id
+		LEFT JOIN c_group gp ON
+		this_.group_id = gp.group_id
+		LEFT JOIN pub_org org ON this_.app_from =
+		org.org_id
+		WHERE this_.cons_status = 0 AND that_.is_active = 0
+		AND
+		that_.is_delete = 0
+		<include refid="conditions" />
+		ORDER BY
+		reg_time
+	</select>
+    <!-- 认证车辆 -->
+	<update id="authVehicle" parameterType="Map">
+		UPDATE vehicle SET auth_status =
+		#{authStatus},update_time=now(),update_by=#{userId}
+	    <where>
+	        <if test="authDesc != null and authDesc !='' ">
+				AND this_.cons_phone like concat('%',#{consPhone},'%')
+			</if>
+	    </where>
+		WHERE vehicle_id = #{vehicleId}
+	</update>
+	<!-- 查询条件 -->
+	<sql id="conditions">
+		<where>
+			<!-- 会员名称 -->
+			<if test="consTruename != null and consTruename !='' ">
+				AND this_.cons_truename like
+				concat('%',#{consTruename},'%')
+			</if>
+			<!-- 手机号 -->
+			<if test="consPhone != null and consPhone !='' ">
+				AND this_.cons_phone like concat('%',#{consPhone},'%')
+			</if>
+			<if test="appFrom != null">
+				AND this_.app_from = #{appFrom}
+			</if>
+			<!--起始时间 -->
+			<if test="startTime !=null and startTime!=''">
+				AND that_.create_time <![CDATA[ >= ]]>
+				#{startTime}
+			</if>
+			<!--结束时间 -->
+			<if test="endTime !=null and endTime !=''">
+				AND that_.create_time <![CDATA[ <= ]]>#{endTime}
+			</if>
+			<if test="orgIds!=null">
+				AND this_.app_from IN
+				<foreach collection="orgIds" item="item" open="("
+					separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+	</sql>
+</mapper>

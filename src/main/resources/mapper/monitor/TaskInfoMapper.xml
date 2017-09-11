@@ -1,0 +1,561 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.TaskInfoMapper">
+
+	<sql id="Base_Column_List">
+		this_.`task_id`,
+		this_.`task_status`,
+		this_.`task_date`,
+		this_.`task_name`,
+		org_.`org_name`,
+		template_.`template_name`,
+		wquser_.`wq_cons_name`,
+		this_.`task_dealt_time`,
+		this_.`task_overtime`,
+		this_.`task_level`,
+		this_.`task_type`,
+		sub_.`station_name`,
+		pile_.`pile_name`,
+		pile_.`pile_no`
+	</sql>
+
+	<!-- 约束条件 -->
+	<sql id="condition">
+		<where>
+			<if test="taskTimeStart!=null and taskTimeStart!=''">
+				AND this_.`TASK_TIME` <![CDATA[ >= ]]>
+				#{taskTimeStart}
+			</if>
+			<if test="taskTimeEnd!=null and taskTimeEnd!=''">
+				AND this_.`TASK_TIME` <![CDATA[ < ]]>
+				#{taskTimeEnd}
+			</if>
+
+			<if test="taskStatus!=null and taskStatus!=''">
+				AND this_.`TASK_STATUS` = #{taskStatus}
+			</if>
+			<if test="templateId!=null and templateId!=''">
+				AND this_.`PATTERN_ID` = #{templateId}
+			</if>
+			<if test="orgId!=null and orgId!=''">
+				AND org_.`ORG_ID` = #{orgId}
+			</if>
+			<if test="stationId!=null and stationId!=''">
+				AND sub_.`STATION_ID` = #{stationId}
+			</if>
+			<if test="orgIds!=null">
+				AND org_.`ORG_ID` IN
+				<foreach collection="orgIds" item="id" open="(" separator=","
+					close=")">
+					#{id}
+				</foreach>
+			</if>
+			<if test="taskIds!=null and taskIds != ''">
+				AND this_.`TASK_ID` IN
+				<foreach collection="taskIds" item="taskId" open="("
+					separator="," close=")">
+					#{taskId}
+				</foreach>
+			</if>
+			<if test="wqConsId!=null and wqConsId!=''">
+				AND this_.`WQ_CONS_ID` = #{wqConsId}
+			</if>
+			<if test="taskDateStart !=null and taskDateStart!=''">
+				AND this_.`TASK_DATE` <![CDATA[ >= ]]>
+				#{taskDateStart}
+			</if>
+			<if test="taskDateStart !=null and taskDateStart!=''">
+				AND this_.`TASK_DATE` <![CDATA[ < ]]>
+				#{taskDateEnd}
+			</if>
+			<if test="taskType !=null and taskType !=''">
+				AND this_.`TASK_TYPE` = #{taskType}
+			</if>
+			<if test="handleStatus !=null and handleStatus !=''">
+				<if test="handleStatus ==0 ">
+					AND this_.`TASK_STATUS` IN (3,4)
+				</if>
+				<if test="handleStatus ==1 ">
+					AND this_.`TASK_STATUS` IN (5,6)
+				</if>
+			</if>
+			<if test="pileName !=null and pileName !=''">
+				AND pile_.`pile_name` like concat('%',#{pileName},'%')
+			</if>
+		</where>
+	</sql>
+	<!-- 排序条件 -->
+	<sql id="orderBy">
+		<if test="sort!=null and sort!=''">
+			ORDER BY ${sort} ${order}
+		</if>
+	</sql>
+	<!-- 分页条件 -->
+	<sql id="page">
+		<if test="pageIndex!=null and pageSize!=null">
+			LIMIT #{pageIndex},#{pageSize}
+		</if>
+	</sql>
+	
+	<select id="get" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List"></include>
+		FROM
+		yxg_task_info this_
+		LEFT JOIN yxg_wq_info wquser_ ON
+		this_.`wq_cons_id` =
+		wquser_.`wq_cons_id`
+		LEFT JOIN pub_org org_
+		ON this_.`org_id` = org_.`org_id`
+		LEFT JOIN yxg_template
+		template_ ON this_.`pattern_id` =
+		template_.`template_id`
+		LEFT JOIN chg_station sub_ ON this_.`station_id` = sub_.`station_id`
+		LEFT JOIN chg_pile pile_ ON this_.`pile_id` = pile_.`pile_id`
+		<include refid="condition"></include>
+		<include refid="orderBy"></include>
+	</select>
+	
+	<!-- 根据ID查询作业信息 -->
+	<select id="getById" parameterType="java.lang.Integer" resultType="DataVo">
+		SELECT
+		info_.*,wq_.`wq_cons_name`,temp_.`template_name` FROM yxg_task_info
+		info_
+		LEFT JOIN yxg_wq_info wq_ ON wq_.`wq_cons_id`=
+		info_.`wq_cons_id`
+		LEFT JOIN yxg_template temp_ ON
+		temp_.`template_id` =
+		info_.`pattern_id`
+		WHERE info_.`task_id`=#{taskId}
+	</select>
+	
+	<!-- 总条数 -->
+	<select id="queryListCount" parameterType="DataVo" resultType="Integer">
+		SELECT COUNT(this_.`TASK_ID`) FROM YXG_TASK_INFO this_
+		LEFT OUTER JOIN
+		YXG_WQ_INFO wquser_ ON this_.`WQ_CONS_ID` =
+		wquser_.`WQ_CONS_ID`
+		LEFT
+		OUTER JOIN PUB_ORG org_ ON this_.`ORG_ID` =
+		org_.`ORG_ID`
+		LEFT OUTER
+		JOIN YXG_TEMPLATE template_ ON
+		this_.`PATTERN_ID` =
+		template_.`TEMPLATE_ID`
+		LEFT OUTER JOIN CHG_STATION sub_ ON
+		this_.`STATION_ID` = sub_.`STATION_ID`
+		<include refid="condition"></include>
+	</select>
+
+	<!-- 按条件分页查询作业信息 -->
+	<select id="queryListByPage" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.`TASK_ID` ,
+		this_.`TASK_STATUS`,
+		this_.`TASK_DATE`,
+		this_.`TASK_NAME`,
+		org_.`ORG_NAME`,
+		template_.`TEMPLATE_NAME`,
+		wquser_.`WQ_CONS_NAME`,
+		this_.`TASK_DEALT_TIME`,
+		this_.`TASK_OVERTIME`,
+		this_.`TASK_LEVEL`,
+		this_.`TASK_TYPE`,
+		sub_.`STATION_NAME` FROM
+		YXG_TASK_INFO this_
+		LEFT OUTER JOIN YXG_WQ_INFO wquser_ ON
+		this_.`WQ_CONS_ID` =
+		wquser_.`WQ_CONS_ID`
+		LEFT OUTER JOIN PUB_ORG org_
+		ON
+		this_.`ORG_ID` =
+		org_.`ORG_ID`
+		LEFT OUTER JOIN YXG_TEMPLATE template_
+		ON
+		this_.`PATTERN_ID` = template_.`TEMPLATE_ID`
+		LEFT OUTER JOIN
+		CHG_STATION
+		sub_ ON this_.`STATION_ID` = sub_.`STATION_ID`
+		<include refid="condition"></include>
+		<include refid="orderBy"></include>
+		<include refid="page"></include>
+	</select>
+
+	<!-- 根据ID查询作业信息 -->
+	<select id="queryById" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		info_.*,wq_.`WQ_CONS_NAME`,temp_.`TEMPLATE_NAME` FROM yxg_task_info
+		info_
+		LEFT OUTER JOIN yxg_wq_info wq_ ON wq_.`WQ_CONS_ID`=
+		info_.`WQ_CONS_ID`
+		LEFT OUTER JOIN yxg_template temp_ ON
+		temp_.`TEMPLATE_ID` =
+		info_.`PATTERN_ID`
+		WHERE info_.`TASK_ID`=#{taskId}
+	</select>
+
+	<!-- 检查数据唯一性 耗材名称 -->
+	<select id="checkUniqueness" parameterType="DataVo" resultType="Integer">
+		SELECT count(this_.`TASK_ID`) FROM YXG_TASK_INFO this_
+		WHERE
+		this_.`TASK_NAME` = #{taskName}
+		<if test="taskId!=null and taskId!=''">
+			AND this_.`TASK_ID` <![CDATA[ <> ]]>
+			#{taskId}
+		</if>
+	</select>
+
+	<!-- 新增作业 -->
+	<insert id="insert" parameterType="DataVo">
+		INSERT INTO YXG_TASK_INFO (
+		TASK_NAME
+		<if test="taskDesc != null and taskDesc != ''">,TASK_DESC</if>
+		<if test="taskLevel != null and taskLevel != ''">,TASK_LEVEL</if>
+		<if test="taskType != null">,TASK_TYPE</if>
+		<if test="recId != null and recId != ''">,REC_ID</if>
+		,TASK_TIME
+		<if test="taskAgain != null and taskAgain != ''">,TASK_AGAIN</if>
+		<if test="taskStatus != null and taskStatus != ''">,TASK_STATUS</if>
+		<if test="taskDate != null and taskDate != ''">,TASK_DATE</if>
+		<if test="taskStartHour != null and taskStartHour != ''">,TASK_START_HOUR</if>
+		<if test="taskEndHour != null and taskEndHour != ''">,TASK_END_HOUR</if>
+		<if test="taskPhotoId != null and taskPhotoId != ''">,TASK_PHOTO_ID</if>
+		<if test="taskLong != null and taskLong != ''">,TASK_LONG</if>
+		<if test="taskLat != null and taskLat != ''">,TASK_LAT</if>
+		<if test="taskDealtDesc != null and taskDealtDesc != ''">,TASK_DEALT_DESC</if>
+		<if test="stationId != null and stationId != ''">,STATION_ID</if>
+		<if test="taskFreq != null">,TASK_FREQ</if>
+		<if test="patternId != null and patternId != ''">,PATTERN_ID</if>
+		<if test="wqConsId != null and wqConsId != ''">,WQ_CONS_ID</if>
+		<if test="orgId != null and orgId != ''">,ORG_ID</if>
+		<if test="taskFreqStr != null and taskFreqStr != ''">,TASK_FREQ_STR</if>
+		<if test="pileId != null">,pile_id</if>
+		) VALUES(
+		#{taskName}
+		<if test="taskDesc != null and taskDesc != ''">,#{taskDesc}</if>
+		<if test="taskLevel != null and taskLevel != ''">,#{taskLevel}</if>
+		<if test="taskType != null">,#{taskType}</if>
+		<if test="recId != null and recId != ''">,#{recId}</if>
+		,now()
+		<if test="taskAgain != null and taskAgain != ''">,#{taskAgain}</if>
+		<if test="taskStatus != null and taskStatus != ''">,#{taskStatus}</if>
+		<if test="taskDate != null and taskDate != ''">,#{taskDate}</if>
+		<if test="taskStartHour != null and taskStartHour != ''">,#{taskStartHour}</if>
+		<if test="taskEndHour != null and taskEndHour != ''">,#{taskEndHour}</if>
+		<if test="taskPhotoId != null and taskPhotoId != ''">,#{taskPhotoId}</if>
+		<if test="taskLong != null and taskLong != ''">,#{taskLong}</if>
+		<if test="taskLat != null and taskLat != ''">,#{taskLat}</if>
+		<if test="taskDealtDesc != null and taskDealtDesc != ''">,#{taskDealtDesc}</if>
+		<if test="stationId != null and stationId != ''">,#{stationId}</if>
+		<if test="taskFreq != null">,#{taskFreq}</if>
+		<if test="patternId != null and patternId != ''">,#{patternId}</if>
+		<if test="wqConsId != null and wqConsId != ''">,#{wqConsId}</if>
+		<if test="orgId != null and orgId != ''">,#{orgId}</if>
+		<if test="taskFreqStr != null and taskFreqStr != ''">,#{taskFreqStr}</if>
+		<if test="pileId != null">,#{pileId}</if>
+		)
+	</insert>
+
+	<!-- 删除 -->
+	<delete id="delete" parameterType="DataVo">
+		DELETE FROM YXG_TASK_INFO WHERE TASK_ID IN
+		<foreach collection="ids" item="id" open="(" separator=","
+			close=")">
+			#{id}
+		</foreach>
+	</delete>
+	<!-- gao -->
+	<select id="findTaskInfoByRecId" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		a.task_id,a.task_name,a.task_time,a.task_desc,a.wq_cons_id,
+		a.task_level,b.wq_cons_name,c.template_name,a.task_rej_reason,a.task_dealt_time,
+		a.task_addr,a.task_start_hour,a.task_end_hour,a.task_date,a.task_again
+		FROM
+		yxg_task_info a
+		LEFT JOIN yxg_wq_info b ON a.wq_cons_id =
+		b.wq_cons_id
+		LEFT JOIN yxg_template c ON a.pattern_id = c.template_id
+		WHERE
+		a.rec_id = #{recId}
+	</select>
+	
+	<select id="getTaskInfoByRecId" parameterType="Integer" resultType="Map">
+		SELECT
+		a.task_id,
+		a.task_name,
+		a.task_time,
+		a.task_desc,
+		a.task_level,
+		b.wq_cons_name user_name,
+		c.template_name,
+		a.task_rej_reason,
+		a.task_dealt_time,
+		a.task_addr,
+		a.task_start_hour,
+		a.task_end_hour,
+		a.task_date,
+		a.task_again
+		FROM
+		yxg_task_info a
+		LEFT JOIN yxg_wq_info b 
+		ON a.wq_cons_id = b.wq_cons_id
+		LEFT JOIN yxg_template c 
+		ON a.pattern_id = c.template_id
+		WHERE
+		a.rec_id = #{recId}
+	</select>
+	
+	<!-- gao 再次派单操作 -->
+	<update id="updateTaskInfoByRecId">
+		UPDATE yxg_task_info
+		<set>
+			<if test="taskAgain != null">task_again=#{taskAgain},</if>
+			<if test="taskStatus != null">task_status=#{taskStatus},</if>
+			<if test="taskAgainTime != null">task_again_time=#{taskAgainTime}</if>
+		</set>
+		<where>
+			rec_id=#{recId}
+		</where>
+	</update>
+	<!-- 任务处理 -->
+	<update id="updateTaskInfo" parameterType="DataVo">
+		UPDATE yxg_task_info
+		<set>
+			<if test="taskStatus != null">TASK_STATUS=#{taskStatus},</if>
+			<if test="taskAgain != null">TASK_AGAIN=#{taskAgain},</if>
+			<if test="taskAgainTime != null">TASK_AGAIN_TIME=#{taskAgainTime},</if>
+		</set>
+		<where>
+			TASK_ID=#{taskId}
+		</where>
+	</update>
+	<!-- 场站派单排行 -->
+	<select id="getTaskSubTop" parameterType="DataVo" resultType="DataVo">
+		SELECT chg_.`STATION_ID`,chg_.`STATION_NAME`,COUNT(info_.`TASK_ID`) as
+		count_task FROM yxg_task_info info_
+		INNER JOIN chg_station chg_ ON
+		info_.`STATION_ID` = chg_.`STATION_ID`
+		WHERE 1=1
+		<if test="taskDateStart !=null and taskDateStart!=''">
+			AND info_.`TASK_DATE` <![CDATA[ >= ]]>
+			#{taskDateStart}
+		</if>
+		<if test="taskDateEnd !=null and taskDateEnd!=''">
+			AND info_.`TASK_DATE` <![CDATA[ <= ]]>
+			#{taskDateEnd}
+		</if>
+		<if test="orgId!=null and orgId!=''">
+			AND info_.`ORG_ID` = #{orgId}
+		</if>
+		<if test="orgIds!=null">
+			AND info_.`ORG_ID` IN
+			<foreach collection="orgIds" item="orgId" open="(" separator=","
+				close=")">
+				#{orgId}
+			</foreach>
+		</if>
+		<if test="type == 1">
+			AND info_.`TASK_STATUS` = 5
+		</if>
+		<if test="type == 2">
+			AND info_.`TASK_STATUS` <![CDATA[ <> ]]>
+			5
+		</if>
+		GROUP BY chg_.`STATION_ID`,chg_.`STATION_NAME`
+		ORDER BY
+		COUNT(info_.`TASK_ID`) DESC
+		<if test="queryType == null or queryType ==''">
+			LIMIT 0,10
+		</if>
+	</select>
+	<!-- 场站派单总数 -->
+	<select id="getTaskSubCount" parameterType="DataVo" resultType="Integer">
+		SELECT COUNT(info_.`TASK_ID`) as total_task FROM yxg_task_info info_
+		INNER JOIN chg_station chg_ ON info_.`STATION_ID` = chg_.`STATION_ID`
+		WHERE 1=1
+		<if test="taskDateStart !=null and taskDateStart!=''">
+			AND info_.`TASK_DATE` <![CDATA[ >= ]]>
+			#{taskDateStart}
+		</if>
+		<if test="taskDateStart !=null and taskDateStart!=''">
+			AND info_.`TASK_DATE` <![CDATA[ <= ]]>
+			#{taskDateEnd}
+		</if>
+		<if test="orgId!=null and orgId!=''">
+			AND info_.`ORG_ID` = #{orgId}
+		</if>
+		<if test="orgIds!=null">
+			AND info_.`ORG_ID` IN
+			<foreach collection="orgIds" item="orgId" open="(" separator=","
+				close=")">
+				#{orgId}
+			</foreach>
+		</if>
+		<if test="type == 1">
+			AND info_.`TASK_STATUS` = 5
+		</if>
+		<if test="type == 2">
+			AND info_.`TASK_STATUS` <![CDATA[ <> ]]>
+			5
+		</if>
+	</select>
+	<!-- 外勤用户任务完成率排行 -->
+	<select id="getFinishTaskTop" parameterType="DataVo" resultType="DataVo">
+		SELECT wq_.`WQ_CONS_ID`,wq_.`WQ_CONS_NAME` ,COUNT(info_.`TASK_STATUS`)
+		as task_count FROM yxg_task_info info_
+		INNER JOIN yxg_wq_info wq_ ON
+		info_.`WQ_CONS_ID` = wq_.`WQ_CONS_ID`
+		WHERE 1=1
+		<if test="taskDateStart !=null and taskDateStart!=''">
+			AND info_.`TASK_DATE` <![CDATA[ >= ]]>
+			#{taskDateStart}
+		</if>
+		<if test="taskDateEnd !=null and taskDateEnd!=''">
+			AND info_.`TASK_DATE` <![CDATA[ <= ]]>
+			#{taskDateEnd}
+		</if>
+		<if test="orgId!=null and orgId!=''">
+			AND info_.`ORG_ID` = #{orgId}
+		</if>
+		<if test="orgIds!=null">
+			AND info_.`ORG_ID` IN
+			<foreach collection="orgIds" item="orgId" open="(" separator=","
+				close=")">
+				#{orgId}
+			</foreach>
+		</if>
+		<if test="taskStatus !=null and taskStatus !=''">
+			AND info_.`TASK_STATUS` = #{taskStatus}
+		</if>
+		<if test="taskLevel !=null and taskLevel !='' ">
+			AND info_.`TASK_LEVEL` = #{taskLevel}
+		</if>
+		GROUP BY wq_.`WQ_CONS_ID`,wq_.`WQ_CONS_NAME`;
+	</select>
+	<!-- 任务紧急程度完成排行 -->
+	<select id="getLevelTaskTop" parameterType="DataVo" resultType="DataVo">
+		SELECT wq_.`WQ_CONS_ID`,wq_.`WQ_CONS_NAME`,COUNT(info_.`TASK_STATUS`)
+		as total_count FROM yxg_task_info info_ INNER JOIN yxg_wq_info wq_ ON
+		info_.`WQ_CONS_ID` = wq_.`WQ_CONS_ID`
+		<where>
+		<if test="taskDateStart !=null and taskDateStart!=''">
+			AND info_.`TASK_DATE` <![CDATA[ >= ]]>
+			#{taskDateStart}
+		</if>
+		<if test="taskDateEnd !=null and taskDateEnd!=''">
+			AND info_.`TASK_DATE` <![CDATA[ <= ]]>
+			#{taskDateEnd}
+		</if>
+		<if test="orgId!=null and orgId!=''">
+			AND info_.`ORG_ID` = #{orgId}
+		</if>
+		<if test="orgIds!=null">
+			AND info_.`ORG_ID` IN
+			<foreach collection="orgIds" item="orgId" open="(" separator=","
+				close=")">
+				#{orgId}
+			</foreach>
+		</if>
+		<if test="taskLevel !=null and taskLevel !='' ">
+			AND info_.`TASK_LEVEL` = #{taskLevel}
+		</if>
+		</where>
+		GROUP BY wq_.`WQ_CONS_ID`,wq_.`WQ_CONS_NAME`
+	</select>
+	<!-- 任务模板项值 -->
+	<select id="getTaskOptionValue" parameterType="DataVo"
+	resultType="DataVo">
+	SELECT val_.*,opt_.`OPTION_NAME` FROM yxg_option_value val_
+	LEFT OUTER
+	JOIN yxg_template_option opt_ ON val_.`option_id` = opt_.`OPTION_ID`
+	<where>
+		<if test="taskId!=null and taskId!=''">
+			AND val_.`TASK_ID` = #{taskId}
+		</if>
+		<if test="optionIds!=null">
+			AND val_.`OPTION_ID` IN
+			<foreach collection="optionIds" item="optionId" open="("
+				separator="," close=")">
+				#{optionId}
+			</foreach>
+		</if>
+	</where>
+</select>
+	<!-- 模板项照片数据 -->
+	<select id="getTaskOptionPhoto" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT photo_.*,opt_.`OPTION_NAME` FROM yxg_photo photo_
+		LEFT OUTER
+		JOIN yxg_template_option opt_ ON photo_.`OPTION_ID` =
+		opt_.`OPTION_ID`
+		WHERE 1=1
+		<if test="taskId!=null and taskId!=''">
+			AND photo_.`TASK_ID` = #{taskId}
+		</if>
+		<if test="optionIds!=null">
+			AND photo_.`OPTION_ID` IN
+			<foreach collection="optionIds" item="optionId" open="("
+				separator="," close=")">
+				#{optionId}
+			</foreach>
+		</if>
+	</select>
+	<!-- 模板项位置数据 -->
+	<select id="getTaskOptionPosition" parameterType="DataVo"
+	resultType="DataVo">
+	SELECT pos_.*,opt_.`OPTION_NAME` FROM yxg_pos pos_
+	LEFT OUTER JOIN
+	yxg_template_option opt_ ON pos_.`OPTION_ID` =
+	opt_.`OPTION_ID`
+	<where>
+		<if test="taskId!=null and taskId!=''">
+			AND pos_.`TASK_ID` = #{taskId}
+		</if>
+		<if test="optionIds!=null">
+			AND pos_.`OPTION_ID` IN
+			<foreach collection="optionIds" item="optionId" open="("
+				separator="," close=")">
+				#{optionId}
+			</foreach>
+		</if>
+	</where>
+</select>
+	<!-- 模板项物料数据 -->
+	<select id="getTaskOptionMateriel" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT alert_.*,opt_.`OPTION_NAME`,mat_.`MAT_NAME`,mat_.`MAT_PRICE`
+		FROM yxg_alert alert_
+		LEFT OUTER JOIN yxg_template_option opt_ ON
+		alert_.`OPTION_ID` =
+		opt_.`OPTION_ID`
+		LEFT OUTER JOIN yxg_material mat_
+		ON mat_.`MAT_ID` =
+		alert_.`MAT_ID`
+		<where>
+			<if test="taskId!=null and taskId!=''">
+				AND alert_.`TASK_ID` = #{taskId}
+			</if>
+			<if test="optionIds!=null">
+				AND alert_.`OPTION_ID` IN
+				<foreach collection="optionIds" item="optionId" open="("
+					separator="," close=")">
+					#{optionId}
+				</foreach>
+			</if>
+		</where>
+	</select>
+	<!-- 根据recId批量查询任务信息 -->
+	<select id="getTaskInfoByRedIds" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT task_id,task_name,task_time,task_desc,wq_cons_id,rec_id,
+		task_level,task_rej_reason,task_dealt_time,task_overtime,
+		task_addr,task_start_hour,task_end_hour,task_date,task_again
+		FROM
+		yxg_task_info
+		<where>
+			rec_id IN
+			<foreach collection="recIds" item="item" open="(" separator=","
+				close=")">#{item}</foreach>
+		</where>
+	</select>
+</mapper>

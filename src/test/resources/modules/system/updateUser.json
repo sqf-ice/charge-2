@@ -1,0 +1,10 @@
+{
+  "id":9160,
+  "loginName": "测试新数据权限用户",
+  "password": "123456",
+  "orgId":24,
+  "updateBy":1,
+  "orgIds":"24,68,69,71",
+  "stationIds":"27,28,30,31",
+  "roleIds":"2"
+}

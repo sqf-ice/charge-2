@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.clouyun.charge.modules.mapper.mapper.LockMapper">
+    <!-- 新增登录锁 -->
+    <insert id="addLock" parameterType="DataVo" keyColumn="id" useGeneratedKeys="true">
+        INSERT INTO sys_lock (
+        user_id,create_date,update_date,remarks
+        <if test="first_time != null">,first_time</if>
+        <if test="last_time != null">,last_time</if>
+        <if test="error_times != null">,error_times</if>
+        <if test="user_id != null">,create_by</if>
+        <if test="user_id != null">,update_by</if>
+        ) VALUES(
+        #{user_id},now(),now(),'新建的登录锁'
+        <if test="first_time != null">,#{first_time}</if>
+        <if test="last_time != null">,#{last_time}</if>
+        <if test="error_times != null">,#{error_times}</if>
+        <if test="user_id != null">,#{user_id}</if>
+        <if test="user_id != null">,#{user_id}</if>
+        )
+    </insert>
+
+
+    <update id="updateLock">
+        UPDATE sys_lock
+        <set>
+            <if test="first_time != null">first_time=#{first_time},</if>
+            <if test="last_time != null">last_time=#{last_time},</if>
+            <if test="error_times != null">error_times=#{error_times},</if>
+            <if test="update_by != null">update_by=#{update_by},</if>
+            <if test="update_date != null">update_date=#{update_date},</if>
+            <if test="remarks != null">,'更改登录锁状态'</if>
+        </set>
+        <where>
+            user_id=#{user_id}
+        </where>
+    </update>
+
+    <!-- 根据用户ID查找登录锁-->
+    <select id="findLockByUserId" resultType="com.clouyun.boot.common.domain.DataVo">
+        SELECT *
+		FROM sys_lock
+		WHERE user_id=#{user_id}
+    </select>
+</mapper>

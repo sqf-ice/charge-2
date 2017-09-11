@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.charge.mapper.PriceModelMapper">
+	<!-- 模板列表查询-->
+	<select id="selectPriceModel" parameterType="DataVo" resultType="DataVo">
+ 		SELECT
+			this_.PRC_ID ,
+			this_.CREATE_TIME ,
+			this_.PRC_NAME ,
+			pubuser2x1_.USER_NAME ,
+			puborg2x2_.ORG_NAME 
+		FROM
+		PUB_PRICE this_
+		LEFT OUTER JOIN PUB_USER pubuser2x1_ ON this_.USER_ID = pubuser2x1_.USER_ID
+		LEFT OUTER JOIN PUB_ORG puborg2x2_ ON this_.ORG_ID = puborg2x2_.ORG_ID
+		<where>
+			<if test="appFrom !=null and appFrom.size()>0">
+ 				 and this_.ORG_ID in  
+ 				 <foreach collection="appFrom" index="index" item="item" open="(" separator="," close=")">
+            		#{item}
+        		</foreach>    
+ 			</if>
+		</where>
+		ORDER BY
+			this_.PRC_NAME ASC
+	</select>
+	
+
+	<!-- 模板查询-->
+	<select id="queryPriceModel" parameterType="DataVo" resultType="DataVo">
+ 		SELECT
+		pp.PRC_ID,
+		pp.PRC_NAME,
+		pp.PRC_TYPE_CODE,
+		pp.PRC_ZXYGZ1,
+		pp.PRC_ZXYGZ2,
+		pp.PRC_ZXYGZ3,
+		pp.PRC_ZXYGZ4,
+		pp.PRC_ZXYGZ5,
+		pp.PRC_ZXYGZ6,
+		pp.PRC_ZXYGZ7,
+		pp.PRC_ZXYGZ8,
+		pp.PRC_SERVICE,
+		pp.USER_ID,
+		pp.ORG_ID,
+		pp.CREATE_TIME,
+		pp.AGREEMENT,
+		pp.PRC_SERVICE_BILI
+		FROM
+		PUB_PRICE pp
+		<where>
+			<if test="prcId !=null and prcId !=''">
+				and  pp.PRC_ID = #{prcId}
+			</if>
+		</where>
+	</select>
+
+
+	<!-- 费率时间段查询-->
+	<select id="queryModelTime" parameterType="DataVo" resultType="DataVo">
+ 		SELECT
+		ID,
+		TIME_START,
+		TIME_END,
+		FEILV PRICE_ID
+		FROM
+		MODEL_TIME 
+		<where>
+			<if test="priceId !=null and priceId !=''">
+				and id = #{priceId}
+			</if>
+		</where>
+	</select>
+
+	<!-- 电价任务查询-->
+	<select id="selectDjrw" parameterType="DataVo" resultType="DataVo">
+ 		SELECT
+			this_.TASK_ID ,
+			this_.TASK_NAME ,
+			this_.PRC_ID ,
+			this_.TASK_EXEC_TIME ,
+			this_.TASK_EXEC_FLAG ,
+			this_.ORG_ID,
+	     	pubPrice.prc_Name
+		FROM
+			PRICE_TASK this_
+			LEFT OUTER JOIN PUB_PRICE pubPrice ON this_.PRC_ID = pubPrice.PRC_ID
+		<where>
+			<if test="startDate!=null">
+   			 	<![CDATA[ and  DATE_FORMAT(this_.TASK_EXEC_TIME, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d') ]]>
+			</if> 
+			<if test="endDate!=null">
+    		 	<![CDATA[ and DATE_FORMAT(this_.TASK_EXEC_TIME, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')  ]]>
+			</if>
+			<if test="appFrom !=null"> 
+ 				 and this_.ORG_ID in  
+ 				 <foreach collection="appFrom" index="index" item="item" open="(" separator="," close=")">
+            		#{item}
+        		</foreach>    
+ 			</if>
+ 			<if test="prcId !=null and prcId !=''">
+				and this_.PRC_ID = #{prcId} 
+			</if>
+			<if test="prcName !=null and prcName !=''">
+				and pubPrice.PRC_NAME like concat('%',#{prcName},'%')
+			</if> 
+			<if test="taskId !=null and taskId !=''">
+				and this_.TASK_ID = #{taskId} 
+			</if>
+			<if test="taskName !=null and taskName !=''">
+				and this_.TASK_NAME like concat('%',#{taskName},'%') 
+			</if> 
+		</where>
+		ORDER BY
+			this_.TASK_EXEC_TIME DESC
+	</select>
+	
+	<!-- 查询电价任务 -->
+	<select id="queryDjrw" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		priceTask.TASK_ID,
+		priceTask.TASK_NAME,
+		priceTask.PRC_ID,
+		priceTask.TASK_EXEC_TIME,
+		priceTask.TASK_EXEC_FLAG,
+		priceTask.ORG_ID,
+		priceTask.user_id,
+		puborg.ORG_ID,
+		puborg.P_ORG_ID,
+		puborg.ORG_NO,
+		puborg.ORG_NAME,
+		puborg.ORG_ABBR,
+		puborg.ORG_INFO,
+		puborg.ORG_TYPE,
+		puborg.ORG_PHONE,
+		puborg.ORG_ADDR,
+		puborg.ORG_FAX,
+		puborg.ORG_EMAIL,
+		puborg.ORG_HEAD,
+		puborg.SORT_NO,
+		puborg.REMARK,
+		puborg.NAME_PY,
+		puborg.PAYMENT_PROCESS,
+		puborg.OPERATE_TYPE,
+		puborg.ORG_CODE,
+		puborg.MEMBER_PHONE,
+		puborg.BUSINESSLICENCE,
+		puborg.PROV_CODE,
+		puborg.CITY_CODE,
+		puborg.DIST_CODE,
+		puborg.ADDRESS,
+		puborg.ORGISTER_TIME,
+		puborg.AUDITING_TIME,
+		puborg.AUDIT_STATUS,
+		puborg.AUDIT_MEMBER,
+		puborg.NO_AUDIT_REASON,
+		puborg.user_id,
+		puborg.app_name
+		FROM PRICE_TASK priceTask
+		LEFT OUTER JOIN PUB_ORG puborg ON priceTask.ORG_ID = puborg.ORG_ID
+		<where>
+			<if test="taskId !=null and taskId !=''">
+				and priceTask.TASK_ID = #{taskId}
+			</if> 
+		</where>
+	</select>
+	
+	<!-- 查询电价任务与充电桩关联关系表 -->
+	<select id="queryPptr" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		TASK_ID,
+		PILE_ID,
+		PILE_ADDR,
+		PILE_SUCCESS_FLAG
+		FROM PRICE_PILE_TASK_RELA
+		<where>
+			<if test="taskId !=null and taskId !=''">
+				and TASK_ID = #{taskId}
+			</if> 
+		</where>
+	</select>
+	
+	<!-- 查询充电桩信息 -->
+	<select id="queryChgpile" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		p.PILE_ID,
+		p.PILE_NO,
+		p.PILE_NAME,
+		p.PILE_ADDR,
+		p.PILE_TYPE,
+		p.PILE_STATUS,
+		p.PILE_PROTOCOL,
+		p.GUN_TYPE_CODE,
+		p.CON_CYCLE,
+		p.PRC_ID_PRE,
+		p.PRC_ID_RES,
+		p.PRC_CHG_TIME,
+		p.MANUFACTURER_ID,
+		p.PILE_MODEL_ID,
+		p.SOFT_VERSION,
+		p.HARD_VERSION,
+		p.PRODUCTION_DATE,
+		p.INSTALL_DATE,
+		p.PILE_LNG,
+		p.PILE_LAT,
+		p.ORG_ID,
+		p.STATION_ID,
+		p.RAT_VOLT,
+		p.RAT_CURR,
+		p. POWER_UP,
+		p.POWER_UP_RECOV,
+		p.VOLT_UP,
+		p.VOLT_UP_RECOV,
+		p.VOLT_DOWN,
+		p.VOLT_DOWN_RECOV,
+		p.CUR_MIN,
+		p.CUR_MAX,
+		p.INNER_PILE_NO,
+		p.INNER_PILE_NAME,
+		p.PILE_CAP,
+		p.PILE_GB_PROTOCOL,
+		p.QR_CODE_STATE,
+		p.HLHT_QRCODE_STATE,
+		p.IS_QRCODE,
+		p.number_gun,
+		p.ort_mode,
+		p.power_mode,
+		p.serial_number,
+		p.screen_version,
+		p.auxi_power,
+		p.rate_power
+		FROM CHG_PILE p
+		<where>
+			<if test="pileId !=null and pileId !=''">
+				and p.PILE_ID = #{pileId}
+			</if> 
+		</where>
+	</select>
+	<!-- 删除电价模板 -->
+	<delete id="delPriceModel" parameterType="DataVo">
+	 		delete from PUB_PRICE where PRC_ID= #{prcId} 
+	</delete>
+	
+	<!-- 删除电价任务 -->
+	<delete id="delPriceTask" parameterType="DataVo">
+	 		delete from PRICE_TASK where TASK_ID= #{taskId} 
+	</delete>
+	
+	<!-- 新增电价任务 -->
+	<insert id="insertPriceTask" parameterType="DataVo">
+		<selectKey keyProperty="taskId" order="AFTER" resultType="java.lang.Integer">
+            select LAST_INSERT_ID()
+        </selectKey>
+		insert into price_task(org_Id,prc_Id,task_Exec_Flag,task_Exec_Time,task_Name,user_id)
+			value(#{orgId},#{prcId},#{taskExecFlag},#{taskExecTime},#{taskName},#{userId})
+	</insert>
+
+	<!-- 向电价任务与充电桩关联关系表插入记录 -->
+	<insert id="insertRela" parameterType="DataVo">
+		insert into  price_pile_task_rela(pile_Id,pile_Success_Flag,task_Id)
+			value(#{pileId},#{pileSuccessFlag},#{taskId})
+	</insert>
+	<!-- 电价描述 -->
+	<select id="describetPriceModel" parameterType="DataVo" resultType="DataVo">
+		select
+		max(this_.TASK_ID) task_Id
+		from
+		PRICE_PILE_TASK_RELA this_
+		inner join
+		PRICE_TASK pricetask2x1_
+		on this_.TASK_ID=pricetask2x1_.TASK_ID
+		<where>
+			this_.PILE_ID=#{pileId}
+		</where>
+		and pricetask2x1_.TASK_EXEC_FLAG='1'
+	</select>
+	<!-- 电价任务 -->
+	<select id="getPriceTask" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		this_.TASK_ID,
+		this_.TASK_NAME,
+		this_.PRC_ID,
+		this_.TASK_EXEC_TIME,
+		this_.TASK_EXEC_FLAG,
+		this_.ORG_ID
+		FROM
+		price_task this_
+		<where>
+			this_.TASK_ID=#{taskId}
+		</where>
+	</select>
+	<select id="getTaskPrice" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		this_.PRC_ID
+		FROM
+		price_task this_
+		<where>
+			this_.PRC_ID=#{prcId}
+		</where>
+	</select>
+	<!-- 系统价格 -->
+	<select id="getPubPrice" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		pp.PRC_ID,
+		pp.PRC_NAME,
+		pp.PRC_TYPE_CODE,
+		pp.PRC_ZXYGZ1,
+		pp.PRC_ZXYGZ2,
+		pp.PRC_ZXYGZ3,
+		pp.PRC_ZXYGZ4,
+		pp.PRC_ZXYGZ5,
+		pp.PRC_ZXYGZ6,
+		pp.PRC_ZXYGZ7,
+		pp.PRC_ZXYGZ8,
+		pp.PRC_SERVICE,
+		pp.USER_ID,
+		pp.ORG_ID,
+		pp.CREATE_TIME,
+		pp.AGREEMENT,
+		pp.PRC_SERVICE_BILI
+		from
+		pub_price pp
+		<where>
+			pp.prc_Id = #{prcId}
+		</where>
+	</select>
+	<!-- 电价任务查询-->
+	<select id="priceTask" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		this_.TASK_ID id,
+		this_.TASK_NAME text
+		FROM
+		PRICE_TASK this_
+		<where>
+			<if test="appFrom !=null and appFrom.size()>0 ">
+				and this_.ORG_ID in
+				<foreach collection="appFrom" index="index" item="item" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+		ORDER BY
+		this_.TASK_EXEC_TIME DESC
+	</select>
+	<insert id="addPriceModel" parameterType="DataVo" keyProperty="prcId" useGeneratedKeys="true">
+		insert into pub_price(PRC_NAME,agreement,PRC_TYPE_CODE,PRC_ZXYGZ1,PRC_ZXYGZ2,PRC_ZXYGZ3,PRC_ZXYGZ4,PRC_SERVICE,USER_ID,ORG_ID,CREATE_TIME)
+			value(#{prcName},#{agreement},#{prcTypeCode},#{prcZxygz1},#{prcZxygz2},#{prcZxygz3},#{prcZxygz4},#{prcService},#{userId},#{orgId},now())
+	</insert>
+	<!-- 新增时间 -->
+	<insert id="addModelTime" parameterType="DataVo">
+		INSERT INTO model_time (TIME_START,TIME_END,FEILV,PRICE_ID)
+		VALUES
+		<foreach collection ="modelTime" item="modelTime" index= "index" separator =",">
+			(#{modelTime.timeStart},#{modelTime.timeEnd},#{modelTime.feilv},#{prcId})
+		</foreach >
+	</insert>
+
+	<!-- 电价任务查询-->
+	<select id="priceModel" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		this_.PRC_ID id,
+		this_.PRC_NAME text
+		FROM
+		PUB_PRICE this_
+		<where>
+			<if test="appFrom !=null and appFrom.size()>0 ">
+				and this_.ORG_ID in
+				<foreach collection="appFrom" index="index" item="item" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+	</select>
+
+	<!-- 场站集合-->
+	<select id="stationList" parameterType="DataVo" resultType="DataVo">
+		SELECT STATION_ID,STATION_NAME from chg_station
+		WHERE
+		STATION_STATUS=50
+		AND
+		USE_STATUS =0
+		<if test="stationName !=null and stationName !=''">
+			and station_Name like concat('%',#{stationName},'%')
+		</if>
+		<if test="stationIds !=null and stationIds.size()>0 ">
+			and STATION_ID in
+			<foreach collection="stationIds" index="index" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	<!-- 桩集合-->
+	<select id="pileList" parameterType="DataVo" resultType="DataVo">
+		SELECT p.STATION_ID,p.PILE_ID,p.PILE_NAME from chg_pile p
+		WHERE
+		p.PILE_STATUS =0
+			<if test="stationIds !=null and stationIds.size()>0 ">
+				and p.STATION_ID in
+				<foreach collection="stationIds" index="index" item="item" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+	</select>
+	<select id="pileTaskrela" parameterType="DataVo" resultType="DataVo">
+		SELECT TASK_ID,PILE_ID from price_pile_task_rela
+          WHERE
+		<if test="pileIds !=null and pileIds.size()>0 ">
+			 PILE_ID in
+			<foreach collection="pileIds" index="index" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+</mapper>

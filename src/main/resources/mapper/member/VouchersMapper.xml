@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.member.mapper.VouchersMapper">
+	
+	<sql id="selectiveSql">
+		<where>
+			<!-- 优惠券名称 -->
+			<if test="vouchersName != null and '' != vouchersName">
+				AND this_.name LIKE CONCAT('%',#{vouchersName},'%' )  		
+			</if>
+			<!-- 运营商名称 -->
+			<if test="orgName != null and '' != orgName">
+				AND puborg2x2_.org_name LIKE CONCAT('%',#{orgName},'%' )  		
+			</if>
+			<!-- 权限下orgIds -->
+			<if test="orgIdsByUser != null and '' != orgIdsByUser" >
+				AND pubuser2x1_.org_id  IN
+				<foreach collection="orgIdsByUser" item="orgIds" open="(" separator="," close=")">
+					#{orgIds}
+				</foreach>
+			</if>
+			<if test="access != null and '' != access">
+				AND this_.access = #{access}  		
+			</if>
+			<if test="orgId != null and '' != orgId">
+				AND this_.orgId = #{orgId}  		
+			</if>
+			<if test="endTime !=null and endTime !=''">
+				AND this_.endTime <![CDATA[ > ]]> #{endTime}
+			</if>
+		</where>
+	</sql>
+	<sql id="selectiveVoucherSql">
+		<where>
+			<!-- 优惠券详情 -->
+			<if test="vouchersId != null and '' != vouchersId">
+				AND vouchers2x1_.vid = #{vouchersId}	
+			</if>
+			<!-- 优惠券历史记录编号 -->
+			<if test="serial != null and '' != serial">
+				AND this_.serial LIKE CONCAT('%',#{serial},'%' )  
+			</if>
+			<!-- 优惠券使用状态 -->
+			<if test="state != null and '' != state">
+				AND this_.state = #{state}	
+			</if>
+			<!-- 手机号 -->
+			<if test="consPhone != null and '' != consPhone">
+				AND ccons2x2_.cons_phone LIKE CONCAT('%',#{consPhone},'%' )  
+			</if>
+			<!-- 领取时间 -->
+			<if test="beginTime != null and '' != beginTime">
+				AND this_.receivetime <![CDATA[ >= ]]> #{beginTime}
+			</if>
+			<if test="endTime != null and '' != endTime">
+				AND this_.receivetime <![CDATA[ <= ]]> #{endTime}
+			</if>
+		</where>
+	</sql>
+	<!-- 排序条件 -->
+    <sql id="orderBy">
+        <if test="sort!=null">
+            ORDER BY ${sort} ${order}
+        </if>
+    </sql>
+	<!-- 优惠券列表 -->
+	<select id="queryVouchers" resultType="DataVo">
+		SELECT
+	        this_.vId,
+	        this_.name,
+	        this_.strategy,
+	        this_.startTime as start_time,
+	        this_.endTime as end_time,
+	        this_.startSerial as start_Serial,
+	        this_.endSerial as end_Serial,
+	        this_.operatingTime as operating_Time,
+	        this_.cNumber,
+	        this_.access,
+	        this_.money,
+	        this_.note,
+	        this_.orgId as org_id,
+	        pubuser2x1_.user_id,
+	        pubuser2x1_.user_name,
+	        pubuser2x1_.user_phone,
+	        pubuser2x1_.org_id,
+	        puborg2x2_.org_name
+	    FROM
+	        vouchers this_ 
+	    INNER JOIN
+	        pub_org puborg2x2_ 
+	            ON this_.orgId=puborg2x2_.org_id 
+	    INNER JOIN
+	        pub_user pubuser2x1_ 
+	            ON this_.userId=pubuser2x1_.user_id 
+	    <include refid="selectiveSql"/>
+	  	<include refid="orderBy"/>
+	</select>
+	
+	<!-- 优惠券详情 -->
+	<select id="queryVoucherHistory" resultType="DataVo">
+		select
+	        this_.id,
+	        this_.receivetime,
+	        this_.state,
+	        this_.serial,
+	        this_.endtime,
+	        vouchers2x1_.vid,
+	        vouchers2x1_.name,
+	        vouchers2x1_.money,
+	        ccons2x2_.cons_id,
+	        ccons2x2_.cons_name,
+	        ccons2x2_.cons_phone
+	    from
+	        vouchershistory this_ 
+	    left outer join
+	        c_cons ccons2x2_ 
+	            on this_.cconsid=ccons2x2_.cons_id 
+	    left outer join
+	        vouchers vouchers2x1_ 
+	            on this_.vid=vouchers2x1_.vid 
+	    <include refid="selectiveVoucherSql"/>
+	    <include refid="orderBy"/>
+	</select>	
+	
+	<!-- 新增优惠券 -->
+	<insert id="insertVouchers" parameterType="Map" keyProperty="vId" useGeneratedKeys="true">
+		INSERT INTO vouchers
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="access != null">access,</if>
+			<if test="name != null">name,</if>
+			<if test="startSerial != null">startSerial,</if>
+			<if test="endSerial != null">endSerial,</if>
+			<if test="cnumber != null">cnumber,</if>
+			<if test="money != null">money,</if>
+			<if test="strategy != null">strategy,</if>
+			<if test="startTime != null">startTime,</if>
+			<if test="endTime != null">endTime,</if>
+			<if test="userId != null">userId,</if>
+			<if test="groupId != null">groupId,</if>
+			<if test="orgId != null">orgId,</if>
+			<if test="operatingTime != null">operatingTime,</if>
+			<if test="note != null">note</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="access != null">#{access},</if>
+			<if test="name != null">#{name},</if>
+			<if test="startSerial != null">#{startSerial},</if>
+			<if test="endSerial != null">#{endSerial},</if>
+			<if test="cnumber != null">#{cnumber},</if>
+			<if test="money != null">#{money},</if>
+			<if test="strategy != null">#{strategy},</if>
+			<if test="startTime != null">#{startTime},</if>
+			<if test="endTime != null">#{endTime},</if>
+			<if test="userId != null">#{userId},</if>
+			<if test="groupId != null">#{groupId},</if>
+			<if test="orgId != null">#{orgId},</if>
+			<if test="operatingTime != null">#{operatingTime},</if>
+			<if test="note != null">#{note},</if>
+		</trim>
+	</insert>
+
+</mapper>

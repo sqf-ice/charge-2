@@ -1,0 +1,9 @@
+{
+  	"couponType": "2",
+	"couponName": "测试保存优惠券",
+	"startSerial": 88,
+	"endSerial": 99,
+	"giveMoney": 8.8,
+	"endTime": "2017-04-20",
+	"remark": "测试保存信息"
+}

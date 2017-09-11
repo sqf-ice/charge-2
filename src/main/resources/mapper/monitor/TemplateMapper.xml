@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.TemplateMapper">
+
+	<sql id="Base_Column_List">
+		this_.template_id,
+		this_.template_name,
+		this_.org_id,
+		this_.create_time,
+		this_.update_time,
+		org_.`org_name`
+	</sql>
+	<!-- 约束条件 -->
+	<sql id="condition">
+		<where>
+			<if test="templateName !=null and templateName !='' ">
+				AND this_.`template_name` like concat('%',#{templateName},'%')
+			</if>
+			<if test="createTimeStart !=null and createTimeStart !=''">
+				AND this_.`create_time` <![CDATA[ >= ]]>#{createTimeStart}
+			</if>
+			<if test="createTimeEnd !=null and createTimeEnd !=''">
+				AND this_.`create_time` <![CDATA[ <= ]]>#{createTimeEnd}
+			</if>
+			<if test="orgId!=null">
+				AND this_.`org_id` = #{orgId}
+			</if>
+			<if test="orgIds!=null">
+				AND org_.`org_id` IN
+				<foreach collection="orgIds" item="orgId" open="("
+					separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+		</where>
+	</sql>
+
+	<select id="get" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List"></include>
+		FROM yxg_template this_
+		LEFT JOIN pub_org org_ ON this_.`org_id` = org_.`org_id`
+		<include refid="condition"></include>
+		<include refid="orderBy"></include>
+	</select>
+	<select id="getById" parameterType="java.lang.Integer"
+		resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List"></include>
+		FROM yxg_template this_
+		LEFT JOIN pub_org org_ ON this_.`org_id` = org_.`org_id`
+		WHERE this_.template_id = #{templateId}
+	</select>
+
+	<!-- 排序条件 -->
+	<sql id="orderBy">
+		<if test="sort!=null and sort!=''">
+			ORDER BY ${sort} ${order}
+		</if>
+	</sql>
+
+	<!-- 分页条件 -->
+	<sql id="page">
+		<if test="pageIndex!=null and pageSize!=null">
+			LIMIT #{pageIndex},#{pageSize}
+		</if>
+	</sql>
+
+	<!-- 按条件统计用户数 -->
+	<select id="queryListCount" parameterType="DataVo" resultType="Integer">
+		SELECT COUNT(this_.`TEMPLATE_ID`) FROM YXG_TEMPLATE this_
+		LEFT OUTER JOIN PUB_ORG org_ ON this_.`ORG_ID` = org_.`ORG_ID`
+		<include refid="condition"></include>
+	</select>
+
+	<!-- 按条件分页查询用户 -->
+	<select id="queryListByPage" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.*,org_.`ORG_NAME` FROM YXG_TEMPLATE this_
+		LEFT OUTER JOIN PUB_ORG org_ ON this_.`ORG_ID` = org_.`ORG_ID`
+		<include refid="condition"></include>
+		<include refid="orderBy"></include>
+		<include refid="page"></include>
+	</select>
+
+	<!-- 根据ID查询用户 -->
+	<select id="queryById" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		*
+		FROM YXG_TEMPLATE
+		WHERE TEMPLATE_ID=#{templateId}
+	</select>
+
+	<!-- 检查数据唯一性 耗材名称 -->
+	<select id="checkUniqueness" parameterType="DataVo" resultType="Integer">
+		SELECT count(this_.`TEMPLATE_ID`) FROM YXG_TEMPLATE this_
+		WHERE
+		this_.`TEMPLATE_NAME` = #{templateName}
+		<if test="templateId !=null and templateId !=''">
+			AND this_.`TEMPLATE_ID` <![CDATA[ <> ]]>
+			#{templateId}
+		</if>
+
+		<if test="theOrgId !=null and theOrgId !=''">
+			AND this_.`org_id` = #{theOrgId}
+		</if>
+
+	</select>
+
+	<!-- 新增用户 -->
+	<insert id="insert" parameterType="DataVo" useGeneratedKeys="true"
+		keyProperty="templateId">
+		INSERT INTO YXG_TEMPLATE (
+		TEMPLATE_NAME
+		<if test="createTime != null and createTime != ''">,CREATE_TIME</if>
+		<if test="updateTime != null and updateTime != ''">,UPDATE_TIME</if>
+		<if test="orgId != null and orgId != ''">,ORG_ID</if>
+		) VALUES(
+		#{templateName}
+		<if test="createTime != null and createTime != ''">,#{createTime}</if>
+		<if test="updateTime != null and updateTime != ''">,#{updateTime}</if>
+		<if test="orgId != null and orgId != ''">,#{orgId}</if>
+		)
+	</insert>
+
+	<!-- 更新用户 -->
+	<update id="update">
+		UPDATE YXG_TEMPLATE
+		<set>
+			<if test="templateName != null">TEMPLATE_NAME=#{templateName},</if>
+			<if test="createTime != null">CREATE_TIME=#{createTime},</if>
+			<if test="updateTime != null">UPDATE_TIME=#{updateTime},</if>
+			<if test="orgId != null and orgId != ''">ORG_ID=#{orgId}</if>
+		</set>
+		<where>
+			TEMPLATE_ID=#{templateId}
+		</where>
+	</update>
+
+
+	<!-- 删除 -->
+	<delete id="delete" parameterType="DataVo">
+		DELETE FROM YXG_TEMPLATE WHERE TEMPLATE_ID IN
+		<foreach collection="ids" item="id" open="(" separator=","
+			close=")">
+			#{id}
+		</foreach>
+	</delete>
+	<!-- 根据orgId查询模板列表hui -->
+	<select id="queryListByOrgId" parameterType="DataVo" resultType="DataVo">
+		SELECT template_id,template_name FROM yxg_template
+		<where>
+			<if test="orgId !=null and orgId != ''">
+				AND org_id = #{orgId}
+			</if>
+			<if test="orgIds!=null">
+				AND org_id IN
+				<foreach collection="orgIds" item="item" open="(" separator=","
+					close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test="templateName!=null and templateName !=''">
+			    AND template_name like concat('%',#{templateName},'%')
+		   </if>
+	    </where>
+	order by create_time desc
+</select>
+	<!-- 根据模版ID判断模版是否正在使用 -->
+	<select id="isUseTask" resultType="Integer">
+		SELECT COUNT(task_id) from yxg_task_info where pattern_id IN
+		<foreach collection="ids" item="item" open="(" separator=","
+			close=")">
+			#{item}
+		</foreach>
+	</select>
+	
+	
+</mapper>

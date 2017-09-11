@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--namespace必须是接口的全类名 -->
+<mapper namespace="com.clouyun.charge.modules.charge.mapper.StationIncomeMapper">
+
+	<!-- 场站收入 按时间段 显示场站信息汇总 -->
+	<select id="getStationIncome" parameterType="DataVo" resultType="DataVo">
+		 	SELECT 
+		 	<include refid="group"/>
+		 	GROUP BY org_.`ORG_ID`,station_.`STATION_ID`
+	</select>
+	
+	<!--  场站收入 按时间段 显示场站信息汇总[合计]  传入stationId则为单场站合计 -->
+	<select id="getStationIncomeTotal" parameterType="DataVo" resultType="DataVo">
+			SELECT 
+			<include refid="group"/>
+	</select>
+	
+	<!-- 场站收入详情 显示场站每日数据汇总 -->
+	<select id="getStationByDayIncome" parameterType="DataVo" resultType="DataVo">
+			SELECT 
+			DATE_FORMAT(this_.`END_TIME`,'%Y-%m-%d') AS time,
+			<include refid="group"/> 
+			GROUP BY org_.`ORG_ID`,station_.`STATION_ID`,time
+			ORDER BY time DESC
+	</select>
+	
+	<!-- 查询语句 -->
+	<sql id="group">
+			  org_.`ORG_ID`,
+			  org_.`ORG_NAME`,
+			  station_.`STATION_ID`,
+			  station_.`STATION_NAME`,
+			  SUM(this_.`AMOUNT`) AS AMOUNT,
+			  SUM(this_.`ELCE_FEE`) AS ELCE_FEE,
+			  SUM(CAST(this_.`POWER_ZXYG1` * this_.`PRC_ZXYGZ1` AS DECIMAL(11,2))) AS income_zxyg1,
+			  SUM(CAST(this_.`POWER_ZXYG2` * this_.`PRC_ZXYGZ2` AS DECIMAL(11,2))) AS income_zxyg2,
+			  SUM(CAST(this_.`POWER_ZXYG3` * this_.`PRC_ZXYGZ3` AS DECIMAL(11,2))) AS income_zxyg3,
+			  SUM(CAST(this_.`POWER_ZXYG4` * this_.`PRC_ZXYGZ4` AS DECIMAL(11,2))) AS income_zxyg4,
+			  SUM(this_.`SERV_FEE`) AS SERV_FEE,
+			  SUM(this_.`PARK_FEE`) AS PARK_FEE,
+			  SUM(this_.`CHG_POWER`) AS CHG_POWER,
+			  SUM(this_.`POWER_ZXYG1`) AS POWER_ZXYG1,
+			  SUM(this_.`POWER_ZXYG2`) AS POWER_ZXYG2,
+			  SUM(this_.`POWER_ZXYG3`) AS POWER_ZXYG3,
+			  SUM(this_.`POWER_ZXYG4`) AS POWER_ZXYG4
+			FROM
+			  bill_pay this_ 
+			  LEFT OUTER JOIN chg_pile pile_ 
+			    ON pile_.`PILE_ID` = this_.`PILE_ID` 
+			  LEFT OUTER JOIN chg_station station_ 
+			    ON station_.`STATION_ID` = pile_.`STATION_ID` 
+			  LEFT OUTER JOIN pub_org org_ 
+			    ON this_.`ORG_ID` = org_.`ORG_ID` 
+			WHERE this_.`PAY_STATE` <![CDATA[ <> ]]> 1
+		 	<if test="startDate != null">
+				AND this_.`END_TIME` <![CDATA[ >= ]]> #{startDate} 
+		 	</if>
+		 	<if test="endDate != null">
+			 	AND this_.`END_TIME` <![CDATA[ < ]]> #{endDate} 
+		 	</if>
+		 	<if test="orgIds != null">
+		 		AND this_.`org_id` IN 
+		 		<foreach collection="orgIds" item="oId" open="(" close=")" separator=",">
+		 			#{oId}
+		 		</foreach>
+		 	</if>
+		 	<if test="orgId != null">
+		 		AND this_.`org_id` = #{orgId}
+		 	</if>
+		 	<if test="orgName != null and orgName != '' ">
+		 		AND org_.`org_name` like concat('%',#{orgName},'%')
+		 	</if>
+		 	<if test="stationIds != null">
+		 		AND station_.`station_id` IN 
+		 		<foreach collection="stationIds" item="sId" open="(" close=")" separator=",">
+		 			#{sId}
+		 		</foreach>
+		 	</if>
+		 	<if test="stationId != null">
+		 		AND station_.`station_id` = #{stationId}
+		 	</if>
+		 	<if test="stationName != null and stationName != '' ">
+		 		AND station_.`station_name` like concat('%',#{stationName},'%')
+		 	</if>
+	</sql>
+	
+	<!-- 查询时间段内场站的订单数据 -->
+	<select id="getBillPayByStation" parameterType="DataVo" resultType="DataVo">
+		SELECT 
+		  this_.`BILL_PAY_ID`,
+		  this_.`BILL_PAY_NO`,
+		  station_.`STATION_NAME`,
+		  pile_.`PILE_NAME`,
+		  this_.`CREATE_TIME`,
+		  this_.`START_TIME`,
+		  this_.`END_TIME`,
+		  this_.`BILL_DESC`,
+		  cons_.`CONS_PHONE`,
+		  cons_.`CONS_NAME`,
+		  group_.`GROUP_NAME`,
+		  vehicle_.`license_plate`,
+		  vehicle_.`line`,
+		  this_.`CHG_POWER`,
+		  this_.`POWER_ZXYG1`,
+		  this_.`POWER_ZXYG2`,
+		  this_.`POWER_ZXYG3`,
+		  this_.`POWER_ZXYG4`,
+		  this_.`AMOUNT`,
+		  this_.`PRC_ZXYGZ1`,
+		  this_.`PRC_ZXYGZ2`,
+		  this_.`PRC_ZXYGZ3`,
+		  this_.`PRC_ZXYGZ4`,
+		  this_.`SERV_FEE`
+		FROM
+		  bill_pay this_ 
+		  LEFT OUTER JOIN chg_pile pile_ 
+		    ON pile_.`PILE_ID` = this_.`PILE_ID` 
+		  LEFT OUTER JOIN chg_station station_ 
+		    ON station_.`STATION_ID` = pile_.`STATION_ID` 
+		  LEFT OUTER JOIN c_cons cons_ 
+		    ON cons_.`CONS_ID` = this_.`CONS_ID` 
+		  LEFT OUTER JOIN c_group group_ 
+		    ON cons_.`GROUP_ID` = group_.`GROUP_ID` 
+		  LEFT OUTER JOIN vehicle vehicle_ ON vehicle_.`vehicle_id` = this_.`CAR_ID`
+		WHERE  
+			this_.`END_TIME` <![CDATA[>=]]>  #{startDate}  
+  			AND this_.`END_TIME` <![CDATA[ < ]]> #{endDate}
+  			AND this_.`PAY_STATE` <![CDATA[ <> ]]> 1
+  			AND station_.`STATION_ID` = #{stationId}
+	</select>
+	<!-- 查询订单中的SOC值 -->
+	<select id="getBillPaySOC" parameterType="DataVo" resultType="DataVo">
+	  SELECT DISTINCT this_.`BILL_PAY_ID`,this_.`SOC_BEG`,this_.`SOC_END` FROM chg_rc this_
+	  WHERE this_.`BILL_PAY_ID` IN 
+	  <foreach collection="billPayIds" item="billPayId" open="(" close=")" separator=",">
+	  	#{billPayId}
+	  </foreach>
+	</select>
+</mapper>

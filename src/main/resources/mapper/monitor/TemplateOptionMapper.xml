@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.TemplateOptionMapper">
+
+	<!-- 约束条件 -->
+	<sql id="condition">
+		WHERE 1=1
+		<if test="templateId !=null and templateId !='' ">
+			AND this_.`TEMPLATE_ID` = ${templateId}
+		</if>
+	</sql>
+
+	<!-- 排序条件 -->
+	<sql id="orderBy">
+		<if test="sort!=null and sort!=''">
+			ORDER BY ${sort} ${order}
+		</if>
+	</sql>
+
+
+	<!-- 按条件统计用户数 -->
+	<select id="queryListCount" parameterType="DataVo" resultType="Integer">
+		SELECT this_.`OPTION_ID`,this_.`OPTION_NAME`,this_.`OPTION_RESOURCES`,this_.`OPTION_TYPE`,this_.`TEMPLATE_ID` FROM yxg_template_option this_
+		<include refid="condition"></include>
+	</select>
+
+	<!-- 按条件分页查询用户 -->
+	<select id="queryListByPage" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.`OPTION_ID`,this_.`OPTION_NAME`,this_.`OPTION_RESOURCES`,this_.`OPTION_TYPE`,this_.`TEMPLATE_ID` FROM yxg_template_option this_
+		<include refid="condition"></include>
+		<include refid="orderBy"></include>
+	</select>
+
+	<!-- 检查数据唯一性 耗材名称 -->
+	<select id="checkUniqueness" parameterType="DataVo" resultType="Integer">
+		SELECT count(this_.`OPTION_ID`) FROM yxg_template_option this_
+		WHERE this_.`TEMPLATE_NAME` = #{templateNAME} AND AND this_.`TEMPLATE_ID` = #{templateId}
+		<if test="optionId !=null and optionId !=''">
+			AND this_.`OPTION_ID` <![CDATA[ <> ]]>  #{optionId}
+		</if>
+	</select>
+
+	<!-- 新增用户 -->
+	<insert id="insert" parameterType="DataVo">
+		INSERT INTO yxg_template_option (
+		OPTION_NAME
+		<if test="optionResources != null and optionResources != ''">,OPTION_RESOURCES</if>
+		<if test="optionType != null and optionType != ''">,OPTION_TYPE</if>
+		<if test="templateId != null and templateId != ''">,TEMPLATE_ID</if>
+		) VALUES(
+		#{optionName}
+		<if test="optionResources != null and optionResouces != ''">,#{optionResources}</if>
+		<if test="optionType != null and optionType != ''">,#{optionType}</if>
+		<if test="templateId != null and templateId != ''">,#{templateId}</if>
+		)
+	</insert>
+
+
+
+	<!-- 删除 -->
+	<delete id="delete" parameterType="DataVo">
+		DELETE FROM yxg_template_option WHERE TEMPLATE_ID IN
+		<foreach collection="ids" item="id" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+</mapper>

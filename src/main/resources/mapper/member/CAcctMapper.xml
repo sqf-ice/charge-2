@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.member.mapper.CAcctMapper">
+	
+	<!-- 新增账户 -->
+	<insert id="insertCAcct" parameterType="Map" keyProperty="acctId" useGeneratedKeys="true">
+		INSERT INTO c_acct
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="acctNo != null">acct_no,</if>
+			<if test="acctAmount != null">acct_amount,</if>
+			<if test="acctStateCode != null and '' != acctStateCode">acct_state_code,</if>
+			create_time,
+			update_time,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="acctNo != null">#{acctNo},</if>
+			<if test="acctAmount != null">#{acctAmount},</if>
+			<if test="acctStateCode != null and '' != acctStateCode">#{acctStateCode},</if>
+			now(),
+			now(),
+		</trim>
+	</insert>
+	
+	<!-- 更新账户信息 -->
+	<update id="updateCAcct">
+		UPDATE c_acct
+			<set>
+				<if test="acctNo != null and '' != acctNo">acct_no = #{acctNo},</if>
+				<if test="acctAmount != null">acct_amount = #{acctAmount},</if>
+				<if test="acctStateCode != null and '' != acctStateCode">acct_state_code = #{acctStateCode},</if>
+				update_time = now()
+			</set>
+		where acct_id = #{acctId}
+	</update>
+
+	<insert id="insertCAcctSeq" parameterType="Map" keyProperty="seqId" useGeneratedKeys="true">
+		INSERT INTO c_acct_seq
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			acct_id,
+			seq_flag,
+			pre_amount,
+			cur_amount,
+			chg_amount,
+			chg_type,
+			seq_desc,
+			create_time
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			#{acctId},
+			#{seqFlag},
+			#{preAmount},
+			#{curAmount},
+			#{chgAmount},
+			#{chgType},
+			#{seqDesc},
+			now()
+		</trim>
+	</insert>
+
+	<insert id="batchInserCAcct" parameterType="Map" keyProperty="acctId" useGeneratedKeys="true">
+		INSERT INTO c_acct
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			acct_no,
+			acct_amount,
+			acct_state_code,
+			create_time,
+			update_time
+		</trim>
+		VALUES
+		<foreach collection="list" item="acct" index="index" separator=",">
+            (
+	            #{acct.acctNo},
+				#{acct.acctAmount},
+				#{acct.acctStateCode},
+				now(),
+				now()
+			)
+        </foreach>	
+	</insert>
+	
+	<update id="batchUpdateCAcct">
+		 <foreach collection="list" item="acct" index="index" open="" close="" separator=";">
+	        UPDATE c_acct
+			<set>
+				acct_no = #{acct.acctNo},
+				acct_amount = #{acct.acctAmount},
+				acct_state_code = #{acct.acctStateCode},
+				update_time = now()
+			</set>
+			<where>
+				acct_id = #{acct.acctId}
+			</where>
+        </foreach>
+	</update>
+
+
+	<select id="queryCAcctStatus" resultType="DataVo">
+		SELECT
+			c.acct_state_code
+		FROM c_acct c
+			left OUTER JOIN
+				c_cons cons
+			  		ON c.ACCT_ID = cons.ACCT_ID
+		<where>
+			<if test="consId != null">
+				and cons.cons_id = #{consId}
+			</if>
+			<if test="acctNo != null and '' != acctNo">
+				and c.acct_no = #{acctNo}
+			</if>
+			<if test="acctId != null">
+				and c.ACCT_ID = #{acctId}
+			</if>
+		</where>
+
+	</select>
+</mapper>

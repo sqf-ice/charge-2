@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.charge.mapper.HistoryDataMapper">
+	<!-- 历史数据查询-->
+	<select id="selectHistoryData" parameterType="DataVo" resultType="DataVo">
+		SELECT
+				this_.BILL_PAY_ID ,
+				this_.BILL_PAY_NO ,
+				this_.START_TIME ,
+				this_.END_TIME ,
+				this_.CHG_POWER ,
+				this_.CREATE_TIME ,
+				ccons2x1_.CONS_NO ,
+				ccons2x1_.CONS_NAME ,
+				ccons2x1_.CONS_PHONE ,
+				chgpile2x2_.PILE_NO ,
+				chgpile2x2_.PILE_NAME ,
+				chgpile2x2_.PILE_TYPE ,
+				chgpile2x2_.STATION_ID ,
+				chgstation3_.STATION_NAME ,
+				vehicleinf4_.license_Plate ,
+				vehicleinf4_.line ,
+				puborg4x5_.ORG_NAME,
+				vehicleinf4_.brand,
+				vehicleinf4_.vehicle_type
+		FROM
+		BILL_PAY this_
+		LEFT OUTER JOIN C_CONS ccons2x1_ ON this_.CONS_ID = ccons2x1_.CONS_ID
+		LEFT OUTER JOIN CHG_PILE chgpile2x2_ ON this_.PILE_ID = chgpile2x2_.PILE_ID
+		LEFT OUTER JOIN CHG_STATION chgstation3_ ON chgpile2x2_.STATION_ID = chgstation3_.STATION_ID
+		LEFT OUTER JOIN PUB_ORG puborg4x5_ ON chgstation3_.ORG_ID = puborg4x5_.ORG_ID
+		LEFT OUTER JOIN vehicle vehicleinf4_ ON this_.CAR_ID = vehicleinf4_.vehicle_id
+		<where>
+			<if test="startDate!=null">
+	   			 <![CDATA[ and  DATE_FORMAT(this_.end_time, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d')   ]]>
+			</if> 
+			<if test="endDate!=null">
+	    		 <![CDATA[ and DATE_FORMAT(this_.end_time, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')     ]]>
+			</if>
+			<if test="stationName !=null and stationName !=''">
+				and chgstation3_.STATION_NAME = #{stationName}
+			</if>
+			<if test="stationId !=null and stationId !=''">
+				and chgstation3_.STATION_Id = #{stationId}
+			</if>
+			<if test="orgId !=null and orgId !=''">
+				and puborg4x5_.org_Id = #{orgId}
+			</if>
+			<if test="orgName !=null and orgName !=''">
+				and puborg4x5_.org_name like concat('%',#{orgName},'%')
+			</if>
+			<if test="pileId !=null and pileId !=''">
+				and chgpile2x2_.PILE_ID = #{pileId} 
+			</if>
+			<if test="pileName !=null and pileName !=''">
+				and chgpile2x2_.PILE_NAME = #{pileName}
+			</if>
+			<if test="stationIds !=null and stationIds.size()>0">
+				 and chgstation3_.STATION_ID in 
+				<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")"> 
+	  				#{item} 
+				</foreach>   
+			</if>
+			<if test="vehicleType !=null and vehicleType !=''">
+				and vehicleinf4_.vehicle_type = #{vehicleType}
+			</if>
+			<if test="brand !=null and brand !=''">
+				and vehicleinf4_.brand = #{brand}
+			</if>
+			<if test="line !=null and line !=''">
+				and vehicleinf4_.line like concat('%',#{line},'%')
+			</if>
+			<if test="licensePlate !=null and licensePlate !=''">
+				and vehicleinf4_.license_Plate like concat('%',#{licensePlate},'%')
+			</if>
+		</where>
+		ORDER BY
+			this_.CREATE_TIME DESC
+	</select>
+	<!-- 根据会员查询会员信息-->
+	<select id="findPayId" parameterType="DataVo" resultType="DataVo">
+		select
+		this_.BILL_PAY_ID,
+		this_.PILE_ID,
+		this_.AMOUNT,
+		this_.CHG_POWER ,
+		this_.INNER_ID
+		from
+		BILL_PAY this_
+		<where>
+			<if test="payId !=null">
+				this_.BILL_PAY_ID = #{payId}
+			</if>
+		</where>
+	</select>
+
+	<!-- 查询ChgDataCur信息-->
+	<select id="selectChgDataCur" parameterType="DataVo" resultType="DataVo">
+		select
+		this_.SYS_SEQ_ID,
+		this_.BILL_PAY_ID ,
+		this_.PILE_SEQ_ID ,
+		this_.TRM_ADDR ,
+		this_.DATA_TIME,
+		this_.OBJ_TYPE,
+		this_.INNER_ID,
+		this_.ZXYGZ,
+		this_.ZXYG1,
+		this_.ZXYG2,
+		this_.ZXYG3,
+		this_.ZXYG4,
+		this_.UA,
+		this_.UB,
+		this_.UC,
+		this_.IA,
+		this_.IB,
+		this_.IC,
+		this_.CHG_JE,
+		this_.CHG_DL,
+		this_.TEMPER1,
+		this_.TEMPER2,
+		this_.SOC
+		from
+		CHG_DATA_CUR this_
+		<where>
+			<if test="payId !=null">
+				this_.BILL_PAY_ID = #{payId}
+			</if>
+		</where>
+		order by
+		this_.DATA_TIME asc
+	</select>
+	<!-- 查询ChgPile信息-->
+	<select id="findChgPile" parameterType="DataVo" resultType="DataVo">
+		select
+		this_.PILE_TYPE,
+		this_.ort_mode
+		from
+		CHG_PILE this_
+		<where>
+			<if test="pileId !=null">
+				this_.PILE_ID = #{pileId}
+			</if>
+		</where>
+	</select>
+	<!-- 查询CHG_RC信息-->
+	<select id="findChgRc" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		r.BEG_TIME,
+		r.END_TIME1,
+		r.RATEDL,
+		r.DL,
+		r.TIME_MIN1
+		FROM
+		CHG_RC r
+		<where>
+			<if test="payId !=null">
+				r.BILL_PAY_ID = #{payId}
+			</if>
+		</where>
+	</select>
+	<!-- 查询互联互通桩信息-->
+	<select id="getToPile" parameterType="DataVo" resultType="DataVo">
+			SELECT
+		e.equipmentI_D equipment_ID,
+		e.equipmentName equipment_Name,
+	    e.operatorI_D operator_ID,
+	    e.equipmentType equipment_Type,
+	    e.sync_time
+	FROM
+		to_equipmentinfo e
+		WHERE e.stationI_D =#{stationId}
+		and   e.operatorI_D = #{operatorId}
+	</select>
+	<!-- 查询互联互通桩信息-->
+	<select id="getgunList" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		connectorI_D connector_Id,
+		equipmentI_D  equipment_Id,
+		connectorName  connector_Name,
+		connectorType connector_Type,
+		operatorI_D operator_Id,
+		current,
+		voltageUpperLimits voltage_Upper_Limits
+		FROM
+		to_connectorinfo
+		WHERE
+		operatorI_D = #{operatorId}
+		<if test="equipmentIds !=null and equipmentIds.size()>0">
+			and equipmentI_D in
+			<foreach item="item" index="index" collection="equipmentIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+
+	<select id="getOrderList" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		sum(totalMoney) total_Money,
+		sum(totalPower) total_Power,
+		count(*) size
+		FROM
+		to_notificationchargeorderinfo
+		WHERE
+		operatorI_D = #{operatorId}
+		<if test="gunSet !=null and gunSet.size()>0">
+			and connectorI_D in
+			<foreach item="item" index="index" collection="gunSet" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="dateTime!=null">
+			<![CDATA[ and  DATE_FORMAT(endTime, '%Y-%m-%d')>=  DATE_FORMAT(#{dateTime}, '%Y-%m-%d')   ]]>
+		</if>
+	</select>
+	<select id="getToStation" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		stationName station_Name,
+		operatorI_D operator_Id,
+		stationI_D station_Id
+		FROM
+		to_stationinfo
+		WHERE
+		operatorI_D = #{operatorId}
+	</select>
+</mapper>

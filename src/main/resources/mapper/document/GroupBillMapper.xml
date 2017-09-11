@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.GroupBillMapper">
+	
+	<!-- 查询集团账单列表 -->
+	<select id="getGroupBillAll" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.GROUP_BILL_ID,
+	        this_.GROUP_ID,
+	        this_.GROUP_BILL_STATUS,
+	        this_.GROUP_BILL_AMOUNT,
+	        this_.GROUP_BILL_DATE,
+	        this_.GROUP_BILL_MONTH,
+	        this_.TRACT_ID,
+	        cgroups2x1_.GROUP_ID,
+	        cgroups2x1_.GROUP_NO,
+	        cgroups2x1_.GROUP_NAME,
+	        ccontracts2_.CONTRACT_NAME,
+	        ccontracts2_.STATION_ID,
+	        cacctseq2x4_.CUR_AMOUNT
+	    FROM
+	        C_GROUP_BILL this_ 
+	    LEFT OUTER JOIN
+	        C_GROUP cgroups2x1_ 
+	            ON this_.GROUP_ID=cgroups2x1_.GROUP_ID 
+	    LEFT OUTER JOIN
+	        C_ACCT cacct3x3_ 
+	            ON cgroups2x1_.ACCT_ID=cacct3x3_.ACCT_ID 
+	    LEFT OUTER JOIN
+	        C_CONTRACT ccontracts2_
+	            ON this_.TRACT_ID=ccontracts2_.CONTRACT_ID
+	    LEFT OUTER JOIN
+	        C_ACCT_SEQ cacctseq2x4_
+	            ON this_.GROUP_BILL_ID=cacctseq2x4_.GROUP_BILL_ID
+		<include refid="conditions" />
+	</select>
+	<!-- 列表查询条件 -->
+	<sql id="conditions">
+		<where>
+			1=1
+		<if test="groupName != null">
+			AND cgroups2x1_.GROUP_NAME like concat('%',#{groupName},'%')
+		</if>
+		<if test="groupNo !=null">
+			AND cgroups2x1_.GROUP_NO like concat('%',#{groupNo},'%')
+		</if>
+		<if test="groupBillStatus !=null">
+			AND this_.GROUP_BILL_STATUS =  #{groupBillStatus}
+		</if>
+		<if test="groupBillMonth != null">
+			AND this_.GROUP_BILL_MONTH like concat('%',#{groupBillMonth},'%')
+		</if>
+		<if test="orgIds != null ">
+			AND cgroups2x1_.APP_FROM IN
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")" >
+				#{orgId}
+			</foreach>
+		</if>
+		</where>
+	</sql>
+	<!-- 根据集团账单Id查询集团账单信息 -->
+	<select id="getGroupBillById" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.GROUP_BILL_ID,
+	        this_.GROUP_ID,
+	        this_.GROUP_BILL_STATUS,
+	        this_.GROUP_BILL_AMOUNT,
+	        this_.GROUP_BILL_DATE,
+	        this_.GROUP_BILL_MONTH,
+	        this_.TRACT_ID,
+	        contract_.CONTRACT_TYPE
+	    FROM
+	        C_GROUP_BILL this_ 
+	    left outer join C_CONTRACT contract_ on contract_.CONTRACT_ID = this_.TRACT_ID
+	    WHERE
+	        this_.GROUP_BILL_ID=#{groupBillId}
+	</select>
+	<!-- 查询集团账单详情列表 -->
+	<select id="getGroupBillInfos" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.BILL_PAY_ID,
+	        this_.BILL_PAY_NO,
+	        this_.START_TIME,
+	        this_.END_TIME,
+	        this_.PILE_ID,
+	        this_.INNER_ID,
+	        this_.AMOUNT,
+	        this_.CHG_POWER,
+	        this_.ELCE_FEE,
+	        this_.SERV_FEE,
+	        this_.PARK_FEE,
+	        this_.CREATE_TIME,
+	        this_.FINISH_TIME,
+	        this_.PAY_STATE,
+	        this_.CHECK_STATE,
+	        this_.BILL_DESC,
+	        this_.ORG_ID,
+	        this_.CONS_ID,
+	        this_.IS_STOP,
+	        this_.SETTLE_TIMES,
+	        this_.PAY_TYPE,
+	        this_.PREPAY_ID,
+	        this_.OUT_BILL_NO,
+	        this_.POWER_ZXYG1,
+	        this_.POWER_ZXYG2,
+	        this_.POWER_ZXYG3,
+	        this_.POWER_ZXYG4,
+	        this_.PRC_ZXYGZ1,
+	        this_.PRC_ZXYGZ2,
+	        this_.PRC_ZXYGZ3,
+	        this_.PRC_ZXYGZ4,
+	        this_.START_TYPE,
+	        this_.PRE_AMOUNT,
+	        this_.SERV_PRICE,
+	        this_.MINUTES,
+	        this_.ORDER_STATUS,
+	        this_.DISCOUNT_FEE,
+	        this_.CAR_ID,
+	        this_.COUPON_ID,
+	        ccons2x1_.CONS_PHONE,
+	        ccons2x1_.CONS_NAME,
+	        chgpile2x3_.STATION_ID,
+	        chgstation4_.STATION_ID
+	    <include refid="groupBillInfoSql"/>
+	</select>
+
+	<select id="getGroupBillInfosTotal" resultType="DataVo">
+		SELECT
+	        sum(this_.AMOUNT) amount,
+	        sum(this_.CHG_POWER) chg_power,
+	        sum(this_.ELCE_FEE) elce_fee,
+	        sum(this_.SERV_FEE) serv_fee,
+	        sum(this_.PARK_FEE) park_fee
+	    <include refid="groupBillInfoSql"/>
+	</select>
+	<sql id="groupBillInfoSql">
+		FROM
+			BILL_PAY this_
+		LEFT OUTER JOIN
+			C_CONS ccons2x1_
+				ON this_.CONS_ID=ccons2x1_.CONS_ID
+		INNER JOIN
+			C_GROUP cgroup3x2_
+				ON ccons2x1_.GROUP_ID=cgroup3x2_.GROUP_ID
+		LEFT OUTER JOIN
+			CHG_PILE chgpile2x3_
+				ON this_.PILE_ID=chgpile2x3_.PILE_ID
+		LEFT OUTER JOIN
+			CHG_STATION chgstation4_
+				ON chgpile2x3_.STATION_ID=chgstation4_.STATION_ID
+		WHERE
+			cgroup3x2_.GROUP_ID=#{groupId}
+			<if test="orgIds != null">
+				AND ccons2x1_.APP_FROM IN
+				<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+			<if test="stationIds != null">
+				AND chgstation4_.STATION_ID IN
+				<foreach collection="stationIds" item="subId" open="(" separator="," close=")" >
+					#{subId}
+				</foreach>
+			</if>
+			<if test="stationId !=null and stationId != -1">
+				AND chgstation4_.STATION_ID = #{stationId}
+			</if>
+			<if test="consName != null">
+				AND ccons2x1_.CONS_NAME like concat('%',#{consName},'%')
+			</if>
+			<if test="consPhone != null">
+				AND ccons2x1_.CONS_PHONE like concat('%',#{consPhone},'%')
+			</if>
+			AND this_.pay_state <![CDATA[ <> ]]> 1
+			AND this_.END_TIME <![CDATA[ >= ]]> #{groupBillDateStart}
+			AND this_.END_TIME <![CDATA[ < ]]> #{groupBillDateEnd}
+		ORDER BY
+		this_.CREATE_TIME DESC
+	</sql>
+</mapper>

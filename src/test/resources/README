@@ -1,0 +1,18 @@
+http://localhost:8888/swagger-ui.html
+
+::apidoc -f ".*\\.js$" -f ".*\\.java$" -i src/ -o apidoc/
+
+apidoc -i src/ -o doc/
+
+
+apidoc -f ".*\\.java$" -i src/ -o doc/
+
+?pretty&lang=en
+
+get|insert|update|delete
+
+find|add|modify|delete|remove
+
+query|save|edit|delete
+
+

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--namespace必须是接口的全类名 -->
+<mapper namespace="com.clouyun.charge.modules.demo.mapper.DemoUserMapper">
+	<!-- 根据用户ID获取用户对象 -->
+	<select id="findUserById" resultType="DataVo">
+		select *
+		from demo_user
+		where
+		user_id = #{id}
+	</select>
+	<!-- 根据用户名获取用户对象 -->
+	<select id="findUserByUserName" resultType="DataVo">
+		select *
+		from demo_user
+		where
+		user_name = #{userName}
+	</select>
+	<!-- 增加用户 -->
+	<insert id="addUser" parameterType="DataVo">
+		insert into demo_user(user_name,user_pwd,user_gender,user_phone,user_email,user_addr,user_status)
+		values(#{userName},#{userPwd},#{userGender},#{userPhone},#{userEmail},#{userAddr},#{userStatus})
+	</insert>
+	<!-- 根据用户ID删除用户 -->
+	<delete id="delUserById" parameterType="int">
+		delete from demo_user
+		where user_id = #{id}
+	</delete>
+	<!-- 根据用户IDs批量删除用户 -->
+	<delete id="delUserByIds" parameterType="int">
+		delete from demo_user
+		where user_id in
+		<foreach collection="list" item="id" index="index" open="(" close=")" separator=",">
+			#{id}
+		</foreach>
+	</delete>
+	<!-- 根据ID更新用户数据 -->
+	<update id="updateUser" parameterType="DataVo" >
+		update demo_user
+		<set>
+			<if test="userName!=null and userName!=''">
+				user_name=#{userName},
+			</if>
+			<if test="userPwd!=null and userPwd!=''">
+				user_pwd=#{userPwd},
+			</if>
+			<if test="userGender!=null and userGender!=''">
+				user_gender=#{userGender},
+			</if>
+			<if test="userPhone!=null and userPhone!=''">
+				user_phone=#{userPhone},
+			</if>
+			<if test="userEmail!=null and userEmail!=''">
+				user_email=#{userEmail},
+			</if>
+			<if test="userAddr!=null and userAddr!=''">
+				user_addr=#{userAddr},
+			</if>
+			<if test="userStatus!=null and userStatus!=''">
+				user_status=#{userStatus},
+			</if>
+
+		</set>
+		where user_id=#{userId}
+	</update>
+	<!-- 条件查询 -->
+	<select id="findByCondition" parameterType="DataVo" resultType="DataVo">
+		select *
+		from demo_user
+		<where>
+			<if test="userName!=null and userName!=''">
+				<bind name="pattern_userName" value="'%' + _parameter.userName + '%'" />
+				and user_name like #{pattern_userName}
+			</if>
+			<if test="userGender!=null and userGender!=''">
+				and user_gender=#{userGender}
+			</if>
+			<if test="userPhone!=null and userPhone!=''">
+				and user_phone=#{userPhone}
+			</if>
+			<if test="userEmail!=null and userEmail!=''">
+				and user_email=#{userEmail}
+			</if>
+			<if test="userAddr!=null and userAddr!=''">
+				<bind name="pattern_userAddr" value="'%' + _parameter.userAddr + '%'" />
+				and user_addr like #{pattern_userAddr}
+			</if>
+			<if test="userStatus!=null and userStatus!=''">
+				and user_status=#{userStatus}
+			</if>
+		</where>
+	</select>
+	<!-- 统计数量 -->
+	<select id="pageCount" parameterType="DataVo" resultType="java.lang.Integer">
+		select count(*)
+		from demo_user
+		<where>
+			<if test="userName!=null and userName!=''">
+				<bind name="pattern_userName" value="'%' + _parameter.userName + '%'" />
+				and user_name like #{pattern_userName}
+			</if>
+			<if test="userGender!=null and userGender!=''">
+				and user_gender=#{userGender}
+			</if>
+			<if test="userPhone!=null and userPhone!=''">
+				and user_phone=#{userPhone}
+			</if>
+			<if test="userEmail!=null and userEmail!=''">
+				and user_email=#{userEmail}
+			</if>
+			<if test="userAddr!=null and userAddr!=''">
+				<bind name="pattern_userAddr" value="'%' + _parameter.userAddr + '%'" />
+				and user_addr like #{pattern_userAddr}
+			</if>
+			<if test="userStatus!=null and userStatus!=''">
+				and user_status=#{userStatus}
+			</if>
+		</where>
+	</select>
+
+
+
+</mapper>

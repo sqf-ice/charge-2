@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.PhotoMapper">
+	<select id="findPhotoListByTaskId" parameterType="DataVo" resultType="DataVo">
+	   SELECT yxg_photo_id,task_id,option_id,photo_url,photo_long,photo_lat,photo_addr FROM  yxg_photo WHERE task_id=#{taskId}
+	</select>
+</mapper>

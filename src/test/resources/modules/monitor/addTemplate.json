@@ -1,0 +1,11 @@
+{
+    "orgId": 11,
+    "templateName":"模板名称",
+    "options": [
+        {
+            "optionResources": "01",
+            "optionName":"",
+            "optionType": 1
+        }
+    ]
+}

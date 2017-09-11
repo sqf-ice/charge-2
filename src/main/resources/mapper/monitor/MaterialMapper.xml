@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.MaterialMapper">
+
+	<!-- 约束条件 -->
+	<sql id="condition">
+		WHERE 1=1
+		<if test="matFactory!=null and matFactory!=''">
+			AND this_.MAT_FACTORY like concat('%',#{matFactory},'%')
+		</if>
+		<if test="matName!=null and matName!=''">
+			AND this_.MAT_NAME like concat('%',#{matName},'%')
+		</if>
+		<if test="orgIds!=null">
+			AND org_.`ORG_ID` IN
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				#{orgId}
+			</foreach>
+		</if>
+	</sql>
+
+	<!-- 排序条件 -->
+	<sql id="orderBy">
+		<if test="sort!=null and sort!=''">
+			ORDER BY ${sort} ${order}
+		</if>
+	</sql>
+
+	<!-- 分页条件 -->
+	<sql id="page">
+		<if test="pageIndex!=null and pageSize!=null">
+			LIMIT #{pageIndex},#{pageSize}
+		</if>
+	</sql>
+
+	<!-- 按条件统计用户数 -->
+	<select id="queryListCount" parameterType="DataVo" resultType="Integer">
+		SELECT count(this_.MAT_ID) FROM YXG_MATERIAL this_
+		LEFT OUTER JOIN PUB_ORG org_ ON org_.`ORG_ID`=this_.`ORG_ID`
+		<include refid="condition"></include>
+		<include refid="page"></include>
+	</select>
+
+	<!-- 按条件分页查询用户 -->
+	<select id="queryListByPage" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.*,org_.ORG_NAME,
+		date_format(this_.`MAT_PRODUCTION_TIME`,'%Y-%m-%d') MAT_PRODUCTION_TIME,
+		date_format(this_.`MAT_PURCHASE_TIME`,'%Y-%m-%d') MAT_PURCHASE_TIME
+		FROM YXG_MATERIAL this_ 
+		LEFT OUTER JOIN PUB_ORG org_ ON org_.`ORG_ID`=this_.`ORG_ID`
+		<include refid="condition"></include>
+		<include refid="orderBy"></include>
+		<include refid="page"></include>
+	</select>
+
+	<!-- 根据ID查询用户 -->
+	<select id="queryById" parameterType="DataVo" resultType="DataVo">
+		SELECT *
+		FROM YXG_MATERIAL
+		WHERE MAT_ID=#{matId}
+	</select>
+
+	<!-- 检查数据唯一性 耗材名称 -->
+	<select id="checkUniqueness" parameterType="DataVo" resultType="Integer">
+		SELECT count(this_.MAT_ID) FROM YXG_MATERIAL this_
+		WHERE this_.MAT_NAME = #{matName}
+		<if test="matId!=null and matId!=''">
+			AND this_.MAT_ID <![CDATA[ <> ]]>  #{matId}
+		</if>
+	</select>
+
+	<!-- 新增用户 -->
+	<insert id="insert" parameterType="DataVo" >
+		INSERT INTO YXG_MATERIAL (
+		MAT_NAME
+		<if test="matFactory != null and matFactory != ''">,MAT_FACTORY</if>
+		<if test="matPrice != null and matPrice != ''">,MAT_PRICE</if>
+		<if test="matProductionTime != null and matProductionTime != ''">,MAT_PRODUCTION_TIME</if>
+		<if test="matPurchaseTime != null and matPurchaseTime != ''">,MAT_PURCHASE_TIME</if>
+		<if test="orgId != null and orgId != ''">,ORG_ID</if>
+		) VALUES(
+		#{matName}
+		<if test="matFactory != null and matFactory != ''">,#{matFactory}</if>
+		<if test="matPrice != null and matPrice != ''">,#{matPrice}</if>
+		<if test="matProductionTime != null and matProductionTime != ''">,#{matProductionTime}</if>
+		<if test="matPurchaseTime != null and matPurchaseTime != ''">,#{matPurchaseTime}</if>
+		<if test="orgId != null and orgId != ''">,#{orgId}</if>
+		)
+	</insert>
+
+	<!-- 更新用户 -->
+	<update id="update">
+		UPDATE YXG_MATERIAL
+		<set>
+			<if test="matName != null">MAT_NAME=#{matName},</if>
+			<if test="matFactory != null">MAT_FACTORY=#{matFactory},</if>
+			<if test="matProductionTime != null and '' != matProductionTime">MAT_PRODUCTION_TIME=#{matProductionTime},</if>
+			<if test="matPurchaseTime != null and '' != matPurchaseTime">MAT_PURCHASE_TIME=#{matPurchaseTime},</if>
+			<if test="matPrice != null">MAT_PRICE=#{matPrice},</if>
+		</set>
+		<where>
+			MAT_ID=#{matId}
+		</where>
+	</update>
+
+	<!-- 删除 -->
+	<delete id="delete" parameterType="DataVo">
+		DELETE FROM YXG_MATERIAL WHERE MAT_ID IN
+		<foreach collection="ids" item="id" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+	<!--hui  根据企业ID获取物料列表  -->
+	<select id="findAllMaterialByOrgId" parameterType="DataVo" resultType="DataVo">
+		SELECT MAT_ID,MAT_NAME FROM YXG_MATERIAL  WHERE ORG_ID=#{orgId}
+	</select>
+	<!--hui  根据id获取物料单价  -->
+	<select id="findAllMaterialById" parameterType="DataVo" resultType="DataVo">
+		SELECT mat_price FROM yxg_material  WHERE mat_id=#{matId}
+	</select>
+	<!-- 查询物料是否正在使用 -->
+	<select id="materialUse" parameterType="DataVo" resultType="Integer">
+		SELECT COUNT(yxg_alert_id) FROM yxg_alert WHERE mat_id in 
+			<foreach collection="ids" item="matId" open="(" separator="," close=")">
+				#{matId}
+			</foreach>
+	</select>
+	
+</mapper>

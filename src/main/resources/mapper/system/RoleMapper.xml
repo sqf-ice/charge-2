@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.clouyun.charge.modules.system.mapper.RoleMapper">
+
+    <!-- 约束条件 -->
+    <sql id="condition">
+        WHERE 1=1
+        <if test="orgIds!=null and orgIds.size()>0">
+            AND r.org_id IN
+            <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                #{orgId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+        <if test="roleId!=null and roleId!=''">
+          AND r.id = #{roleId,jdbcType=INTEGER}
+        </if>
+        <if test="name!=null and name!=''">
+            AND r.name = concat('%',#{name},'%')
+        </if>
+        <if test="createBy!=null and createBy!=''">
+            AND r.create_by = #{createBy,jdbcType=INTEGER}
+        </if>
+        <if test="roleType!=null and roleType!=''">
+            <![CDATA[AND r.role_type>=#{roleType}]]>
+        </if>
+        <if test="loginName!=null and loginName!=''">
+            AND u.login_name LIKE concat('%',#{loginName},'%')
+        </if>
+    </sql>
+
+    <!-- 排序条件 -->
+    <sql id="orderBy">
+        <if test="sort!=null">
+            ORDER BY concat('r.',${sort}) ${order}
+        </if>
+    </sql>
+
+    <!-- 按条件统计角色数 -->
+    <select id="count" parameterType="Map" resultType="Integer">
+        SELECT count(id) FROM sys_role
+        <include refid="condition"></include>
+    </select>
+
+    <!-- 按条件分页查询角色 -->
+    <select id="getRolesByPage" parameterType="Map" resultType="DataVo">
+        SELECT r.id,r.name,r.remark,u.login_name AS create_by FROM sys_role r
+        LEFT JOIN sys_user u ON r.create_by = u.id
+        <include refid="condition"></include>
+        <include refid="orderBy"></include>
+        <!--<include refid="pagination"></include>-->
+    </select>
+
+    <!-- 根据用户名和密码查询账户 -->
+    <select id="getRoleCountByName" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM sys_role
+        WHERE ${chkFileName} = #{chkValue}
+        <if test="roleId!=null and roleId!=0">
+            AND id != #{roleId,jdbcType=INTEGER}
+        </if>
+    </select>
+    <!-- 根据用户运营商权限查询可查看的角色组成下拉框 -->
+    <select id="getRoleDictByOrgIds" resultType="ComboxVo">
+        SELECT DISTINCT concat(id,'') AS id, name AS text FROM sys_role
+        WHERE 1 = 1
+        <if test="roleType!=null and roleType!=''">
+            <![CDATA[ AND role_type>=#{roleType}]]>
+        </if>
+        <if test="name != null and name != ''">
+            AND `name` LIKE concat('%',#{name},'%')
+        </if>
+        <if test="orgIds!=null and orgIds.size()>0">
+            AND org_id IN
+            <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                #{orgId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+    </select>
+
+    <!-- 根据用户ID获取角色创建人账号组成下拉框 -->
+    <select id="getRoleUserDictByUserId" resultType="ComboxVo">
+        SELECT DISTINCT concat(u.id,'') AS id, u.login_name AS text FROM sys_role r
+        LEFT JOIN sys_user u ON r.create_by = u.id
+        WHERE 1=1
+        AND u.login_name IS NOT NULL
+        <if test="orgIds!=null and orgIds.size()>0">
+            AND r.org_id IN
+            <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                #{orgId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+        <if test="loginName!=null and loginName !=''">
+            AND u.login_name LIKE concat('%',#{loginName},'%')
+        </if>
+        LIMIT 20
+    </select>
+
+    <!-- 根据角色ID查询 -->
+    <select id="getRoleById" resultType="DataVo">
+        SELECT r.id,r.name,r.remark,r.role_type FROM sys_role r
+         WHERE r.id=#{id}
+    </select>
+
+
+    <!-- 查询角色的权限列表 -->
+    <select id="getPermsByRoleId" resultType="TreeNode"><!-- Map -->
+        SELECT
+        DISTINCT perm.id, perm.pid, perm.name
+        FROM
+        sys_role_perm rperm
+        LEFT JOIN sys_perm perm ON perm.id = rperm.perm_id
+        WHERE rperm.role_id=#{roleId}
+        AND perm.id IS NOT NULL
+        <!--<if test="permType !=null">-->
+            <!--WHERE perm.perm_type=#{permType}-->
+        <!--</if>-->
+        ORDER BY perm.sort
+    </select>
+
+    <!-- 查询已被使用的角色ID和名称 -->
+    <select id="getUsedRoles" resultType="DataVo"><!-- Map -->
+        SELECT r.role_id,s.name FROM sys_user_role r
+        LEFT JOIN sys_role s ON r.role_id = s.id
+        WHERE 1=1
+        <if test="roleIds != null and roleIds.size()>0">
+            AND r.role_id IN
+            <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+                #{roleId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+        GROUP BY r.role_id;
+    </select>
+
+    <!-- 根据角色ID获取所有权限ID -->
+    <select id="getPermIdsByRoleId" resultType="java.lang.Integer"><!-- Map -->
+        SELECT
+        DISTINCT rperm.perm_id
+        FROM
+        sys_role_perm rperm
+        WHERE rperm.role_id=#{roleId}
+    </select>
+
+    <!-- 根据登录用户获取可查看的数据权限集合
+    <select id="getRoleDataByUserId" parameterType="java.lang.Integer" resultType="DataVo">
+        SELECT DISTINCT srd.data_id,srd.data_type FROM sys_role_data srd
+        LEFT JOIN sys_user_role sur ON srd.id = sur.role_id
+        WHERE sur.user_id = #{userId,jdbcType=INTEGER}
+    </select> -->
+
+    <!-- 新增角色 -->
+    <insert id="insertRole" parameterType="Map" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO sys_role (
+        create_time,update_time
+        <if test="name != null">,name</if>
+        <if test="pid != null and pid !=''">,pid</if>
+        <if test="pids != null">,pids</if>
+        <if test="orgId != null">,org_id</if>
+        <if test="enName != null">,en_name</if>
+        <if test="roleState != null">,role_state</if>
+        <if test="roleType != null">,role_type</if>
+        <if test="dataScope != null">,data_scope</if>
+        <if test="createBy != null">,create_by</if>
+        <if test="updateBy != null">,update_by</if>
+        <if test="remark != null">,remark</if>
+        <if test="delFlag != null">,del_flag</if>
+        ) VALUES(
+        now(),now()
+        <if test="name != null">,#{name}</if>
+        <if test="pid != null">,#{pid}</if>
+        <if test="pids != null">,#{pids}</if>
+        <if test="orgId != null">,#{orgId}</if>
+        <if test="enName != null">,#{enName}</if>
+        <if test="roleState != null">,#{roleState}</if>
+        <if test="roleType != null">,#{roleType}</if>
+        <if test="dataScope != null">,#{dataScope}</if>
+        <if test="createBy != null and createBy !=''">,#{createBy}</if>
+        <if test="updateBy != null and updateBy !=''">,#{updateBy}</if>
+        <if test="remark != null">,#{remark}</if>
+        <if test="delFlag != null">,#{delFlag}</if>
+        )
+    </insert>
+
+    <!-- 根据角色ID新增角色权限关联 -->
+    <insert id="insertPermsByRoleId">
+        INSERT INTO sys_role_perm (role_id,perm_id ) VALUES
+        <foreach collection="permIds" item="permId" index="index" separator=",">
+            (#{roleId}, #{permId,jdbcType=INTEGER})
+        </foreach>
+    </insert>
+
+    <!-- 更新角色 -->
+    <update id="updateRoleById">
+        UPDATE sys_role
+        <set>
+            update_time=now(),
+            <if test="name != null">name=#{name},</if>
+            <if test="pid != null and pid !=''">pid=#{pid},</if>
+            <if test="pids != null">pids=#{pids},</if>
+            <if test="orgId != null">org_id=#{orgId},</if>
+            <if test="enName != null">en_name=#{enName},</if>
+            <if test="roleState != null">role_state=#{roleState},</if>
+            <if test="roleType != null and roleType!=''">role_type=#{roleType},</if>
+            <if test="dataScope != null and dataScope!=''">data_scope=#{dataScope},</if>
+            <if test="createBy != null and createBy !=''">create_by=#{createBy},</if>
+            <if test="updateBy != null and updateBy !=''">update_by=#{updateBy},</if>
+            <if test="remark != null">remark=#{remark},</if>
+            <if test="delFlag != null">del_flag=#{delFlag}</if>
+        </set>
+        <where>
+            id=#{id}
+        </where>
+    </update>
+
+    <!-- 删除单个角色 -->
+    <delete id="deleteRoleById" parameterType="Integer">
+        DELETE FROM sys_role WHERE id = #{roleId}
+    </delete>
+
+    <!-- 根据角色ID和权限ID删除角色权限关联表中的数据 -->
+    <delete id="deletePermsByRoleId">
+        DELETE FROM sys_role_perm WHERE role_id = #{roleId,jdbcType=INTEGER}
+        <if test="permIds!=null and permIds.size() > 0">
+            AND perm_id IN
+            <foreach collection="permIds" item="permId" open="(" separator="," close=")">
+                #{permId,jdbcType=INTEGER}
+            </foreach>
+        </if>
+    </delete>
+
+
+    <!-- 删除多个角色 -->
+    <delete id="deleteRolesById" parameterType="List">
+        DELETE FROM sys_role WHERE id IN
+        <foreach collection="roleIds" item="id" open="(" separator="," close=")">
+            #{id,jdbcType=INTEGER}
+        </foreach>
+    </delete>
+
+    <!-- 删除多个角色对应菜单权限关联 -->
+    <delete id="deletePermsByRoleIds" parameterType="List">
+        DELETE FROM sys_role_perm WHERE role_id IN
+        <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+            #{roleId,jdbcType=INTEGER}
+        </foreach>
+    </delete>
+
+</mapper>

@@ -1,0 +1,50 @@
+{
+    "pileId":4100,
+    "pileName": "xxxxxx",
+    "subsNo": "000000456106",
+    "selfNo": "119",
+    "orgId": 1,
+    "stationId": 11,
+    "pileType": "3",
+    "pileStatus": "0",
+    "innerPileNo": "",
+    "innerPileName": "",
+    "pileProtocol": "1",
+    "conCycle": 15,
+    "pileAddr": "yyyyy2",
+    "manufacturerId": "1",
+    "pileGbProtocol": "2",
+    "pileModelId": 11,
+    "numberGun":2,
+    "ortMode":1 ,
+    "powerMode":1 ,
+    "ratePower":22.33 ,
+    "serialNumber":"出厂编号修改" ,
+    "screenVersion":"版本修改" ,
+    "auxiPower":1,
+    "pileNo":"000000456106119",
+    "meter": [
+        {
+            "meterName": "A枪出线表",
+            "meterType": "",
+            "pt": "",
+            "ct": "",
+            "gun": {
+                "qrCode": "sdsdsdw22",
+                "gumPoint": "充电枪A",
+                "parkNum": ""
+            }
+        },
+        {
+            "meterName": "B枪出线表",
+            "meterType": "",
+            "pt": "01",
+            "ct": "",
+            "gun": {
+                "qrCode": "sdsdsdw2444",
+                "gumPoint": "充电枪B",
+                "parkNum": ""
+            }
+        }
+    ]
+}

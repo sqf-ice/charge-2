@@ -1,0 +1,666 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.member.mapper.MemberMapper">
+	
+	<sql id="selectiveSql">
+		<where>
+			<!-- 省份 -->
+			<if test="provice != null and '' != provice" >
+				AND this_.prov_code = #{provice}
+			</if>		
+			<!-- 市 -->
+			<if test="city != null and '' != city " >
+				AND this_.CITY_CODE = #{city}
+			</if>		
+			<!-- 会员名 -->
+			<if test="memberName != null and '' != memberName " >
+				AND this_.CONS_NAME LIKE CONCAT('%',#{memberName},'%' ) 
+			</if>		
+			<!-- 会员手机 -->
+			<if test="memberPhone != null and '' != memberPhone " >
+				AND this_.CONS_PHONE LIKE CONCAT('%',#{memberPhone},'%' )  
+			</if>		
+			<!-- 会员类型 -->
+			<if test="memberType != null and '' != memberType " >
+				AND this_.CONS_TYPE_CODE = #{memberType}
+			</if>		
+			<!-- 会员状态 -->
+			<if test="memberStatus != null and '' != memberStatus " >
+				AND this_.CONS_STATUS = #{memberStatus}
+			</if>		
+			<!-- 会员id集合 -->
+			<if test="consIds != null and consIds.size() > 0" >
+				AND this_.cons_id IN 
+				<foreach collection="consIds" item="cId" open="(" separator="," close=")">
+					#{cId}
+				</foreach>
+			</if>
+					
+			<if test="consFroms != null and consFroms.size() > 0" >
+				AND this_.cons_from IN 
+				<foreach collection="consFroms" item="item" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>		
+			<if test="licensePlate != null and '' != licensePlate" >
+				AND vehicleinf3_.license_plate LIKE CONCAT('%',#{licensePlate},'%' )
+			</if>		
+			<if test="groupId != null and '' != groupId" >
+				AND this_.group_id = #{groupId}
+			</if>
+			<!-- 权限orgId -->		
+			<if test="orgIds!=null and orgIds.size()>0">
+				AND this_.app_from IN
+				<foreach collection="orgIds" item="oId" open="(" separator="," close=")">
+					#{oId}
+				</foreach>
+			</if>		
+			<if test="orgId!=null">
+				AND this_.app_from = #{orgId}
+			</if>
+			<if test="orgName!=null">
+				AND puborg2x4_.org_name LIKE CONCAT('%',#{orgName},'%' )
+			</if>
+		</where>
+	</sql>
+	<!-- 排序条件 -->
+    <sql id="orderBy">
+        <if test="sort!=null">
+            ORDER BY ${sort} ${order}
+        </if>
+    </sql>
+	
+	<select id="queryMembers" resultType="DataVo" parameterType="map">
+		SELECT
+	        this_.cons_id,
+	        this_.cons_no,
+	        this_.cons_name,
+	        this_.cons_type_code,
+	        this_.cons_truename,
+	        this_.cons_idnumber,
+	        this_.cons_gender,
+	        this_.cons_birthday,
+	        this_.cons_trade_code,
+	        this_.cons_phone,
+	        this_.cons_email,
+	        this_.cons_addr,
+	        this_.wechat_no,
+	        this_.group_id,
+	        this_.acct_id,
+	        this_.cons_from,
+	        this_.prov_code,
+	        this_.city_code,
+	        this_.dist_code,
+	        this_.cons_status,
+	        this_.update_time,
+	        this_.open_id,
+	        this_.car_id,
+	        this_.app_from,
+	        this_.reg_time,
+	        this_.test_member,
+	        cgroup2x1_.group_name,
+	        cacct2x2_.acct_no,
+	        cacct2x2_.acct_amount,
+	        cacct2x2_.acct_state_code,
+	        vehicleinf3_.on_number,
+	        vehicleinf3_.manufacturer,
+	        vehicleinf3_.license_plate,
+	        vehicleinf3_.belongs_type,
+	        puborg2x4_.org_name 
+	    FROM
+	        c_cons this_ 
+	    LEFT OUTER JOIN
+	        c_acct cacct2x2_ 
+	            on this_.acct_id=cacct2x2_.acct_id 
+	    LEFT OUTER JOIN
+	        c_group cgroup2x1_ 
+	            on this_.group_id=cgroup2x1_.group_id 
+	    LEFT OUTER JOIN
+	        vehicle vehicleinf3_
+	            on this_.car_id=vehicleinf3_.vehicle_id
+	    LEFT OUTER JOIN
+	        pub_org puborg2x4_ 
+	            on this_.app_from=puborg2x4_.org_id 
+	    <include refid="selectiveSql"/>
+	    <include refid="orderBy"/>
+	</select>
+	
+	<!-- 根据卡号模糊查询会员id -->
+	<select id="queryConsByCardId" resultType="Integer">
+		SELECT cons_id FROM c_card WHERE card_id LIKE CONCAT('%',#{rechargeCard},'%' )
+	</select>
+	<!-- 根据电话号码和企业id查询数据 -->
+	<select id="queryInfoByPhone" resultType="DataVo">
+		select
+			c.cons_id,
+			c.cons_phone,
+			org.org_name
+		from c_cons c
+		LEFT OUTER JOIN
+			pub_org org
+				ON c.APP_FROM = org.ORG_ID
+		<where>
+			<if test="orgId != null">
+				and c.app_from = #{orgId}
+			</if>
+			<if test="phoneNos != null">
+				and c.cons_phone in
+				<foreach collection="phoneNos" item="phone" open="(" separator="," close=")">
+					#{phone}
+				</foreach>
+			</if>
+		</where> 
+	</select>
+	
+	<!-- 查询会员账户交易流水 -->
+	<select id="queryConsFlow" resultType="DataVo">
+		SELECT
+			create_time AS create_time,
+			amount AS amount,
+			'02' AS trans_Type,
+			bill_pay_no AS bill_Pay_Id,
+			pay_type AS pay_Type,
+			pay_state AS pay_State
+		FROM
+			bill_pay
+		WHERE
+			cons_id = #{consId}
+			and ORDER_STATUS != #{orderStatus}
+		UNION
+			SELECT
+				create_time,
+				amount,
+				'01',
+				bill_recharge_no,
+				recharge_type,
+				recharge_state
+			FROM
+				bill_recharge
+			WHERE
+				cons_id = #{consId}
+			AND recharge_state = '02'
+			UNION
+				SELECT
+					r.`recharge_time`,
+					r.`amount`,
+					'03',
+					r.`seq_id`,
+					r.`recharge_type`,
+					''
+				FROM
+					c_card_recharge r
+				LEFT OUTER JOIN 
+					c_card c ON r.`card_id` = c.`card_id`
+				WHERE
+					cons_id = #{consId}
+				<include refid="orderBy"/>
+	</select>
+	<!-- 查询billPay -->
+	<select id="queryBillPay" resultType="DataVo">
+		SELECT bill_pay_no,
+			pay_state,
+			bill_pay_id,
+			amount,
+			start_time,
+			end_time,
+			elce_fee,
+			serv_fee,
+			pay_type,
+			chg_power,
+			inner_id,
+			pile_id
+		 FROM bill_pay
+			WHERE bill_pay_no in
+			<foreach collection="list" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+	</select>
+	<select id="queryBillPayAmount" resultType="DataVo">
+		select amount,substring_index(bill_desc,"_",1) as card_id from bill_pay where cons_id = #{consId} AND  PAY_STATE != 1
+	</select>
+	
+	<select id="queryBillPayCountAndAmount" resultType="DataVo">
+		select count(bill_pay_id) as consCount,sum(AMOUNT) as amountSum,cons_id from bill_pay
+		WHERE 1 = 1
+			<if test="list != null and list.size > 0">
+				and cons_id in
+				<foreach collection="list" item="consId" open="(" separator="," close=")">
+					#{consId}
+				</foreach>
+			</if>
+		AND PAY_STATE != 1
+		GROUP BY cons_id
+	</select>
+	<!-- 查询BillRecharge -->
+	<select id="queryBillRecharge" resultType="DataVo">
+		SELECT bill_recharge_id,bill_recharge_no,recharge_type,recharge_state FROM bill_recharge
+		WHERE bill_recharge_no in
+			<foreach collection="list" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+	</select>
+	<!-- 查询CCardRecharge -->
+	<select id="queryCCardRecharge" resultType="DataVo">
+		SELECT seq_id FROM c_card_recharge
+		WHERE seq_id in
+			<foreach collection="list" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+	</select>
+	<!-- 根据集团id查询会员数 -->
+	<select id="queryCountByGroupId" resultType="DataVo">
+		select
+	        this_.group_id,
+	        count(1) as count 
+	    from
+	        c_cons this_ 
+	    <if test="list != null">
+		    where
+		        this_.group_id in 
+		        <foreach collection="list" item="item" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+	    </if>
+	    group by
+	        this_.group_id
+	</select>
+	<!-- 查询充电卡信息 -->
+	<select id="queryAllCCard" resultType="DataVo">
+		SELECT 
+			card.cons_id,
+			card.card_id,
+			card.actv_time, 
+			card.vehicle_Id,
+			vehi.brand,
+			vehi.license_plate,
+			vehi.model,
+			vehi.vehicle_type,
+			vehi.using_roperty,
+			vehi.operation_roperty,
+			cs.station_name
+		FROM c_card card
+			LEFT OUTER JOIN vehicle vehi 
+				ON card.vehicle_id = vehi.vehicle_Id
+			left outer join chg_station cs
+				on cs.station_id = vehi.station_id
+			<where>
+				<if test="list != null and list.size > 0">
+					card.cons_id in
+					<foreach collection="list" item="consId" open="(" separator="," close=")">
+						#{consId}
+					</foreach>
+				</if>
+	        </where>
+	</select>
+
+	<select id="queryAllCCardRecharge" resultType="DataVo">
+		SELECT
+			card.cons_id,
+			card.card_id,
+			recharge.amount
+		FROM c_card card
+		LEFT OUTER  JOIN
+			c_card_recharge recharge
+			ON card.CARD_ID = recharge.CARD_ID
+		<where>
+			<if test="list != null and list.size > 0">
+				card.cons_id in
+				<foreach collection="list" item="consId" open="(" separator="," close=")">
+					#{consId}
+				</foreach>
+			</if>
+		</where>
+	</select>
+	<select id="queryAllBillRecharge" resultType="DataVo">
+		SELECT
+			cons_id,
+			amount
+		FROM bill_recharge
+		<where>
+			<if test="list != null and list.size > 0">
+				cons_id in
+				<foreach collection="list" item="consId" open="(" separator="," close=")">
+					#{consId}
+				</foreach>
+			</if>
+			AND RECHARGE_STATE = '02'
+		</where>
+	</select>
+	<!-- 验证手机 -->
+	<select id="checkPhone" resultType="Integer">
+		select
+	        count(cons_id) as count 
+	    from
+	        c_cons this_ 
+	    where
+	        this_.cons_phone = #{consPhone}
+	        and this_.app_from = #{appFrom}
+	        <if test="consId != null">
+	        	and this_.cons_id != #{consId}
+	        </if>
+	</select>
+	
+	<select id="queryMemberByKey" resultType="DataVo">
+		SELECT 
+			this_.cons_id,
+			this_.cons_name,
+			this_.cons_phone,
+			this_.cons_type_code,
+			this_.group_id,
+			this_.cons_truename,
+			this_.cons_idnumber,
+			this_.cons_gender,
+			this_.cons_birthday,
+			this_.prov_code,
+			this_.city_code,
+			this_.cons_email,
+			this_.wechat_no,
+			this_.cons_addr,
+			this_.cons_referrer_id,
+			this_.cons_modifier_id,
+			this_.update_time,
+			this_.acct_id,
+			this_.app_from,
+			this_.cons_from,
+			this_.car_id,
+			this_.test_member,
+			this_.cons_status,
+			this_.reg_time,
+			cacct2x2_.acct_no,
+			cacct2x2_.acct_amount,
+			cacct2x2_.acct_state_code,
+			cacct2x2_.create_time,
+			user.login_name user_name,
+			pg.group_name,
+			org.org_name,
+			org.app_name
+		FROM c_cons this_
+			LEFT OUTER JOIN
+		        c_acct cacct2x2_ 
+		            on this_.acct_id=cacct2x2_.acct_id
+			LEFT OUTER JOIN
+		        sys_user user
+		            on this_.cons_modifier_id=user.id
+		    LEFT OUTER JOIN
+		        pub_org org
+		            on this_.app_from=org.org_id
+		    left outer JOIN
+		    	c_group pg
+		    	 	ON  this_.group_id = pg.group_id
+		WHERE
+			this_.cons_id = #{consId}
+	</select>
+	
+	<!-- 会员新增 -->
+	<insert id="insertMembers" parameterType="Map" keyProperty="consId" useGeneratedKeys="true">
+		INSERT INTO c_cons
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="consName != null and '' != consName">cons_name,</if>
+			<if test="consPhone != null and '' != consPhone">cons_phone,</if>
+			<if test="consTypeCode != null and '' != consTypeCode">cons_type_code,</if>
+			<if test="groupId != null and '' != groupId">group_id,</if>
+			<if test="consTruename != null and '' != consTruename">cons_truename,</if>
+			<if test="consIdnumber != null and '' != consIdnumber">cons_idnumber,</if>
+			<if test="consGender != null and '' != consGender">cons_gender,</if>
+			<if test="consBirthday != null and '' != consBirthday">cons_birthday,</if>
+			<if test="provCode != null and '' != provCode">prov_code,</if>
+			<if test="cityCode != null and '' != cityCode">city_code,</if>
+			<if test="consEmail != null and '' != consEmail">cons_email,</if>
+			<if test="wechatNo != null and '' != wechatNo">wechat_no,</if>
+			<if test="consAddr != null and '' != consAddr">cons_addr,</if>
+			<if test="consReferrerId != null and '' != consReferrerId">cons_referrer_id,</if>
+			<if test="consModifierId != null and '' != consModifierId">cons_modifier_id,</if>
+			update_time,
+			<if test="acctId != null and '' != acctId">acct_id,</if>
+			<if test="appFrom != null and '' != appFrom">app_from,</if>
+			reg_time,
+			<if test="consFrom != null and '' != consFrom">cons_from,</if>
+			<if test="consStatus != null">cons_status,</if>
+			<if test="carId != null and '' != carId">car_id,</if>
+			<if test="isCrc != null and '' != isCrc">is_crc,</if>
+			<if test="testMember != null and '' != testMember">test_member,</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="consName != null and '' != consName">#{consName},</if>
+			<if test="consPhone != null and '' != consPhone">#{consPhone},</if>
+			<if test="consTypeCode != null and '' != consTypeCode">#{consTypeCode},</if>
+			<if test="groupId != null and '' != groupId">#{groupId},</if>
+			<if test="consTruename != null and '' != consTruename">#{consTruename},</if>
+			<if test="consIdnumber != null and '' != consIdnumber">#{consIdnumber},</if>
+			<if test="consGender != null and '' != consGender">#{consGender},</if>
+			<if test="consBirthday != null and '' != consBirthday">#{consBirthday},</if>
+			<if test="provCode != null and '' != provCode">#{provCode},</if>
+			<if test="cityCode != null and '' != cityCode">#{cityCode},</if>
+			<if test="consEmail != null and '' != consEmail">#{consEmail},</if>
+			<if test="wechatNo != null and '' != wechatNo">#{wechatNo},</if>
+			<if test="consAddr != null and '' != consAddr">#{consAddr},</if>
+			<if test="consReferrerId != null and '' != consReferrerId">#{consReferrerId},</if>
+			<if test="consModifierId != null and '' != consModifierId">#{consModifierId},</if>
+			now(),
+			<if test="acctId != null and '' != acctId">#{acctId},</if>
+			<if test="appFrom != null and '' != appFrom">#{appFrom},</if>
+			now(),
+			<if test="consFrom != null and '' != consFrom">#{consFrom},</if>
+			<if test="consStatus != null">#{consStatus},</if>
+			<if test="carId != null and '' != carId">#{carId},</if>
+			<if test="isCrc != null and '' != isCrc">#{isCrc},</if>
+			<if test="testMember != null and '' != testMember">#{testMember},</if>
+		</trim>
+	</insert>
+	<!-- 会员更新 -->
+	<update id="updateMembers">
+		UPDATE c_cons 
+			<set>
+				<if test="consName != null and '' != consName" >cons_name = #{consName},</if>
+				<if test="consPhone != null and '' != consPhone">cons_phone = #{consPhone},</if>
+				<if test="consTruename != null and '' != consTruename">cons_truename = #{consTruename},</if>
+				<if test="consIdnumber != null and '' != consIdnumber">cons_idnumber = #{consIdnumber},</if>
+				<if test="consGender != null and '' != consGender">cons_gender = #{consGender},</if>
+				<if test="consBirthday != null and '' != consBirthday">cons_birthday = #{consBirthday},</if>
+				<if test="provCode != null and '' != provCode">prov_code = #{provCode},</if>
+				<if test="cityCode != null and '' != cityCode">city_code = #{cityCode},</if>
+				<if test="consEmail != null and '' != consEmail">cons_email = #{consEmail},</if>
+				<if test="wechatNo != null and '' != wechatNo">wechat_no = #{wechatNo},</if>
+				<if test="consAddr != null and '' != consAddr">cons_addr = #{consAddr},</if>
+				<if test="consReferrerId != null and '' != consReferrerId">cons_referrer_id = #{consReferrerId},</if>
+				<if test="consModifierId != null and '' != consModifierId">cons_modifier_id = #{consModifierId},</if>
+				<if test="appFrom != null and '' != appFrom">app_from = #{appFrom},</if>
+				<if test="consFrom != null and '' != consFrom">cons_from = #{consFrom},</if>
+				<if test="groupId != null and '' != groupId" >group_id = #{groupId},</if>
+				<if test="consTypeCode != null and '' != consTypeCode">cons_type_code = #{consTypeCode},</if>
+				<if test="consStatus != null and '' != consStatus">cons_status = #{consStatus},</if>
+				<if test="carId != null and '' != carId">car_id = #{carId},</if>
+				<if test="testMember != null and '' != testMember">test_member = #{testMember},</if>
+				update_time = now()
+			</set>
+		where cons_id = #{consId}
+	</update>
+	
+	<update id="dissGroupMembers">
+		<foreach collection="list" item="cons" index="index" open="" close="" separator=";">
+	        UPDATE c_cons 
+			<set>
+				<if test="cons.groupId != null">group_id = #{cons.groupId},</if>
+				<if test="cons.consTypeCode != null">cons_type_code = #{cons.consTypeCode},</if>
+				<if test="cons.consStatus != null">cons_Status = #{cons.consStatus},</if>
+			</set>
+			<where>
+		 		cons_id = #{cons.consId}
+			</where>
+        </foreach>
+	</update>
+	
+	<!-- 查询车辆信息 -->
+	<select id="queryVehicleInfoByOrgId" resultType="DataVo">
+		select vehicle_Id,license_Plate from vehicle
+		<where>
+			<if test="array != null and array.length > 0">
+				org_Id in
+				<foreach collection="array" item="orgIds" open="(" separator="," close=")">
+					#{orgIds}
+				</foreach>
+			</if>
+		</where> 
+	</select>
+	
+	<!-- 批量新增车辆 -->
+	<insert id="inserVehicle" parameterType="Map" keyProperty="vehicleId" useGeneratedKeys="true">
+		INSERT INTO vehicle
+		(model,license_Plate,org_Id,create_time,belongs_type,operation_roperty,register_date)
+		VALUES
+		<foreach collection="list" item="v" index="index" separator=",">
+            (#{v.model},#{v.licensePlate},#{v.orgId},now(),#{v.belongsType},#{v.operationRoperty},now())
+        </foreach>	
+	</insert>
+	
+	<insert id="batchInsertCons" parameterType="Map" keyProperty="consId" useGeneratedKeys="true">
+		INSERT INTO c_cons
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			cons_name,
+			cons_phone,
+			cons_type_code,
+			group_id,
+			cons_truename,
+			cons_idnumber,
+			cons_gender,
+			cons_birthday,
+			prov_code,
+			city_code,
+			cons_email,
+			wechat_no,
+			cons_addr,
+			cons_referrer_id,
+			cons_modifier_id,
+			update_time,
+			acct_id,
+			app_from,
+			reg_time,
+			cons_from,
+			car_id,
+			cons_status,
+			is_crc
+		</trim>
+		VALUES
+		<foreach collection="list" item="cons" index="index" separator=",">
+            (
+            	#{cons.consName},
+				#{cons.consPhone},
+				#{cons.consTypeCode},
+				#{cons.groupId},
+				#{cons.consTruename},
+				#{cons.consIdnumber},
+				#{cons.consGender},
+				#{cons.consBirthday},
+				#{cons.provCode},
+				#{cons.cityCode},
+				#{cons.consEmail},
+				#{cons.wechatNo},
+				#{cons.consAddr},
+				#{cons.consReferrerId},
+				#{cons.consModifierId},
+				now(),
+				#{cons.acctId},
+				#{cons.appFrom},
+				now(),
+				#{cons.consFrom},
+				#{cons.carId},
+				#{cons.consStatus},
+				#{cons.isCrc}
+            )
+        </foreach>	
+	</insert>
+	
+	<update id="batchUpdateCons">
+		 <foreach collection="list" item="cons" index="index" open="" close="" separator=";">
+	        UPDATE c_cons 
+			<set>
+				<if test="cons.consName != null">cons_name = #{cons.consName},</if>
+				<if test="cons.consPhone != null">cons_phone = #{cons.consPhone},</if>
+				<if test="cons.consTruename != null">cons_truename = #{cons.consTruename},</if>
+				<if test="cons.consIdnumber != null">cons_idnumber = #{cons.consIdnumber},</if>
+				<if test="cons.consGender != null">cons_gender = #{cons.consGender},</if>
+				<if test="cons.consBirthday != null">cons_birthday = #{cons.consBirthday},</if>
+				<if test="cons.provCode != null">prov_code = #{cons.provCode},</if>
+				<if test="cons.cityCode != null">city_code = #{cons.cityCode},</if>
+				<if test="cons.consEmail != null">cons_email = #{cons.consEmail},</if>
+				<if test="cons.wechatNo != null">wechat_no = #{cons.wechatNo},</if>
+				<if test="cons.consAddr != null">cons_addr = #{cons.consAddr},</if>
+				<if test="cons.consReferrerId != null">cons_referrer_id = #{cons.consReferrerId},</if>
+				<if test="cons.consModifierId != null">cons_modifier_id = #{cons.consModifierId},</if>
+				update_time = now(),
+				<if test="cons.appFrom != null">app_from = #{cons.appFrom},</if>
+				<if test="cons.consFrom != null">cons_from = #{cons.consFrom}</if>
+			</set>
+			<where>
+				cons_id = #{cons.consId}
+			</where>
+        </foreach>
+	</update>
+	
+	<select id="queryMemberById" resultType="DataVo">
+		SELECT 
+			this_.cons_id,
+			this_.cons_name,
+			this_.cons_phone,
+			this_.cons_type_code,
+			this_.group_id,
+			this.car_id,
+			group.group_name
+		FROM c_cons this_
+			left outer join c_group group
+				on this_.group_id = group.group_id
+		<where>
+			<if test="consId != null">
+				this_.cons_id = #{consId}
+			</if>
+			<if test="consIds != null">
+				this_.cons_id in 
+					<foreach collection="consIds" item="id" open="(" separator="," close=")">
+						#{id}
+					</foreach>
+			</if>
+		</where>
+	</select>
+	
+	<select id="queryMemberCarRel" resultType="DataVo">
+		select vehicle_id,cons_id from vehicle_member_rel
+		<where>
+			<if test="consId != null">
+				cons_id = #{consId}
+			</if>
+			<if test="consIds != null">
+				cons_id in 
+					<foreach collection="consIds" item="id" open="(" separator="," close=")">
+						#{id}
+					</foreach>
+			</if>
+			<if test="carId != null">
+				vehicle_id = #{carId}
+			</if>
+			<if test="carIds != null">
+				vehicle_id in 
+					<foreach collection="carIds" item="id" open="(" separator="," close=")">
+						#{id}
+					</foreach>
+			</if>
+		</where>
+	</select>
+
+	<select id="queryCAcctSeq" resultType="DataVo">
+		SELECT
+			c.acct_id,
+			c.seq_flag,
+			c.pre_amount,
+			c.cur_amount,
+			c.chg_amount,
+			c.chg_type,
+			c.seq_desc,
+			c.create_time
+		FROM c_acct_seq c
+			left OUTER JOIN
+				c_cons cons
+			  		ON c.ACCT_ID = cons.ACCT_ID
+		WHERE
+			cons.cons_id = #{consId} AND c.CHG_TYPE = '04'
+</select>
+</mapper>

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.charge.mapper.CostMapper">
+
+	<!-- 充电成本查询-->
+	<select id="selectCost" parameterType="DataVo" resultType="DataVo">
+ 		 SELECT
+			this_.PR_ID ,
+			this_.PR_START_DATE ,
+			this_.PR_END_DATE ,
+			this_.STATION_ID ,
+			this_.PR_TOTAL_POWER ,
+			this_.PR_POWER_CHG ,
+			this_.PR_CHG ,
+			this_.PR_POWER_EQIP ,
+			this_.PR_TRANS_LOSS ,
+			this_.PR_CHG_LOSS ,
+			this_.CREATE_DATE ,
+			chgstation1_.STATION_NO ,
+			chgstation1_.STATION_NAME 
+		FROM
+			POWER_RECORD this_
+			LEFT OUTER JOIN CHG_STATION chgstation1_ ON this_.STATION_ID = chgstation1_.STATION_ID
+		<where>
+			<if test="stationNo!=null and stationNo!=''">
+				and chgstation1_.STATION_NO like concat('%',#{stationNo},'%')
+			</if>
+			<if test="stationId!=null and stationId!=''">
+				and chgstation1_.STATION_ID = #{stationId}
+			</if>
+			<if test="stationName!=null and stationName!=''">
+				and chgstation1_.STATION_NAME = #{stationName}
+			</if>
+			<if test="startDate!=null">
+	   			 <![CDATA[ and  DATE_FORMAT(this_.PR_START_DATE, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d') ]]>
+			</if> 
+			<if test="endDate!=null">
+	    		 <![CDATA[ and DATE_FORMAT(this_.PR_END_DATE, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')  ]]>
+			</if>
+			<if test="stationIds !=null and stationIds.size()>0">
+			 	and chgstation1_.STATION_ID in
+				<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")"> 
+	  				#{item} 
+				</foreach>   
+			</if>
+		</where>
+		ORDER BY
+			this_.CREATE_DATE DESC
+	</select>
+	
+
+
+
+
+	<!--收入报表查询-->
+	<select id="selectIncome" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		sum(this_.IR_TOTAL_POWER) IR_TOTAL_POWER,
+		sum(this_.IR_POWER1)  IR_POWER1,
+		sum(this_.IR_POWER2)  IR_POWER2,
+		sum(this_.IR_POWER3)  IR_POWER3,
+		sum(this_.IR_POWER4)  IR_POWER4,
+		max(this_.IR_POWER_COST)  IR_POWER_COST,
+		sum(this_.IR_POWER_CHG)  IR_POWER_CHG,
+		sum(this_.IR_CHG1)  IR_CHG1,
+		sum(this_.IR_CHG2)  IR_CHG2,
+		sum(this_.IR_CHG3)  IR_CHG3,
+		sum(this_.IR_CHG4)  IR_CHG4,
+		sum(this_.IR_INCOME)  IR_INCOME,
+		sum(this_.IR_PROFIT)  IR_PROFIT,
+		this_.IR_START_DATE  IR_START_DATE,
+		this_.IR_END_DATE  IR_END_DATE,
+		this_.CREATE_DATE  CREATE_DATE,
+		chgpile2x1_.STATION_ID  STATION_ID,
+		chgstation2_.STATION_NO  STATION_NO,
+		chgstation2_.STATION_NAME  STATION_NAME
+		FROM
+		INCOME_RECORD this_
+		LEFT OUTER JOIN CHG_PILE chgpile2x1_ on this_.PILE_ID=chgpile2x1_.PILE_ID
+		LEFT OUTER JOIN CHG_STATION chgstation2_ on chgpile2x1_.STATION_ID=chgstation2_.STATION_ID
+		<where>
+			<if test="stationNo!=null and stationNo!=''">
+				and chgstation2_.STATION_NO like concat('%',#{stationNo},'%')
+			</if>
+			<if test="stationId!=null and stationId!=''">
+				and chgstation2_.STATION_ID = #{stationId}
+			</if>
+			<if test="stationName!=null">
+				and chgstation2_.STATION_Name = #{stationName}
+			</if>
+			<if test="startDate!=null">
+				<![CDATA[ and  DATE_FORMAT(this_.IR_START_DATE, '%Y-%m-%d')>=  DATE_FORMAT(#{startDate}, '%Y-%m-%d') ]]>
+			</if>
+			<if test="endDate!=null">
+				<![CDATA[ and DATE_FORMAT(this_.IR_END_DATE, '%Y-%m-%d') <= DATE_FORMAT(#{endDate}, '%Y-%m-%d')  ]]>
+			</if>
+			<if test="stationIds !=null and stationIds.size()>0">
+			 	and chgstation2_.station_Id in
+				<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")"> 
+	  				#{item} 
+				</foreach>   
+			</if>
+		</where>
+		GROUP BY
+		this_.IR_START_DATE,
+		this_.IR_END_DATE,
+		this_.CREATE_DATE,
+		chgpile2x1_.STATION_ID,
+		chgstation2_.STATION_NO,
+		chgstation2_.STATION_NAME
+		ORDER BY
+		this_.CREATE_DATE desc
+	</select>
+	<!-- 收入报表详情-->
+	<select id="detailIncome" parameterType="DataVo" resultType="DataVo">
+		 select
+        this_.IR_ID,
+        this_.IR_START_DATE,
+        this_.IR_END_DATE,
+        this_.PILE_ID,
+        this_.IR_TOTAL_POWER,
+        this_.IR_POWER1,
+        this_.IR_POWER2,
+        this_.IR_POWER3,
+        this_.IR_POWER4,
+        this_.IR_POWER_COST,
+        this_.IR_POWER_CHG,
+        this_.IR_CHG1,
+        this_.IR_CHG2,
+        this_.IR_CHG3,
+        this_.IR_CHG4,
+        this_.IR_INCOME,
+        this_.IR_PROFIT,
+        this_.IR_POWER_COST_PILE,
+        this_.CREATE_DATE,
+        chgpile2x1_.PILE_ID,
+        chgpile2x1_.PILE_NO,
+        chgpile2x1_.PILE_NAME,
+        chgstation2_.STATION_ID,
+        chgstation2_.STATION_NO,
+        chgstation2_.STATION_NAME
+    from
+        INCOME_RECORD this_
+    inner join
+        CHG_PILE chgpile2x1_
+            on this_.PILE_ID=chgpile2x1_.PILE_ID
+    inner join
+        CHG_STATION chgstation2_
+            on chgpile2x1_.STATION_ID=chgstation2_.STATION_ID
+    <where>
+		chgstation2_.STATION_ID=#{stationId}
+		<if test="irStartDate!=null">
+			<![CDATA[ and  DATE_FORMAT(this_.IR_START_DATE, '%Y-%m-%d') =  DATE_FORMAT(#{irStartDate}, '%Y-%m-%d') ]]>
+		</if>
+		<if test="irEndDate!=null">
+			<![CDATA[ and DATE_FORMAT(this_.IR_END_DATE, '%Y-%m-%d') = DATE_FORMAT(#{irEndDate}, '%Y-%m-%d')  ]]>
+		</if>
+	</where>
+	</select>
+</mapper>

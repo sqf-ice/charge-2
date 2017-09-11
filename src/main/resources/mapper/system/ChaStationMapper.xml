@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.system.mapper.ChgStationMapper">
+	<!-- 新增场站信息 -->
+	<insert id="insertChgStation" parameterType="DataVo" keyColumn="ID" useGeneratedKeys="true">
+		INSERT INTO CHG_STATION_TEMP (PROV_CODE,CITY_CODE,DIST_CODE,ADDRESS,STATION_MODEL,STATION_TYPE,PLACE,REMARK,ORG_ID,JIAO_LIU,JIAO_LIU_P,ZHI_LIU,ZHI_LIU_P)
+		 VALUES
+		<foreach collection ="station" item="station" index= "index" separator =",">
+		 (#{station.provCode},#{station.cityCode},#{station.distCode},#{station.address},
+			#{station.stationModel},
+			#{station.stationType},#{station.place},#{station.remark},#{orgId},#{station.jiaoLiu},#{station.jiaoLiuP},#{station.zhiLiu},#{station.zhiLiuP})
+		</foreach >
+	</insert>
+	
+
+	
+	<!-- 新增场站的充电桩类型信息-->
+	<insert id="insertChgPileType" parameterType="DataVo" keyColumn="ID" useGeneratedKeys="true">
+		INSERT INTO CHGPILE_TYPE_NUMBER (DAN_JIAO_LIU,DAN_ZHI_LIU,SHUANG_JIAO_LIU,SHUANG_ZHI_LIU,JIAO_ZHI_LIU,STATION_ID)
+		 VALUES
+		(#{danJiaoLiu},#{danZhiLiu},#{shuangJiaoLiu},#{shuangZhiLiu},#{jiaoZhiLiu},#{stationId})
+	</insert>
+	
+	
+	
+	
+	<!-- 新增模板 -->
+	<insert id="insertPubPrice" parameterType="DataVo" keyColumn="ID" useGeneratedKeys="true">
+ 		<selectKey keyProperty="prcId" order="AFTER" resultType="java.lang.Integer">
+            		select LAST_INSERT_ID()
+        	</selectKey>
+		INSERT INTO pub_price (PRC_NAME,AGREEMENT,PRC_TYPE_CODE,PRC_ZXYGZ1,PRC_ZXYGZ2,PRC_ZXYGZ3,PRC_ZXYGZ4,PRC_SERVICE,PRC_SERVICE_BILI,USER_ID,ORG_ID,CREATE_TIME)
+		 VALUES
+		(#{prcName},#{agreement},#{prcTypeCode},#{prcZxygz1},#{prcZxygz2},#{prcZxygz3},#{prcZxygz4},#{prcService},#{prcServiceBili},#{userId},#{orgId},#{createTime})
+	</insert>
+	
+	
+	<!-- 新增费率对应的时间段 -->
+	<insert id="insertModelTime" parameterType="DataVo" keyColumn="ID" useGeneratedKeys="true">
+		INSERT INTO model_time (time_start,time_end,feilv,price_id)
+		 VALUES
+		 (#{timeStart},#{timeEnd},#{feilv},#{priceId})
+	</insert>
+	
+</mapper>

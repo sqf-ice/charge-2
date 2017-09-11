@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.clouyun</groupId>
+    <artifactId>charge</artifactId>
+    <version>1.4.0</version>
+    <packaging>jar</packaging>
+
+    <name>com.clouyun.charge</name>
+    <description>智慧充电云平台-管理平台服务端</description>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>1.4.2.RELEASE</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>1.7</java.version>
+        <shiro.version>1.2.4</shiro.version>
+        <main.class>com.clouyun.charge.Application</main.class>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+            <version>4.2.1.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.spring-crypto-utils</groupId>
+            <artifactId>spring-crypto-utils</artifactId>
+            <version>1.3.0</version>
+        </dependency>
+        <!--<dependency>
+            <groupId>com.facebook.conceal</groupId>
+            <artifactId>conceal</artifactId>
+            <version>1.1.3</version>
+        </dependency>-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-crypto</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <!-- <dependency>
+             <groupId>org.springframework.security</groupId>
+             <artifactId>spring-security-core</artifactId>
+             <version>4.1.3.RELEASE</version>
+         </dependency>
+         <dependency>
+             <groupId>org.springframework.security</groupId>
+             <artifactId>spring-security-config</artifactId>
+             <version>4.1.3.RELEASE</version>
+         </dependency>
+         <dependency>
+             <groupId>org.springframework.security</groupId>
+             <artifactId>spring-security-web</artifactId>
+             <version>4.1.3.RELEASE</version>
+         </dependency>-->
+
+        <!-- clouyun boot -->
+        <dependency>
+            <groupId>com.clouyun</groupId>
+            <artifactId>boot</artifactId>
+            <version>0.0.6</version>
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>org.springframework.boot</groupId>-->
+                    <!--<artifactId>spring-boot-starter-tomcat</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
+        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.springframework.boot</groupId>-->
+            <!--<artifactId>spring-boot-starter-undertow</artifactId>-->
+        <!--</dependency>-->
+
+        <dependency>
+            <groupId>com.clouyun</groupId>
+            <artifactId>osgi</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.clouyun</groupId>
+            <artifactId>charge-model</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-core</artifactId>
+            <version>${shiro.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-web</artifactId>
+            <version>${shiro.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-spring</artifactId>
+            <version>${shiro.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shiro</groupId>
+            <artifactId>shiro-ehcache</artifactId>
+            <version>${shiro.version}</version>
+        </dependency>
+
+        <!-- 添加依赖库json-path,用于检测JSON格式的响应数据 -->
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <!-- JWT -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+
+        <!--阿里OSS上传文件依赖-->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+        <!--OSS依赖end-->
+        <!-- UEditor依赖 该功能根据产品需求置后，先注释-->
+        <!--<dependency>-->
+        <!--<groupId>commons-fileupload</groupId>-->
+        <!--<artifactId>commons-fileupload</artifactId>-->
+        <!--<version>1.3.1</version>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+        <!--<groupId>commons-io</groupId>-->
+        <!--<artifactId>commons-io</artifactId>-->
+        <!--<version>2.4</version>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+        <!--<groupId>commons-codec</groupId>-->
+        <!--<artifactId>commons-codec</artifactId>-->
+        <!--<version>1.10</version>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+        <!--<groupId>org.json</groupId>-->
+        <!--<artifactId>json</artifactId>-->
+        <!--<version>20160810</version>-->
+        <!--</dependency>-->
+        <!--end-->
+        <!--oauth2-->
+        <!--<dependency>-->
+        <!--<groupId>org.springframework.security.oauth</groupId>-->
+        <!--<artifactId>spring-security-oauth2</artifactId>-->
+        <!--<version>2.0.5.RELEASE</version>-->
+        <!--</dependency>-->
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- 二维码导出图片 -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.5</version>
+        </dependency>
+
+        <!-- RandomCall jar包依赖 -->
+        <!--<dependency>-->
+        <!--<groupId>com.clouyun.osgi</groupId>-->
+        <!--<artifactId>RandomCall_2015</artifactId>-->
+        <!--<version>RELEASE</version>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+        <!--<groupId>com.clouyun.osgi</groupId>-->
+        <!--<artifactId>AV587</artifactId>-->
+        <!--<version>RELEASE</version>-->
+        <!--</dependency>-->
+
+        <!-- <dependency>
+  			<groupId>io.netty</groupId>
+  			<artifactId>netty-all</artifactId>
+  			<version>5.0.0.Alpha2</version>
+		</dependency> -->
+		<dependency>
+  			<groupId>org.jboss.netty</groupId>
+  			<artifactId>netty</artifactId>
+  			<version>3.2.9.Final</version>
+		</dependency>
+        <dependency>
+            <groupId>com.clouyun</groupId>
+            <artifactId>cdzcache</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.bull.javamelody</groupId>
+            <artifactId>javamelody-spring-boot-starter</artifactId>
+            <version>1.68.1</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- 静态代码检查 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>2.11</version>
+                <configuration>
+                    <configLocation>checkstyle.xml</configLocation>
+                    <includeResources>false</includeResources>
+                    <failOnViolation>true</failOnViolation>
+                    <violationSeverity>info</violationSeverity>
+                    <maxAllowedViolations>0</maxAllowedViolations>
+                    <consoleOutput>true</consoleOutput>
+                    <encoding>UTF-8</encoding>
+                    <!--<includes>**\/com.clouyun.charge\/**.java,**\/otherpackage\/**.java</includes>-->
+                </configuration>
+               <!-- <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <phase>validate</phase>
+                    </execution>
+                </executions>-->
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jxr-plugin</artifactId>
+                <version>2.3</version>
+               <!-- <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <phase>validate</phase>
+                    </execution>
+                </executions>-->
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>2.7.1</version>
+                <configuration>
+                    <failurePriority>5</failurePriority>
+                    <failOnViolation>true</failOnViolation>
+                    <!--<targetJdk>${jdk.version}</targetJdk>-->
+                    <verbose>true</verbose>
+                    <outputEncoding>UTF-8</outputEncoding>
+                    <rulesets>
+                        <ruleset>pmd.xml</ruleset>
+                    </rulesets>
+                    <includes>
+                        <include>**\/package\/**.java</include>
+                        <include>**\/otherpackage\/**.java</include>
+                    </includes>
+                </configuration>
+                <!--   <executions>
+                       <execution>
+                           <phase>package</phase>
+                           <goals>
+                               <goal>check</goal>
+                           </goals>
+                       </execution>
+                   </executions>-->
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.5.2</version>
+                <configuration>
+                    <onlyAnalyze>
+                        cn.shenyanchao.package.*,
+                        cn.shenyanchao.otherpackage.*,
+                    </onlyAnalyze>
+                    <includeFilterFile>findbugs.xml</includeFilterFile>
+                    <failOnError>true</failOnError>
+                    <outputEncoding>UTF-8</outputEncoding>
+                </configuration>
+                <!--   <executions>
+                       <execution>
+                           <phase>package</phase>
+                           <goals>
+                               <goal>check</goal>
+                           </goals>
+                       </execution>
+                   </executions>-->
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.18.1</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+            <!-- 解决本地jar植入的插件 -->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <compilerArguments>
+                        <extdirs>lib</extdirs>
+                    </compilerArguments>
+                </configuration>
+            </plugin>
+            <!-- spring boot打包 -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <includeSystemScope>true</includeSystemScope>
+                            <mainClass>${main.class}</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.3</version>
+                <configuration>
+                    <goal>repackage</goal>
+                    <locales>zh_CN</locales>
+                </configuration>
+            </plugin>-->
+
+            <!--<plugin>
+                <groupId>com.iggroup.oss.restdoclet</groupId>
+                <artifactId>restdoclet-plugin</artifactId>
+                <version>2.1.1</version>
+                <configuration>
+                    <deployUrl>http://localhost:8080/restdoclet/upload</deployUrl>
+                    <deployDir>${project.artifactId}</deployDir>
+                    <excludes>
+                        <exclude>none</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>restdoclet</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>-->
+        </plugins>
+    </build>
+
+    <repositories>
+        <!--  <repository>
+             <id>sonatype-snapshots</id>
+             <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+         </repository>
+         <repository>
+             <id>spring-milestone</id>
+             <url>https://repo.spring.io/libs-milestone</url>
+         </repository> -->
+        <repository>
+            <id>nexus</id>
+            <url>http://10.98.87.101:8088/nexus/content/repositories/releases</url>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>releases</id>
+            <name>Nexus Release Repository</name>
+            <url>http://10.98.87.101:8088/nexus/content/repositories/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>Nexus Snapshot Repository</name>
+            <url>http://10.98.87.101:8088/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+
+</project>

@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.charge.mapper.StationProfitTaskMapper">
+
+	<select id="queryBillPay" resultType="Map">
+		select 
+			bp.amount,
+			bp.chg_power,
+			bp.end_time,
+			cs.station_id,
+			cs.station_name,
+			cs.target_charge,
+			cs.target_income,
+			cs.network_fee,
+			cs.parking_fee,
+			cs.property_fee,
+			cs.artificial_fee,
+			cs.cost_amortization,
+			cs.station_type,
+			cs.service_type,
+			cs.station_coop_type,
+			cs.pass_date,
+ 			cons.test_member,
+			org.org_name,
+			org.org_id,
+			ve.using_roperty,
+			ve.belongs_type
+		from bill_pay bp
+			left outer join c_cons cons
+				on bp.cons_id = cons.cons_id
+			left outer join chg_pile cp
+				on bp.pile_id = cp.pile_id
+			left outer join chg_station cs
+				on cp.station_id = cs.station_id
+			left outer join pub_org org
+				on  bp.org_id = org.org_id
+			left outer join vehicle ve
+				on bp.car_id = ve.vehicle_id
+		<where>
+			bp.pay_state != 1			
+			<if test="startTime != null">
+				and bp.end_time <![CDATA[ >= ]]> #{startTime}
+			</if>
+			<if test="endTime != null">
+				and bp.end_time <![CDATA[ <= ]]> #{endTime}
+			</if>
+		</where>
+	</select>
+	
+	<select id="queryBusinessChgPower" resultType="Map">
+		select 
+			sum(bp.chg_power) power,
+			cp.STATION_ID
+		from bill_pay bp
+			left outer join c_cons cons
+				on bp.cons_id = cons.cons_id
+			left outer join chg_pile cp
+				on bp.pile_id = cp.pile_id
+			left outer join vehicle ve
+				on bp.car_id = ve.vehicle_id
+		<where>
+			bp.pay_state != 1			
+			<if test="startTime != null">
+				and bp.end_time <![CDATA[ >= ]]> #{startTime}
+			</if>
+			<if test="endTime != null">
+				and bp.end_time <![CDATA[ <= ]]> #{endTime}
+			</if>
+			<if test="testMember != null">
+				and cons.test_member = #{testMember}
+			</if>
+			<if test="usingRoperty != null">
+				and ve.using_roperty = #{usingRoperty}
+			</if>
+		</where>  
+		GROUP BY cp.station_id
+	</select>
+	
+	
+	<select id="queryStation" resultType="Map">
+		select 
+			cs.station_id,
+			cs.station_name,
+			cs.target_charge,
+			cs.target_income,
+			cs.network_fee,
+			cs.parking_fee,
+			cs.property_fee,
+			cs.artificial_fee,
+			cs.cost_amortization,
+			cs.station_type,
+			cs.service_type,
+			cs.station_coop_type,
+			cs.org_id,
+			po.org_name
+		from chg_station cs 
+			left outer join pub_org po 
+				on cs.org_id = po.org_id
+	</select>
+	
+	<select id="queryPile" resultType="Map">
+		select
+		 	cp.pile_addr,
+		 	cp.pile_id,
+		 	cp.station_id,
+		 	sp.station_total_power,
+		 	cp.ort_mode,
+		 	cp.number_gun
+		from chg_pile cp 
+			left outer join chg_station cs
+				on cp.station_id = cs.station_id
+			left outer join station_profit sp
+				on cs.station_id = sp.station_id
+		<where>
+			<if test="settlementMonth != null">
+				and sp.settlement_month <![CDATA[ = ]]> #{settlementMonth}
+			</if>
+		</where>
+	</select>
+	
+	<select id="queryStationPileChg" resultType="Map">
+		select 
+			sum(pl.pile_chg) pile_chg,
+			cp.station_id
+		from	
+			pile_loss pl
+		left outer join 
+			chg_pile cp 
+			 on pl.pile_id = cp.pile_id
+		<where>
+			 pl.pl_date <![CDATA[ >= ]]> #{startTime} 
+			 and pl.pl_date <![CDATA[ <= ]]> #{endTime}
+		</where>
+		group by cp.station_id
+	</select>
+	
+	<select id="queryStationProfitCache" resultType="Map">
+		select 
+			spc_id,
+			org_id,
+			org_name,
+			station_id,
+			station_name,
+			settlement_month,
+			station_total_power,
+			other_income,
+			ele_fee,
+			water_fee,
+			repair_fee,
+			low_consumable,
+			other_expenses
+		from
+			station_profit_cache
+		<where>
+			<if test="settlementMonth != null">
+				and settlement_month = #{settlementMonth}
+			</if>
+		</where>
+	</select>
+	
+	<select id="queryContract" resultType="Map">
+		select 
+			con.station_id,
+			con.contract_type,
+			incc.percentage,
+			con.contract_income_type,
+			con.contract_amount,
+			con.contract_cost_type
+		from c_contract con 
+			left outer join in_contract_company incc
+				on  con.contract_id = incc.contract_id
+		<where>
+			con.contract_expiration_end <![CDATA[ >= ]]> #{startTime}
+		</where>
+	</select>
+	
+	<select id="queryDailyIncome" resultType="Map">
+		select 
+			d.station_id,
+			sum(d.amount) as total_income
+		from c_income_distribution_contract d
+			inner join c_contract cc
+				on d.contract_id = cc.contract_id
+		<where>
+			<if test="startTime != null">
+				and d.create_date <![CDATA[ >= ]]> #{startTime}
+			</if>
+			<if test="endTime != null">
+				and d.create_date <![CDATA[ <= ]]> #{endTime}
+			</if>
+			<if test="contractType != null">
+				and cc.contract_type = #{contractType}
+			</if>
+			<if test="contractIncomeType != null">
+				and cc.contract_income_type = #{contractIncomeType}
+			</if>
+			<if test="contractCostType != null">
+				and cc.contract_cost_type = #{contractCostType}
+			</if>
+		</where>
+		group by d.station_id
+	</select>
+	
+	<select id="queryLastMonthProfit" resultType="Map">
+		select 
+			station_target_charge,
+			station_total_charge,
+			station_target_income,
+			fixed_income_subtotal,
+			unfixed_income_subtotal,
+			station_income_subtotal,
+			fixed_expend_subtotal,
+			unfixed_expend_subtotal,
+			cost_total,
+			station_gross_profit,
+			station_id
+		from
+			station_profit
+		where 
+			settlement_month = #{settlementMonth}
+	</select>
+	
+	<select id="queryPileCollData" resultType="Map">
+		select 
+			p.trm_addr,
+			p.inner_id,
+			cp.pile_id,
+			cp.ort_mode,
+			cp.number_gun,
+			max(p.zxygz) as max,
+			min(p.zxygz) as min 
+		from 
+			pile_coll_data p
+		left outer join 
+			chg_pile cp
+				on p.trm_addr = cp.pile_addr 
+			<where>
+				p.data_time <![CDATA[ >= ]]> #{startTime} and p.data_time <![CDATA[ <= ]]> #{endTime}
+			</where> 
+		group by p.trm_addr
+	</select>
+	
+	<select id="queryGroupMonthlyCache" resultType="Map">
+		select 
+			sum(monthly_charge) as monthly_charge,
+			station_id 
+		from 
+			group_monthly_cache
+		<where>
+			monthly_date <![CDATA[ >= ]]> #{startTime} and monthly_date <![CDATA[ <= ]]> #{endTime}
+		</where>
+		group by station_id
+	</select>
+	
+	<insert id="batchInser" parameterType="java.util.List">
+		INSERT INTO station_profit(
+			org_id,
+			org_name,
+			station_id,
+			station_name,
+			station_total_power,
+			station_target_charge,
+			station_total_charge,
+			station_goal_charge,
+			station_test_charge,
+			station_use_charge,
+			station_office_charge,
+			pile_total_loss,
+			pile_total_power,
+			station_target_income,
+			order_income,
+			in_pile_total_income,
+			in_pile_pm_income,
+			in_fac_rental_fee,
+			in_park_rental_fee,
+			in_land_rental_fee,
+			fixed_income_subtotal,
+			other_income,
+			unfixed_income_subtotal,
+			station_income_subtotal,
+			ele_fee,
+			water_fee,
+			network_fee,
+			divi_expend,
+			ex_land_rental_fee,
+			ex_land_rental_expend,
+			ex_house_rental_fee,
+			property_fee,
+			artificial_fee,
+			depre_fixed_asset,
+			cost_amortization,
+			parking_fee,
+			fixed_expend_subtotal,
+			repair_fee,
+			low_consumable,
+			other_expenses,
+			unfixed_expend_subtotal,
+			cost_total,
+			station_gross_profit,
+			settlement_month,
+		  	station_target_charge_compare,
+			station_total_charge_compare,
+			station_target_income_compare,
+			fixed_income_subtotal_compare,
+			unfixed_income_subtotal_compare,
+			station_income_subtotal_compare,
+			fixed_expend_subtotal_compare,
+			unfixed_expend_subtotal_compare,
+			cost_total_compare,
+			station_gross_profit_compare,
+			station_type,
+			station_service_type,
+			station_coop_type,
+			group_monthly
+		)
+		VALUES
+		<foreach collection="list" item="item" index="index" separator=",">
+			<if test="item.stationId != null">
+				(
+					#{item.orgId},
+					#{item.orgName},
+					#{item.stationId},
+					#{item.stationName},
+					#{item.stationTotalPower},
+					#{item.stationTargetCharge},
+					#{item.stationTotalCharge},
+					#{item.stationGoalCharge},
+					#{item.stationTestCharge},
+					#{item.stationUseCharge},
+					#{item.stationOfficeCharge},
+					#{item.pileTotalLoss},
+					#{item.pileTotalPower},
+					#{item.stationTargetIncome},
+					#{item.orderIncome},
+					#{item.inPileTotalIncome},
+					#{item.inPilePmIncome},
+					#{item.inFacRentalFee},
+					#{item.inParkRentalFee},
+					#{item.inLandRentalFee},
+					#{item.fixedIncomeSubtotal},
+					#{item.otherIncome},
+					#{item.unfixedIncomeSubtotal},
+					#{item.stationIncomeSubtotal},
+					#{item.eleFee},
+					#{item.waterFee},
+					#{item.networkFee},
+					#{item.diviExpend},
+					#{item.exLandRentalFee},
+					#{item.exLandRentalExpend},
+					#{item.exHouseRentalFee},
+					#{item.propertyFee},
+					#{item.artificialFee},
+					#{item.depreFixedAsset},
+					#{item.costAmortization},
+					#{item.parkingFee},
+					#{item.fixedExpendSubtotal},
+					#{item.repairFee},
+					#{item.lowConsumable},
+					#{item.otherExpenses},
+					#{item.unfixedExpendSubtotal},
+					#{item.costTotal},
+					#{item.stationGrossProfit},
+					#{item.settlementMonth},
+					#{item.stationTargetChargeCompare},
+					#{item.stationTotalChargeCompare},
+					#{item.stationTargetIncomeCompare},
+					#{item.fixedIncomeSubtotalCompare},
+					#{item.unfixedIncomeSubtotalCompare},
+					#{item.stationIncomeSubtotalCompare},
+					#{item.fixedExpendSubtotalCompare},
+					#{item.unfixedExpendSubtotalCompare},
+					#{item.costTotalCompare},
+					#{item.stationGrossProfitCompare},
+					#{item.stationType},
+					#{item.stationServiceType},
+					#{item.stationCoopType},
+					#{item.groupMonthly}
+				)
+			</if>
+		</foreach>
+	</insert>
+
+	<select id="queryStationProfitCount" resultType="Integer">
+		SELECT count(*) FROM station_profit where settlement_month = #{month}
+	</select>
+
+	<delete id="deleteStationProfit">
+		DELETE FROM station_profit where settlement_month = #{month}
+	</delete>
+
+
+	<select id="queryContractCache" resultType="DataVo">
+		SELECT
+			spcc.station_name,
+			spcc.settlement_month,
+			spcc.order_income,
+			spcc.group_monthly,
+			spcc.in_pile_total_income,
+			spcc.in_pile_pm_income,
+			spcc.in_fac_rental_fee,
+			spcc.in_park_rental_fee,
+			spcc.in_land_rental_fee,
+			spcc.divi_expend,
+			spcc.ex_land_rental_fee,
+			spcc.ex_land_rental_expend,
+			spcc.ex_house_rental_fee,
+			cs.station_id
+		  FROM
+		  	station_profit_contract_cache  spcc
+		  LEFT OUTER JOIN
+		  	chg_station cs
+		  		ON spcc.station_name = cs.station_name
+		  WHERE
+		  	settlement_month = #{settlementMonth}
+	</select>
+</mapper>

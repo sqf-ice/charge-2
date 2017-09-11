@@ -1,0 +1,30 @@
+{
+    "wqConsId": 41,
+    "wqConsOrgId": 1,
+    "wqConsTel": "12312312321",
+    "wqConsName": "xxxxx11111111",
+    "wqConsStatus": "1",
+    "orgStationRel": [
+        {
+            "id": 24,
+            "pid": 0,
+            "name": "深圳市车电网络有限公司",
+            "level": 1,
+            "href": null,
+            "target": null,
+            "icon": null,
+            "children": [
+                {
+                    "id": 310,
+                    "pid": 24,
+                    "name": "上步中学（不对外开放）",
+                    "level": 2,
+                    "href": null,
+                    "target": null,
+                    "icon": null,
+                    "children": null
+                }
+            ]
+        }
+    ]
+}

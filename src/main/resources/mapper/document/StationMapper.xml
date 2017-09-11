@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.StationMapper">
+	
+	<select id="getStationAll" parameterType="DataVo" resultType="DataVo">
+		SELECT
+			this_.station_id,
+			this_.station_no,
+			this_.org_id,
+			this_.station_name,
+			this_.station_type,
+			this_.station_status,
+			this_.use_status,
+			this_.station_model,
+			this_.construction,
+			this_.prov_code,
+			this_.city_code,
+			this_.dist_code,
+			this_.address,
+			this_.station_area,
+			this_.station_lng,
+			this_.station_lat,
+			this_.park_info,
+			this_.pay_ment,
+			this_.busine_hours,
+			this_.station_contact,
+			this_.station_tel,
+			this_.service_tel,
+			this_.remark,
+			this_.rentalstartdate,
+			this_.rentalenddate,
+			this_.stationstartdate,
+			this_.stationenddate,
+			this_.create_time,
+			this_.last_update_time,
+			this_.park_nums,
+			bus_.`big_Car_size`,
+			bus_.`Small_car_size`,
+			org_.org_name
+		FROM chg_station  this_ 
+		LEFT OUTER JOIN pub_org org_ ON org_.org_id = this_.org_id
+		LEFT OUTER JOIN c_business bus_ ON bus_.station_id = this_.`STATION_ID`
+		<include refid="conditions" />
+		ORDER BY this_.org_id ASC,this_.station_no ASC 
+	</select>
+	<sql id="conditions">
+		<where>
+			1=1
+		<if test="cityCode !=null">
+			AND this_.city_code = #{cityCode}
+		</if>
+		<if test="provCode!=null">
+			AND this_.prov_code = #{provCode}
+		</if>
+		<if test="orgId!=null">
+			AND this_.org_id = #{orgId}
+		</if>
+		<if test="orgIds!=null">
+			AND this_.org_id IN
+			<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+		<if test="stationIds!=null">
+			AND this_.station_id IN
+			<foreach collection="stationIds" item="subId" open="(" separator="," close=")">
+				#{subId}
+			</foreach>
+		</if>
+		<if test="stationName!=null">
+			AND this_.station_name like concat('%',#{stationName},'%')
+		</if>
+		<if test="stationId!=null">
+			AND this_.station_id = #{stationId}
+		</if>
+		<if test="construction!=null">
+			AND this_.construction = #{construction}
+		</if>
+		<if test="stationModel !=null">
+			AND this_.station_model = #{stationModel}
+		</if>
+		<if test="stationType!=null">
+			AND this_.station_type = #{stationType}
+		</if>
+		<if test="stationStatus!=null">
+			AND this_.station_status =#{stationStatus}
+		</if>
+		<if test="useStatus !=null">
+			AND this_.use_status = #{useStatus}
+		</if>
+		<if test="stationNames != null">
+			AND this_.station_name IN
+			<foreach collection="stationNames" item="names" open="(" separator="," close=")">
+				#{names}
+			</foreach>
+		</if>
+		<if test="stationNos != null">
+			AND this_.station_no IN 
+			<foreach collection="stationNos" item="nos" open="(" separator="," close=")">
+				#{nos}
+			</foreach>
+		</if>
+		</where>
+	</sql>
+	
+	<!-- 场站置无效  -->
+	<update id="dissStation" parameterType="DataVo" >
+		UPDATE chg_station SET use_status = 1,pass_date = now() WHERE station_id IN 
+		<if test="stationIds !=null">
+			<foreach collection="stationIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+	</update>
+	<!--根据场站Id查询场站信息  -->
+	<select id="getStationById" parameterType="DataVo" resultType="DataVo">
+		SELECT
+				s.STATION_ID,
+			  s.STATION_NO,
+			  s.STATION_NAME,
+			  s.INNER_NO,
+			  s.INNER_NAME,
+			  s.ORG_ID,
+			  s.CONSTRUCTION,
+			  s.STATION_TYPE,
+			  c.service_Unit,
+			  c.manage_Type,
+			  s.service_type,
+			  s.STATION_STATUS,
+			  s.USE_STATUS,
+			  s.STATION_CONTACT,
+			  s.STATION_TEL,
+			  c.repair_Man,
+			  c.repair_Phone,
+			  c.employee_Size,
+			  s.BUSINE_HOURS,
+			  s.SUPPORT_ORDER,
+			  s.PAY_MENT,
+			  s.ELECTRICITY_FEE,
+			  s.park_fee,
+			  s.SERVICE_FEE,
+			  s.PROV_CODE,
+			  s.CITY_CODE,
+			  s.DIST_CODE,
+			  s.ADDRESS,
+			  s.STATION_AREA,
+			  s.STATION_LAT,
+			  s.STATION_LNG,
+			  s.REMARK,
+			  c.station_etwork,
+			  c.business_people,
+			  c.etwork_speed,
+			  c.etwork_size,
+			  c.expiry_time,
+			  c.pay_time,
+			 c.Tariff_information,
+			 s.STATION_MODEL,
+			 s.station_coop_type,
+			 c.business_belong,
+			c.business_phone,
+			 c.Assets_belong,
+			c.land_belong,
+			 s.invest_amount,
+			s.target_income,
+			s.target_charge,
+			s.RentalStartDate rental_Start_Date,
+			s.RentalEndDate rental_End_Date,
+			s.StationStartDate station_Start_Date,
+			s.StationEndDate  station_End_Date,
+			c.test_time,
+			c.formal_time,
+			c.Lease_PIC,
+			c.service_CARS,
+			c.big_Car_size,
+			c.Small_car_size,
+			c.Transformer_belong,
+			c.initial_energy,
+			s.PUR_PRICE,
+			s.PUR_PRICE1,
+			s.PUR_PRICE2,
+			s.PUR_PRICE3,
+			s.PUR_PRICE4,
+			s.network_fee,
+			s.cost_amortization,
+			s.parking_fee,
+			s.property_fee,
+			s.artificial_fee,
+			p.ORG_NO,
+			s.park_info
+			FROM
+			`chg_station` s
+			LEFT JOIN  c_business c
+			on s.STATION_ID = c.STATION_ID
+			LEFT JOIN pub_org p
+			ON s.ORG_ID = p.ORG_ID
+			WHERE
+			s.STATION_ID=#{stationId}
+	</select>
+	
+	<!-- 获取场站名称(场站下拉框) -->
+	<select id="getStation" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.STATION_ID AS id,this_.STATION_NO,this_.STATION_NAME AS NAME,this_.ORG_ID AS org_id FROM CHG_STATION  this_ 
+		LEFT OUTER JOIN pub_org org_ ON org_.`ORG_ID` = this_.`ORG_ID`
+		WHERE 1=1
+		<if test="orgId !=null">
+			AND this_.ORG_ID = #{orgId} 	
+		</if>
+		<if test="orgName != null">
+			AND org_.ORG_NAME like concat('%',#{orgName},'%')
+		</if>
+		<if test="stationIds != null">
+			AND this_.STATION_ID IN
+			<foreach collection="stationIds" item="subId" open="(" separator="," close=")">
+				#{subId}
+			</foreach>
+		</if>
+		<if test="stationId != null">
+			AND this_.STATION_ID = #{stationId}
+		</if>
+		<if test="stationName != null">
+			AND this_.STATION_NAME like concat('%',#{stationName},'%')
+		</if>
+	</select>
+	<!-- 第三方场站列表数据查询 -->
+	<select id="getToSubsAll" parameterType="DataVo" resultType="DataVo">
+		select
+        this_.id,
+        this_.stationI_D as stationId,
+        this_.operatorI_D as operatorId,
+        this_.equipmentOwnerI_D as equipmentOwnerId,
+        this_.stationName,
+        this_.countryCode,
+        this_.areaCode,
+        this_.address,
+        this_.stationTel,
+        this_.serviceTel,
+        this_.stationType,
+        this_.stationStatus,
+        this_.parkNums,
+        this_.stationLng,
+        this_.stationLat,
+        this_.siteGuide,
+        this_.construction,
+        this_.picture,
+        this_.matchCars,
+        this_.parkInfo,
+        this_.busineHours,
+        this_.electricityFee,
+        this_.serviceFee,
+        this_.parkFee,
+        this_.payment,
+        this_.supportOrder,
+        this_.remark,
+        tooperator1_.operatorName 
+    from
+        TO_StationInfo this_ 
+    left outer join
+        TO_OperatorInfo tooperator1_ 
+            on this_.operatorI_D=tooperator1_.operatorI_D 
+    <include refid="toStationQueryConditions" />
+    order by  this_.id asc
+	</select>
+	<!-- 第三方场站查询条件 -->
+	<sql id="toStationQueryConditions">
+		<where>
+			1=1
+		<if test="operatorId !=null">
+			AND this_.operatorI_D = #{operatorId}
+		</if>
+		<if test="operatorIds !=null">
+				AND this_.operatorI_D IN
+			<foreach collection="operatorIds" item="operId" open="(" separator="," close=")">
+				#{operId}
+			</foreach>
+		</if>
+		<if test="stationstatus !=null">
+			AND this_.stationStatus = #{stationstatus}
+		</if>
+		
+		<if test="construction !=null">
+			AND this_.construction = #{construction}
+		</if>
+		<if test="stationid !=null">
+			AND this_.stationI_D like concat('%',#{stationid},'%')
+		</if>
+		<if test="stationname !=null">
+			AND this_.stationName like concat('%',#{stationname},'%')
+		</if>
+		<if test="servicetel !=null">
+			AND this_.serviceTel like concat('%',#{servicetel},'%') 
+		</if>
+		</where>
+	</sql>
+	
+	<!-- 获取登录用户的场站Id,运营商Id -->
+	<select id="getUserOrgStation" parameterType="DataVo" resultType="DataVo">
+		SELECT user_id,org_id,station_id FROM pub_user_org_station WHERE user_id = #{userId}
+	</select>
+
+	<!-- 根据orgIds获取场站ID集合 -->
+	<select id="getStationIdByOrgIds" parameterType="List" resultType="Integer">
+		SELECT station_id FROM chg_station
+		WHERE 1=1 <!--use_status = '0'-->
+		<if test="orgIds!=null and orgIds.size()>0">
+		AND org_id IN
+			<foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+				#{orgId}
+			</foreach>
+		</if>
+	</select>
+
+	<!-- 插入场站信息 -->
+	<insert id="saveStation"  keyProperty="stationId" useGeneratedKeys="true">
+		INSERT INTO CHG_STATION (
+			station_no,station_name,inner_no,inner_name,org_id,
+			construction,station_type,station_status,use_status,
+             station_contact,station_tel,busine_hours,support_order,pay_ment,
+             electricity_fee,park_fee,service_fee,prov_code,city_code,dist_code,
+              address,station_area,station_lng,station_lat,remark,station_model,
+              station_coop_type,invest_amount,target_charge,target_income,
+              rentalstartdate,rentalenddate,stationstartdate,stationenddate,
+             park_info,pur_price,pur_price1,pur_price2,pur_price3,
+              pur_price4,network_fee,cost_amortization,parking_fee,property_fee,
+              artificial_fee,create_time,service_type,budget_amount
+		) values
+			(
+			#{stationNo},#{stationName},#{innerNo},#{innerName},#{orgId},
+			#{construction},#{stationType},#{stationStatus},#{useStatus},
+			 #{stationContact},#{stationTel},#{busineHours},#{supportOrder},#{payMent},
+            #{electricityFee},#{parkFee},#{serviceFee},#{provCode},#{cityCode},#{distCode},
+              #{address},#{stationArea},#{stationLng},#{stationLat},#{remark},#{stationModel},
+              #{stationCoopType},#{investAmount},#{targetCharge},#{targetIncome},
+              #{rentalStartDate},#{rentalEndDate},#{stationStartDate},#{stationEndDate},
+              #{parkInfo},#{purPrice},#{purPrice1},#{purPrice2},#{purPrice3},
+              #{purPrice4},#{networkFee},#{costAmortization},#{parkingFee},#{propertyFee},
+              #{artificialFee},now(),#{serviceType},#{budgetAmount}
+			)
+	</insert>
+	<!--保存运营信息-->
+	<insert id="saveBusiness"  keyProperty="businessId" useGeneratedKeys="true">
+		INSERT INTO c_business (
+		station_id,station_etwork,business_people,etwork_speed,
+		etwork_size,expiry_time,pay_time,Tariff_information,
+		business_belong,business_phone,Assets_belong,land_belong,
+		test_time,formal_time,Lease_PIC,big_Car_size,Small_car_size,
+		Transformer_belong,initial_energy,service_Unit,manage_Type,
+		repair_Man,repair_Phone,employee_Size,service_CARS
+		) values
+		(
+	   #{stationId},#{stationEtwork},#{businessPeople},#{etworkSpeed},
+		#{etworkSize},#{expiryTime},#{payTime},#{tariffInformation},
+		#{businessBelong},#{businessPhone},#{assetsBelong},#{landBelong},
+		#{testTime},#{formalTime},#{leasePic},#{bigCarSize},#{smallCarSize},
+		#{transformerBelong},#{initialEnergy},#{serviceUnit},#{manageType},
+		#{repairMan},#{repairPhone},#{employeeSize},#{serviceCars}
+		)
+	</insert>
+	<!-- 编辑场站信息 -->
+	<update id="updateStation">
+		UPDATE CHG_STATION 
+			<set>
+				station_No = #{stationNo},
+				STATION_NAME = #{stationName},
+				INNER_NO = #{innerNo},
+				INNER_NAME = #{innerName},
+				org_Id = #{orgId},
+				CONSTRUCTION = #{construction},
+				STATION_TYPE = #{stationType},
+				STATION_STATUS = #{stationStatus},
+				USE_STATUS = #{useStatus},
+				STATION_CONTACT = #{stationContact},
+				STATION_TEL = #{stationTel},
+				BUSINE_HOURS = #{busineHours},
+				SUPPORT_ORDER = #{supportOrder},
+				PAY_MENT = #{payMent},
+				ELECTRICITY_FEE = #{electricityFee},
+				PARK_FEE = #{parkFee},
+				SERVICE_FEE = #{serviceFee},
+				PROV_CODE = #{provCode},
+				CITY_CODE = #{cityCode},
+				DIST_CODE = #{distCode},
+				ADDRESS = #{address},
+				STATION_AREA = #{stationArea},
+				STATION_LNG = #{stationLng},
+				STATION_LAT = #{stationLat},
+				REMARK = #{remark},
+				STATION_MODEL = #{stationModel},
+				station_Coop_Type = #{stationCoopType},
+				invest_Amount = #{investAmount},
+				target_Charge = #{targetCharge},
+				rentalStartDate = #{rentalStartDate},
+				rentalEndDate = #{rentalEndDate},
+				stationStartDate = #{stationStartDate},
+				stationEndDate = #{stationEndDate},
+				PUR_PRICE = #{purPrice},
+				PUR_PRICE1 = #{purPrice1},
+				PUR_PRICE2 = #{purPrice2},
+				PUR_PRICE3 = #{purPrice3},
+				PUR_PRICE4 = #{purPrice4},
+				cost_amortization = #{costAmortization},
+				network_fee = #{networkFee},
+				parking_Fee = #{parkingFee},
+				property_Fee = #{propertyFee},
+				artificial_Fee = #{artificialFee},
+				target_income = #{targetIncome},
+				service_type = #{serviceType},
+				budget_amount = #{budgetAmount}
+			</set>
+			WHERE STATION_ID = #{stationId}
+	</update>
+
+	<!-- 编辑运营信息 -->
+	<update id="updateBusiness" >
+		UPDATE c_business
+		<set>
+			station_etwork = #{stationEtwork},
+			business_people = #{businessPeople},
+			etwork_speed = #{etworkSpeed},
+			etwork_size = #{etworkSize},
+			expiry_time = #{expiryTime},
+			pay_time = #{payTime},
+			tariff_information = #{tariffInformation},
+			business_belong = #{businessBelong},
+			business_phone = #{businessPhone},
+			Assets_belong = #{assetsBelong},
+			land_belong = #{landBelong},
+			test_time = #{testTime},
+			formal_time = #{formalTime},
+			Lease_PIC = #{leasePic},
+			big_Car_size = #{bigCarSize},
+			Small_car_size = #{smallCarSize},
+			Transformer_belong = #{transformerBelong},
+			initial_energy = #{initialEnergy},
+			service_Unit = #{serviceUnit},
+			manage_Type = #{manageType},
+			repair_Man = #{repairMan},
+			repair_Phone = #{repairPhone},
+			employee_Size = #{employeeSize},
+			service_CARS = #{serviceCars}
+		</set>
+		WHERE STATION_ID = #{stationId}
+	</update>
+
+	<select id="businessCount" resultType="Integer">
+		select count(*) from c_business where station_id = #{stationId}
+	</select>
+	<!-- 获取登录用户的orgNo -->
+	<select id="getOrgNo" parameterType="DataVo" resultType="DataVo">
+		SELECT org_no,org_id FROM pub_org WHERE user_id = #{userId}
+	</select>
+	<!--获取枪数-->
+	<select id="getGunSize" parameterType="Integer" resultType="Integer">
+		SELECT
+			count(*)
+		FROM
+			chg_gun g
+		INNER JOIN chg_pile p ON g.PILE_ID = p.PILE_ID
+		INNER JOIN chg_station s ON s.STATION_ID = p.STATION_ID
+		WHERE
+			s.STATION_ID = #{id}
+	</select>
+	<!--获取桩类型数和功率-->
+	<select id="getPileOrtModePower" parameterType="Integer" resultType="DataVo">
+			SELECT
+			p.ort_mode,
+			count(*) size,
+			sum(p.rate_power) rp
+		FROM
+			chg_pile p
+		WHERE
+			p.STATION_ID = #{id}
+		GROUP BY
+			p.ort_mode
+	</select>
+	<!--得到设备总功率-->
+	<select id="getTotalRatePower" resultType="DataVo">
+			SELECT
+				sum(rated_power) rp
+			FROM
+				${table}
+			WHERE
+				STATION_ID =  #{id}
+	</select>
+	<!-- 查询第三方充电站Id -->
+	<select id="getOperatorIdByOperatorRelaId" parameterType="java.util.List" resultType="DataVo">
+		SELECT OPERATOR_ID FROM to_operator_rela where
+		opertator_rela_id IN 
+		<foreach collection="operatorRelaIds" item="operatorRelaId" open="(" separator="," close=")">
+					#{operatorRelaId}
+			</foreach>
+	</select>
+	
+	<!-- 获取第三方运营商 -->
+	<select id="getToSubOperatorIdsDict" parameterType="DataVo" resultType="DataVo">
+		SELECT operatorI_D AS operator_id ,operatorName AS operator_name FROM To_OperatorInfo 
+	    WHERE 1=1
+	    <if test="operatorIds!=null">
+		    AND operatorI_D IN 
+		    <foreach collection="operatorIds" item="id" open="(" separator="," close=")">
+		    	#{id}
+		    </foreach>
+	    </if> 
+	    <if test="operatorName != null and operatorName!='' ">
+	    	AND operatorName like concat('%',#{operatorName},'%')
+	    </if>
+	</select>
+	
+	<!-- 获取第三方场站 -->
+	<select id="getToStationinfoDict" parameterType="DataVo" resultType="DataVo">
+		SELECT stationI_D AS stationId,stationName AS station_name FROM to_stationinfo 
+		WHERE 1=1   
+		<if test="operatorIds != null">
+			AND operatorI_D IN
+			<foreach collection="operatorIds" item="id" open="(" separator="," close=")">
+		    	#{id}
+		    </foreach>
+		</if>
+	    <if test="operatorId != null">
+			AND operatorI_D = #{operatorId};
+	    </if>
+	    <if test="stationName != null and stationName!=''">
+	    	AND stationName like concat('%',#{stationName},'%')
+	    </if>
+	</select>
+
+	<select id="validateArr" resultType="Integer">
+		select count(*) count from chg_station
+		<where>
+			${column} = #{arr}
+			<if test="orgId != null">
+				and org_id = #{orgId}
+			</if>
+			<if test="stationId != null">
+				and station_id != #{stationId}
+			</if>
+		</where>
+	</select>
+</mapper>

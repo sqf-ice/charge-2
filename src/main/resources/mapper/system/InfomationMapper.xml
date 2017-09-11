@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.clouyun.charge.modules.system.mapper.InfomationMapper">
+
+    <!-- 约束条件 -->
+    <sql id="condition">
+        WHERE 1=1
+        <if test="createBy!=null">
+            AND create_by = #{createBy}
+        </if>
+    </sql>
+
+    <!-- 排序条件 -->
+    <sql id="orderBy">
+        <if test="sort!=null">
+            ORDER BY ${sort} ${order}
+        </if>
+    </sql>
+
+    <!-- 按条件分页查询资讯 -->
+    <select id="getInfomationsByPage" parameterType="Map" resultType="DataVo">
+        SELECT info.*, org.org_name FROM c_info info
+        LEFT JOIN pub_org org ON info.app_from = org.org_id
+        WHERE 1=1
+        <!--<if test="createBy!=null">-->
+            <!--AND log.create_by = #{createBy}-->
+        <!--</if>-->
+        <if test="infoType!=null and infoType!=''">
+            AND info.info_type = #{infoType}
+        </if>
+        <if test="infoStatus!=null and infoStatus!=''">
+            AND info.info_status = #{infoStatus}
+        </if>
+        <if test="infoHead!=null and infoHead!=''">
+            AND info.info_head LIKE concat('%',#{infoHead},'%')
+        </if>
+        <if test="startDate!=null and startDate!=''">
+            <![CDATA[ AND info.info_publish_time >= #{startDate}]]>
+        </if>
+        <if test="endDate!=null and endDate!=''">
+            <![CDATA[ AND info.info_publish_time <= #{endDate}]]>
+        </if>
+        <if test="sort!=null">
+            ORDER BY concat('info.',${sort}) ${order}
+        </if>
+    </select>
+
+    <!-- 根据资讯ID查询 -->
+    <select id="getInfomationById" resultType="Map">
+        SELECT * FROM c_info WHERE info_id = #{infoId}
+    </select>
+
+    <!-- 添加资讯 -->
+    <insert id="insertInfomation" parameterType="Map" keyProperty="id" useGeneratedKeys="true">
+        INSERT INTO c_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            INFO_PUBLISH_TIME,
+            <if test="infoHead != null">
+                INFO_HEAD,
+            </if>
+            <if test="infoBody != null">
+                INFO_BODY,
+            </if>
+            <if test="infoPic != null">
+                INFO_PIC,
+            </if>
+            <if test="infoExpireDate != null">
+                INFO_EXPIRE_DATE,
+            </if>
+            <if test="infoBeingLiked != null">
+                INFO_BEING_LIKED,
+            </if>
+            <if test="infoType != null">
+                INFO_TYPE,
+            </if>
+            <if test="infoStatus != null">
+                INFO_STATUS,
+            </if>
+            <if test="infoStartTime != null">
+                INFO_START_TIME,
+            </if>
+            <if test="infoEndTime != null">
+                INFO_END_TIME,
+            </if>
+            <if test="infoBeingShared != null">
+                INFO_BEING_SHARED,
+            </if>
+            <if test="appFrom != null">
+                APP_FROM,
+            </if>
+            <if test="infoUrl != null">
+                INFO_URL,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            now(),
+            <if test="infoHead != null">
+                #{infoHead,jdbcType=VARCHAR},
+            </if>
+            <if test="infoBody != null">
+                #{infoBody,jdbcType=VARCHAR},
+            </if>
+            <if test="infoPic != null">
+                #{infoPic,jdbcType=VARCHAR},
+            </if>
+            <if test="infoExpireDate != null">
+                #{infoExpireDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="infoBeingLiked != null">
+                #{infoBeingLiked,jdbcType=INTEGER},
+            </if>
+            <if test="infoType != null">
+                #{infoType,jdbcType=INTEGER},
+            </if>
+            <if test="infoStatus != null">
+                #{infoStatus,jdbcType=INTEGER},
+            </if>
+            <if test="infoStartTime != null">
+                #{infoStartTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="infoEndTime != null">
+                #{infoEndTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="infoBeingShared != null">
+                #{infoBeingShared,jdbcType=INTEGER},
+            </if>
+            <if test="appFrom != null">
+                #{appFrom,jdbcType=INTEGER},
+            </if>
+            <if test="infoUrl != null">
+                #{infoUrl,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 更新资讯 -->
+    <update id="updateInfomation" parameterType="Map" >
+        UPDATE c_info
+        <set>
+            UP_TIME = now(),
+            <if test="infoHead != null">
+                INFO_HEAD = #{infoHead,jdbcType=VARCHAR},
+            </if>
+            <if test="infoBody != null">
+                INFO_BODY = #{infoBody,jdbcType=VARCHAR},
+            </if>
+            <if test="infoPic != null">
+                INFO_PIC = #{infoPic,jdbcType=VARCHAR},
+            </if>
+            <if test="infoPublishTime != null">
+                INFO_PUBLISH_TIME = #{infoPublishTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="infoExpireDate != null">
+                INFO_EXPIRE_DATE = #{infoExpireDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="infoBeingLiked != null">
+                INFO_BEING_LIKED = #{infoBeingLiked,jdbcType=INTEGER},
+            </if>
+            <if test="infoType != null">
+                INFO_TYPE = #{infoType,jdbcType=INTEGER},
+            </if>
+            <if test="infoStatus != null">
+                INFO_STATUS = #{infoStatus,jdbcType=INTEGER},
+            </if>
+            <if test="infoStartTime != null">
+                INFO_START_TIME = #{infoStartTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="infoEndTime != null">
+                INFO_END_TIME = #{infoEndTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="infoBeingShared != null">
+                INFO_BEING_SHARED = #{infoBeingShared,jdbcType=INTEGER},
+            </if>
+            <if test="appFrom != null">
+                APP_FROM = #{appFrom,jdbcType=INTEGER},
+            </if>
+            <if test="infoUrl != null">
+                INFO_URL = #{infoUrl,jdbcType=VARCHAR},
+            </if>
+        </set>
+        WHERE INFO_ID = #{infoId,jdbcType=INTEGER}
+    </update>
+
+    <!-- 根据ID删除资讯 -->
+    <delete id="delInfomationByIds" parameterType="java.lang.Integer">
+        DELETE FROM c_info
+        WHERE INFO_ID IN
+        <foreach collection="infoIds" item="id" open="(" separator="," close=")">
+            #{id,jdbcType=INTEGER}
+        </foreach>
+    </delete>
+</mapper>

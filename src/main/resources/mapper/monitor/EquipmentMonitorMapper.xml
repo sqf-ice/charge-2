@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.EquipmentMonitorMapper">
+	<!-- 通过场站Id等查询充电桩信息 -->
+	<select id="getPilesByStationId" parameterType="Map" resultType="Map">
+		select
+        this_.PILE_ID ,
+        this_.PILE_NO ,
+        this_.PILE_NAME ,
+        this_.PILE_LNG ,
+        this_.PILE_LAT ,
+        this_.PILE_TYPE ,
+		this_.ort_mode,
+		this_.number_gun,
+        this_.PILE_ADDR ,
+        this_.HARD_VERSION ,
+        this_.SOFT_VERSION ,
+        this_.STATION_ID ,
+        this_.PILE_MODEL_ID ,
+        chgstation1_.STATION_NAME ,
+        pubpilemod2_.PILE_MODEL_NO ,
+        pubpilemod2_.GUN_TYPE_CODE  
+    from
+        CHG_PILE this_ 
+    left outer join
+        CHG_STATION chgstation1_ 
+            on this_.STATION_ID=chgstation1_.STATION_ID 
+    left outer join
+        PUB_PILE_MODEL pubpilemod2_ 
+            on this_.PILE_MODEL_ID=pubpilemod2_.PILE_MODEL_ID 
+    where
+        this_.STATION_ID=#{stationId} 
+        and this_.PILE_STATUS='0' 
+        <!--充电桩ID-->
+		<if test="pileId != null and '' != pileId ">
+			AND
+			this_.PILE_ID = #{pileId}
+		</if>
+		<!--充电桩类型-->
+		<if test="pileType != null and '' != pileType ">
+			AND
+			this_.PILE_TYPE = #{pileType}
+		</if>
+		<!--充电桩模型-->
+		<if test="pileModel != null and '' != pileModel ">
+			AND
+			this_.PILE_MODEL_ID = #{pileModel}
+		</if>
+    order by
+        this_.PILE_ID asc
+	</select>
+
+	<select id="queryPileInfoById" resultType="DataVo">
+		  SELECT
+		  		cp.ort_mode,
+		  		cp.number_gun,
+		  		cp.pile_id,
+		  		cp.pile_addr,
+		  		cg.gun_id,
+		  		cg.gum_point
+		  FROM
+		  		chg_gun cg
+		  LEFT OUTER  JOIN
+		  		chg_pile cp
+		  			ON cg.pile_id = cp.pile_id
+		  WHERE
+		  		cg.pile_id = #{pileId}
+	</select>
+
+
+	<select id="queryStationIncome" resultType="BigDecimal">
+		SELECT
+			SUM(b.AMOUNT) amount
+		FROM
+			CHG_STATION s
+		INNER JOIN CHG_PILE p ON s.STATION_ID = p.STATION_ID
+		INNER JOIN BILL_PAY b ON p.PILE_ID = b.PILE_ID
+		<where>
+			<if test="stationId != null">
+				and s.STATION_ID = #{stationId}
+			</if>
+			<if test="payState != null">
+				AND b.PAY_STATE != #{payState}
+			</if>
+			<if test="startTime != null">
+				and b.end_time <![CDATA[ >= ]]> #{startTime}
+			</if>
+			<if test="endTime != null">
+				and b.end_time <![CDATA[ < ]]> #{endTime}
+			</if>
+		</where>
+	</select>
+	
+	<select id="queryBillPayById" resultType="DataVo">
+		select
+			b.cons_id,
+			cons.cons_phone
+		from
+			bill_pay b
+		LEFT OUTER JOIN
+			c_cons cons
+				ON b.cons_id = cons.cons_id
+		where BILL_PAY_ID = #{billPayId}
+	</select>
+	
+	<select id="queryVehicleByVin" resultType="DataVo">
+		SELECT
+			vehicle_id,
+			vin
+		FROM
+			vehicle
+		WHERE
+			vin = #{vin}
+	</select>
+	
+	<select id="queryCConsByCarId" resultType="DataVo">
+		select cons_id from c_cons where CAR_ID = #{carId}
+	</select>
+
+	<select id="queryCCardById" resultType="DataVo">
+		select
+			CARD_ID,
+			CONS_ID
+		FROM
+			c_card
+		WHERE
+			CARD_ID = #{cardNo}
+	</select>
+
+	<select id="queryVehicleByConsId" resultType="DataVo">
+		SELECT
+			c.cons_id,
+			v.on_number,
+			vb.brand_name,
+			v.license_plate
+		FROM
+			c_cons c
+		LEFT OUTER JOIN
+			vehicle v
+			 	ON c.CAR_ID = v.vehicle_id
+		LEFT OUTER JOIN
+			vehicle_brand vb
+				on v.brand = vb.id
+		WHERE
+			c.CONS_ID = #{consId}
+	</select>
+
+	<select id="queryMeterInfo" resultType="DataVo">
+		SELECT
+			METER_ID,
+			pile_id,
+			meter_ratio
+		FROM
+			chg_meter
+		<where>
+			<if test="isZb != null">
+				and is_zb = #{isZb}
+			</if>
+		</where>
+	</select>
+
+
+	<select id="queryConsByCardId" resultType="DataVo">
+		select
+			cons.CONS_PHONE
+		FROM
+			c_card cc
+		LEFT OUTER JOIN
+			c_cons cons
+				ON  cc.CONS_ID = cons.CONS_ID
+		where cc.CARD_ID = #{cardId}
+	</select>
+
+	<select id="queryPileWarmRecord" resultType="DataVo">
+		SELECT
+			p.trm_addr,
+			p.data_time,
+			p.ALR_DESC
+		FROM
+			pile_warm_record p,
+		(
+			SELECT
+				trm_addr,
+				max(data_time) data_time
+			FROM
+				pile_warm_record
+			<where>
+				TRM_ADDR IN
+				<foreach collection="array" item="item" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</where>
+			GROUP BY
+				TRM_ADDR
+		) b
+		where
+			p.TRM_ADDR = b.trm_addr
+			AND p.DATA_TIME = b.data_time
+	</select>
+
+	<select id="queryChgGunInfoById" resultType="DataVo">
+		select
+			gun.inner_id,
+			gun.pile_id,
+			gun.gum_point,
+			cp.pile_addr
+		FROM
+			chg_gun gun
+		LEFT OUTER JOIN
+			chg_pile cp
+				on gun.pile_id = cp.pile_id
+  		<where>
+			<if test="gunId != null">
+				and gun.gun_id = #{gunId}
+			</if>
+			<if test="list != null">
+				and gun.gun_id in
+				<foreach collection="list" item="item" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+	</select>
+	
+	<select id="queryBillPayGroupByPile" resultType="DataVo">
+		select
+			sum(amount) amount,
+			sum(chg_power) chg_power,
+			sum(TIMESTAMPDIFF(SECOND, START_TIME, end_time)) time_diff,
+			b.PILE_ID,
+			b.INNER_ID
+		from bill_pay b
+		LEFT OUTER JOIN
+			chg_pile cp
+				on cp.PILE_ID = b.pile_id
+		<where>
+			<if test="stationId != null">
+				AND cp.station_id = #{stationId}
+			</if>
+			<if test="startTime != null">
+				and b.end_time <![CDATA[ >= ]]> #{startTime}
+			</if>
+			<if test="endTime != null">
+				and b.end_time <![CDATA[ < ]]> #{endTime}
+			</if>
+			<if test="payState != null">
+				and b.PAY_STATE != #{payState}
+			</if>
+		</where>
+		GROUP BY b.PILE_ID,b.INNER_ID
+	</select>
+	<!-- 查询用电表码 -->
+	<select id="queryMeterCode" resultType="DataVo">
+		SELECT
+			lb.inner_id,
+			lb.zxygz_pre,
+			lb.zxygz_cur,
+			l.pile_id
+		FROM
+			chg_bill_pile_loss_bm lb
+		RIGHT JOIN `chg_bill_pile_loss` l ON lb.rc_id = l.rc_id
+		<where>
+			<if test="calType != null">
+				and l.`cal_type` = #{calType}
+			</if>
+			<if test="stationId != null">
+				and l.`station_id` = #{stationId}
+			</if>
+		</where>
+	</select>
+
+	<select id="queryStationChgPower" resultType="DataVo">
+		SELECT
+			sum(PILE_CHG) pile_chg
+		FROM
+			pile_loss pl
+		LEFT OUTER JOIN
+			chg_pile cp
+				ON pl.pile_id = cp.pile_id
+		WHERE
+			cp.station_id = #{stationId} and pl.pl_month = #{month}
+	</select>
+</mapper>

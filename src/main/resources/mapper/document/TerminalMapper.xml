@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.TerminalMapper">
+	
+	<!-- 查询终端列表 -->
+	<select id="getTerminalAll" parameterType="DataVo" resultType="DataVo">
+		<include refid="selectSql" />
+		<include refid="conditions" />
+	</select>
+	<sql id="selectSql">
+		SELECT
+	        this_.TERMINAL_ID,
+	        this_.STATION_ID,
+	        this_.ORG_ID,
+	        this_.TERMINAL_NO,
+	        this_.TERMINAL_NAME,
+	        this_.TERMINAL_IP,
+	        this_.TERMINAL_COMM_TYPE,
+	        this_.TERMINAL_COMM_PROTOCOL,
+	        this_.TERMINAL_PORT,
+	        this_.TERMINAL_PROTOCOL_STATUS,
+	        this_.TERMINAL_CREATETIME,
+	        this_.TERMINAL_UPDATETIME,
+	        this_.shelf_life_time,
+	        this_.rated_power,
+	        puborg2x1_.ORG_NAME,
+	        chgstation2_.STATION_NAME
+	    FROM
+	        EQUIP_TERMINAL this_ 
+        LEFT OUTER JOIN PUB_ORG puborg2x1_  ON this_.ORG_ID=puborg2x1_.ORG_ID 
+    	LEFT OUTER JOIN CHG_STATION chgstation2_  ON this_.STATION_ID=chgstation2_.STATION_ID
+	</sql>
+	<!-- 列表查询条件 -->
+	<sql id="conditions">
+		<where>
+			1=1
+		<if test="orgIds != null">
+			AND this_.ORG_ID IN 
+			<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+		<if test="orgId != null">
+			AND this_.ORG_ID = #{orgId}
+		</if>
+		<if test="orgName != null">
+			AND puborg2x1_.org_name like concat('%',#{orgName},'%')
+		</if>
+		<if test="stationName != null">
+			AND chgstation2_.STATION_NAME like concat('%',#{stationName},'%')
+		</if>
+		<if test="stationId != null">
+			AND this_.station_id = #{stationId}
+		</if>
+		</where>
+	</sql>
+	
+	<!-- 根据终端Id获取信息 -->
+	<select id="getTerminalById" parameterType="DataVo" resultType="DataVo">
+		<include refid="selectSql" />
+		WHERE this_.TERMINAL_ID = #{terminalId}
+	</select>
+	<!-- 根据终端Id删除终端信息 -->
+	<delete id="delTerminal" parameterType="DataVo">
+		DELETE FROM EQUIP_TERMINAL WHERE TERMINAL_ID IN
+		<foreach collection="terminalIds" item="id" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+	
+	<!-- 根据终端名称查询终端信息列表(业务字典) -->
+	<select id="getTerminal" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.TERMINAL_ID,this_.TERMINAL_NAME FROM EQUIP_TERMINAL this_
+		LEFT OUTER JOIN chg_station station_ ON station_.`STATION_ID` = this_.`STATION_ID`
+		LEFT OUTER JOIN pub_org org_ ON org_.`ORG_ID` = this_.`ORG_ID`
+		WHERE 1=1 
+		<if test="terminalName != null and terminalName != ''">
+			AND this_.TERMINAL_NAME like concat('%',#{terminalName},'%')
+		</if>
+		<if test="stationId != null">
+			AND this_.STATION_ID = #{stationId}
+		</if>
+		<if test="orgId">
+			AND this_.ORG_ID = #{orgId}
+		</if>
+		<if test="stationIds != null">
+			AND this_.STATION_ID IN
+			<foreach collection="stationIds" item="subId" open="(" separator="," close=")">
+				#{subId}
+			</foreach>
+		</if>
+		<if test="orgIds !=null">
+			AND this_.ORG_ID IN
+			<foreach collection="orgIds" item="oId" open="(" separator="," close=")">
+				#{oId}
+			</foreach>
+		</if>
+		<if test="stationName != null">
+			AND station_.STATION_NAME like concat('%',#{stationName},'%')
+		</if>
+		<if test="orgName != null">
+			AND org_.ORG_NAME like concat('%',#{orgName},'%')
+		</if>
+	</select>
+	
+	<!-- 新增终端 -->
+	<insert id="saveTerminal" parameterType="map">
+		INSERT INTO equip_terminal (
+			ORG_ID,
+			STATION_ID,
+			TERMINAL_NO,
+			TERMINAL_NAME,
+			TERMINAL_IP,
+			TERMINAL_COMM_TYPE,
+			TERMINAL_COMM_PROTOCOL,
+			TERMINAL_PORT,
+			TERMINAL_PROTOCOL_STATUS,
+			<if test="shelfLifeTime != null  and shelfLifeTime!='' ">shelf_life_time,</if>
+			<if test="ratedPower != null ">rated_power,</if>
+			TERMINAL_CREATETIME
+		) VALUE (
+			#{orgId},
+			#{stationId},
+			#{terminalNo},
+			#{terminalName},
+			#{terminalIp},
+			#{terminalCommType},
+			#{terminalCommProtocol},
+			#{terminalPort},
+			#{terminalProtocolStatus},
+			<if test="shelfLifeTime != null  and shelfLifeTime!='' ">#{shelfLifeTime},</if>
+			<if test="ratedPower != null ">#{ratedPower},</if>
+			now()
+		);
+	</insert>
+	
+	<!-- 编辑终端 -->
+	<update id="updateTerminal" parameterType="map">
+		UPDATE equip_terminal
+		<set>
+			ORG_ID = #{orgId},
+			STATION_ID = #{stationId},
+			TERMINAL_NO = #{terminalNo},
+			TERMINAL_NAME = #{terminalName},
+			TERMINAL_IP = #{terminalIp},
+			TERMINAL_COMM_TYPE = #{terminalCommType},
+			TERMINAL_COMM_PROTOCOL = #{terminalCommProtocol},
+			TERMINAL_PORT = #{terminalPort},
+			TERMINAL_PROTOCOL_STATUS = #{terminalProtocolStatus},
+			shelf_life_time = #{shelfLifeTime},
+			rated_power = #{ratedPower},
+			TERMINAL_UPDATETIME = now()
+		</set>
+		WHERE TERMINAL_ID = #{terminalId}
+	</update>
+</mapper>

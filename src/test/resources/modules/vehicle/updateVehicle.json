@@ -1,0 +1,15 @@
+{
+ "vehicleId":1005072,
+ "userId":5,
+ "licensePlate":"粤B333333",
+ "belongsType":1,
+ "operationRoperty":0,
+ "usingRoperty":1,
+ "vehicleType":1,
+ "driverids":"10,10,",
+ "createTime":"2017-06-06 16:49:55.12",
+ "updateTime":"Tue Jun 06 16:38:10 CST 2017", 
+ "updateBy":1
+}
+
+{vehicleId=1005067, usingRoperty=1, operationRoperty=0, createBy=1, licensePlate=341236234, belongsName=6213123, belongsType=1, vehicleType=1, userId=1, vehiclesId=1005067}

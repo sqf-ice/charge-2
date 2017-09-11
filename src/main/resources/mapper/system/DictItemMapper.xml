@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.system.mapper.DictItemMapper">
+	<!-- 按条件分页查询 -->
+	<select id="queryDictItemList" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		TYPE_ID,
+		ITEM_NUM,
+		ITEM_NAME,
+		CHG_USER,
+		CHG_DATE,
+		RESERVE1
+		FROM
+		pub_dict_item
+		WHERE
+		TYPE_ID = #{typeId}
+	    ORDER BY SORT_NO
+	</select>
+	<select id="queryDictItem" parameterType="DataVo"
+		resultType="Map">
+		SELECT
+		TYPE_ID,
+		ITEM_NUM,
+		ITEM_NAME,
+		CHG_USER,
+		CHG_DATE,
+		RESERVE1
+		FROM
+		pub_dict_item
+	    WHERE
+	    TYPE_ID = #{typeId} and ITEM_NUM=#{itemNum}
+	</select>
+	<update id="updateDictItembyIdAndNum" parameterType="DataVo">
+		UPDATE pub_dict_item set RESERVE1 =#{reserve1}  where TYPE_ID=#{typeId} and ITEM_NUM IN
+		<foreach collection="itemNums" item="item" index="index"
+				open="(" separator="," close=")">#{item}</foreach>
+	</update>
+	<update id="updateDictItembyTypeId" parameterType="DataVo">
+		UPDATE pub_dict_item set RESERVE1 =#{reserve1}  where TYPE_ID=#{typeId}
+	</update>
+</mapper>

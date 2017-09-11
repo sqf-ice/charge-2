@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.WarningMapper">
+
+	<sql id="Base_Column_List">
+		this_.rec_id,
+		this_.trm_addr,
+		this_.data_time,
+		this_.obj_type,
+		this_.inner_id,
+		this_.alr_no,
+		this_.alr_desc,
+		this_.handle_flag,
+		this_.handle_desc,
+		this_.handle_time,
+		this_.alr_count,
+		this_.user_id,
+		this_.handle_method,
+		this_.artifact_total_price,
+		chgpile2x1_.pile_id,
+		chgpile2x1_.station_id,
+		chgpile2x1_.pile_name,
+		chgpile2x1_.pile_no,
+		chgpile2x1_.pile_type,
+		chgpile2x1_.pile_model_id,
+		chgpile2x1_.pile_addr,
+		chgstation2_.org_id,
+		chgstation2_.station_name,
+		chgstation2_.station_id,
+		puborg4x3_.org_id,
+		puborg4x3_.org_name
+	</sql>
+	<sql id="conditions">
+		<where>
+			<!--起始时间 -->
+			<if test="warnStartTime !=null and warnStartTime!=''">
+				AND this_.data_time <![CDATA[ >= ]]>
+				#{warnStartTime}
+			</if>
+			<!--结束时间 -->
+			<if test="warnEndTime !=null and warnEndTime!=''">
+				AND this_.data_time <![CDATA[ <= ]]>
+				#{warnEndTime}
+			</if>
+			<if test="alrNo !=null and alrNo!=''">
+				AND this_.alr_no = #{alrNo}
+			</if>
+			<if test="objType !=null and objType!=''">
+				AND this_.obj_type = #{objType}
+			</if>
+			<if test="handleFlag !=null and handleFlag!=''">
+				AND this_.handle_flag = #{handleFlag}
+			</if>
+			<if test="pileId !=null and pileId!=''">
+				AND chgpile2x1_.pile_id = #{pileId}
+			</if>
+			<if test="pileType !=null and pileType!=''">
+				AND chgpile2x1_.pile_type = #{pileType}
+			</if>
+			<if test="orgIds!=null">
+				AND chgstation2_.org_id IN
+				<foreach collection="orgIds" item="orgId" open="("
+					separator="," close=")">
+					#{orgId}
+				</foreach>
+			</if>
+			<if test="stationIds!=null">
+				AND chgstation2_.station_id IN
+				<foreach collection="stationIds" item="stationId" open="("
+					separator="," close=")">
+					#{stationId}
+				</foreach>
+			</if>
+		</where>
+	</sql>
+	<select id="get" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM
+		pile_warm_record_stat this_
+		LEFT JOIN
+		chg_pile
+		chgpile2x1_
+		on
+		this_.trm_addr=chgpile2x1_.pile_addr
+		LEFT JOIN
+		chg_station chgstation2_
+		on
+		chgpile2x1_.station_id=chgstation2_.station_id
+		LEFT JOIN
+		pub_org
+		puborg4x3_
+		on chgstation2_.org_id=puborg4x3_.org_id
+		<include refid="conditions" />
+		<include refid="orderBy" />
+	</select>
+	<!-- 排序条件 -->
+	<sql id="orderBy">
+		<if test="sort!=null and sort!=''">
+			ORDER BY ${sort} ${order}
+		</if>
+	</sql>
+	<!-- 更新告警信息 -->
+	<update id="update">
+		UPDATE pile_warm_record_stat
+		<set>
+			<if test="handleFlag != null">
+				handle_flag=#{handleFlag,jdbcType=INTEGER},
+			</if>
+			<if test="handleDesc != null">
+				handle_desc=#{handleDesc,jdbcType=VARCHAR},
+			</if>
+			<if test="userId != null">
+				user_id=#{userId,jdbcType=INTEGER},
+			</if>
+				handle_time= now(),
+			<if test="artifactTotalPrice != null">
+				artifact_total_price=#{artifactTotalPrice,jdbcType=DECIMAL},
+			</if>
+			<if test="handleMethod != null">
+				handle_method=#{handleMethod,jdbcType=INTEGER}
+			</if>
+		</set>
+		<where>
+			rec_id=#{recId,jdbcType=INTEGER}
+		</where>
+	</update>
+	<select id="getById" parameterType="java.lang.Integer"
+		resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM
+		pile_warm_record_stat this_
+		LEFT JOIN
+		chg_pile
+		chgpile2x1_
+		on
+		this_.trm_addr=chgpile2x1_.pile_addr
+		LEFT JOIN
+		chg_station chgstation2_
+		on
+		chgpile2x1_.station_id=chgstation2_.station_id
+		LEFT JOIN
+		pub_org
+		puborg4x3_
+		on chgstation2_.org_id=puborg4x3_.org_id
+		WHERE
+		this_.rec_id =
+		#{recId,jdbcType=INTEGER}
+	</select>
+	<!-- 上面的为2.0.0版的 -->
+	<select id="findWarningListByPage" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM
+		pile_warm_record_stat this_
+		LEFT JOIN
+		chg_pile chgpile2x1_
+		on
+		this_.trm_addr=chgpile2x1_.pile_addr
+		LEFT JOIN
+		chg_station chgstation2_
+		on chgpile2x1_.station_id=chgstation2_.station_id
+		LEFT JOIN
+		pub_org
+		puborg4x3_
+		on chgstation2_.org_id=puborg4x3_.org_id
+		<include refid="conditions" />
+		ORDER BY this_.data_time DESC
+		<include refid="page" />
+	</select>
+	<select id="findWarningCounts" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		count(1) as count
+		FROM
+		pile_warm_record_stat this_
+		LEFT JOIN
+		chg_pile
+		chgpile2x1_
+		on this_.trm_addr=chgpile2x1_.pile_addr
+		LEFT JOIN
+		chg_station chgstation2_
+		on
+		chgpile2x1_.station_id=chgstation2_.station_id
+		LEFT JOIN
+		pub_org
+		puborg4x3_
+		on chgstation2_.org_id=puborg4x3_.org_id
+		<include refid="conditions" />
+	</select>
+	<!-- 分页条件 -->
+	<sql id="page">
+		<if test="pageIndex!=null and pageSize!=null">
+			LIMIT #{pageIndex},#{pageSize}
+		</if>
+	</sql>
+	<!-- 更新告警信息 -->
+	<update id="updateWarningByRecId">
+		UPDATE pile_warm_record_stat
+		<set>
+			<if test="handleFlag != null">HANDLE_FLAG=#{handleFlag}</if>
+			<if test="handleDesc != null">,HANDLE_DESC=#{handleDesc}</if>
+			<if test="userId != null">,USER_ID=#{userId}</if>
+			<if test="handleTime != null">,HANDLE_TIME=#{handleTime}</if>
+			<if test="artifactTotalPrice != null">,ARTIFACT_TOTAL_PRICE=#{artifactTotalPrice}</if>
+			<if test="handleMethod != null">,HANDLE_METHOD=#{handleMethod}</if>
+			<!--可扩展其他项 -->
+		</set>
+		<where>
+			REC_ID=#{recId}
+		</where>
+	</update>
+	<select id="findWarningByRecId" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		trm_addr,
+		data_time,
+		obj_type,
+		inner_id,
+		alr_no,
+		alr_desc,
+		alr_count,
+		handle_flag,
+		handle_desc,
+		handle_time,
+		user_id,
+		artifact_total_price,
+		handle_method
+		FROM
+		pile_warm_record_stat
+		WHERE
+		rec_id =#{recId}
+	</select>
+	<!-- 查询告警项 -->
+	<select id="getAlarmItems" parameterType="java.lang.Integer"
+		resultType="DataVo">
+		SELECT
+		id, value,label,type,handle_way
+		FROM sys_dict
+		WHERE del_flag = '0'
+		AND parent_id = #{parentId}
+	</select>
+	<!-- 告警设置 -->
+	<update id="modifyAlarmItem" parameterType="DataVo">
+		UPDATE sys_dict set handle_way =#{handleWay} WHERE id=#{id}
+	</update>
+</mapper>

@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.BusinessAnalysisMapper">
+	<!--得到场站充电量-->
+	<select id="getStationPower" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		s.STATION_ID,
+		s.STATION_NAME,
+		sp.station_total_charge  total,
+		sp.station_target_charge target
+		FROM
+		chg_station s
+		LEFT JOIN (
+		SELECT
+		station_total_charge,
+		station_target_charge,
+		station_id
+		FROM
+		`station_profit`
+		WHERE
+		settlement_month = #{month}
+		) sp ON s.STATION_ID = sp.station_id
+		<where>
+			<if test="stationIds!=null and stationIds.size()>0">
+				and s.STATION_ID in
+				<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+		ORDER BY total desc
+	</select>
+	<!--得到场站收入-->
+	<select id="getStationIncome" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		s.STATION_ID,
+		s.STATION_NAME,
+		sp.station_income_subtotal  total,
+		sp.station_target_income target
+		FROM
+		chg_station s
+		LEFT JOIN (
+		SELECT
+		station_income_subtotal,
+		station_target_income,
+		station_id
+		FROM
+		`station_profit`
+		WHERE
+		settlement_month = #{month}
+		) sp ON s.STATION_ID = sp.station_id
+		<where>
+			<if test="stationIds!=null and stationIds.size()>0">
+				and s.STATION_ID in
+				<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+		ORDER BY total desc
+	</select>
+	<!--得到场站利润-->
+	<select id="getStationProfit" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		station_name,
+		station_Id,
+		sum(station_gross_profit) profit
+		FROM
+		`station_profit`
+		WHERE
+			settlement_month= #{month}
+		<if test="stationIds!=null and stationIds.size()>0">
+			and STATION_ID in
+			<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY station_Id
+		ORDER BY  station_gross_profit desc
+			LIMIT ${size}
+	</select>
+	<select id="faultTypeList" parameterType="DataVo" resultType="DataVo">
+				SELECT
+					te.TEMPLATE_NAME,count(*) size
+				FROM
+					yxg_task_info ta
+				LEFT JOIN yxg_template te ON ta.PATTERN_ID = te.TEMPLATE_ID
+				WHERE
+					(
+						te.TEMPLATE_NAME = '硬件故障'
+						OR te.TEMPLATE_NAME = '通讯异常'
+						OR te.TEMPLATE_NAME = '支付异常'
+						OR te.TEMPLATE_NAME = '系统BUG'
+						OR te.TEMPLATE_NAME = '启动充电异常'
+		                 OR te.TEMPLATE_NAME = '订单数据异常'
+					)
+		<![CDATA[ AND  DATE_FORMAT(ta.TASK_TIME, '%Y-%m')=  #{month} ]]>
+		<if test="orgIds!=null  and orgIds.size()>0">
+			and ta.ORG_ID in
+			<foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+				GROUP BY
+					te.TEMPLATE_NAME
+	</select>
+	<select id="getFaultStation" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		count(*) size,
+		y.STATION_ID,
+		s.station_name
+		FROM
+		yxg_task_info y
+		LEFT JOIN chg_station s
+		on s.STATION_ID = y.STATION_ID
+		<where>
+			<if test="stationIds!=null  and stationIds.size()>0">
+				AND y.station_id in
+				<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test="task==1">
+				AND	y.TASK_STATUS =5
+			</if>
+			<![CDATA[ AND DATE_FORMAT(y.TASK_TIME, '%Y-%m')=  #{month} ]]>
+		</where>
+		GROUP BY y.STATION_ID
+		ORDER BY size desc
+	</select>
+	<!--充电时长-->
+	<select id="getChargeTime" parameterType="DataVo" resultType="String">
+				SELECT
+					sum(charge_time)
+				FROM
+					c_chargetime
+				WHERE
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ DATE_FORMAT(create_date, '%Y-%m')=  #{dateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')>= #{midFormat} and  DATE_FORMAT(create_date, '%Y-%m-%d')< #{lastFormat} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ DATE_FORMAT(create_date, '%Y-%m')=  #{month} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')>= #{firstWeekFormat} and  DATE_FORMAT(create_date, '%Y-%m-%d')< #{nextFirstWeekFormat} ]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		<if test="orgIds!=null  and orgIds.size()>0">
+			and org_id in
+			<foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	<select id="getGun" parameterType="DataVo" resultType="DataVo">
+		SELECT s.StationStartDate start_time from chg_gun g
+		LEFT JOIN chg_pile p
+		on g.PILE_ID = p.PILE_ID
+		LEFT JOIN chg_station s
+		on p.STATION_ID = s.STATION_ID
+		WHERE
+	<![CDATA[ 	(DATE_FORMAT(s.StationStartDate, '%Y-%m') <=  #{dateFormat} or s.StationStartDate is null ) ]]>
+		AND
+		s.USE_STATUS =0
+		AND
+		p.PILE_STATUS =0
+		AND
+		s.STATION_STATUS=50
+		<if test="orgIds!=null and orgIds.size()>0">
+			AND 	s.org_id in
+			<foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+
+     <!--转换率-->
+	<select id="getConversion" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		sum(pl.qb_dl)  dicp,
+		sum(pl.zb_dl) diep
+		FROM
+		chg_bill_pile_loss pl
+		LEFT JOIN chg_pile p
+		on pl.pile_id = p.PILE_ID
+		LEFT JOIN chg_station s
+		on p.STATION_ID = s.STATION_ID
+		WHERE
+		p.PILE_TYPE
+		in(2,4,5)
+		AND
+		pl.cal_type=1
+		AND
+		pl.data_type=1
+		AND
+		s.STATION_STATUS=50
+		AND
+		s.USE_STATUS =0
+		AND
+		p.PILE_STATUS =0
+		<if test="orgIds!=null and orgIds.size()>0">
+			and p.org_id in
+			<foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[  and DATE_FORMAT(pl.data_time, '%Y-%m')=  #{dateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ and DATE_FORMAT(pl.data_time, '%Y-%m-%d')>= #{midFormat} and  DATE_FORMAT(pl.data_time, '%Y-%m-%d')< #{lastFormat} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ and DATE_FORMAT(pl.data_time, '%Y-%m')=  #{upDateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ and  DATE_FORMAT(pl.data_time, '%Y-%m-%d')>= #{firstForm} and  DATE_FORMAT(pl.data_time, '%Y-%m-%d')< #{midFormat} ]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+	</select>
+	<!--在线率-->
+	<select id="onLineRate" parameterType="DataVo" resultType="Integer">
+		SELECT count(*) from (
+		SELECT count(*) size from d_cp_online_stat cp
+		LEFT JOIN chg_pile p on p.PILE_ID = cp.CJ_CP_NO
+		LEFT JOIN chg_station s on p.STATION_ID = s.STATION_ID
+		WHERE
+		s.STATION_STATUS=50
+		AND
+		s.USE_STATUS =0
+		AND
+		p.PILE_STATUS =0
+		and cp.ONLINE_RATE =100
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND DATE_FORMAT(cp.DATA_DATE, '%Y-%m')=  #{dateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ AND DATE_FORMAT(cp.DATA_DATE, '%Y-%m-%d')>= #{midFormat} and  DATE_FORMAT(cp.DATA_DATE, '%Y-%m-%d')< #{lastFormat} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND DATE_FORMAT(cp.DATA_DATE, '%Y-%m')=  #{upDateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ AND  DATE_FORMAT(cp.DATA_DATE, '%Y-%m-%d')>= #{firstForm} and  DATE_FORMAT(cp.DATA_DATE, '%Y-%m-%d')< #{midFormat} ]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		<if test="stationIds!=null and stationIds.size()>0">
+			and cp.STATION_ID in
+			<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY CJ_CP_NO
+		)a
+		WHERE
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==1">
+						a.size = #{day}
+					</when>
+					<when test="flag==2">
+ 						a.size >0
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==1">
+						a.size = #{upDay}
+					</when>
+					<when test="flag==2">
+						a.size > 0
+					</when>
+				</choose>
+			</when>
+		</choose>
+	</select>
+	<select id="onLineRateWeek" parameterType="DataVo" resultType="Integer">
+		SELECT count(*) size from d_cp_online_stat cp
+		LEFT JOIN chg_pile p on p.PILE_ID = cp.CJ_CP_NO
+		LEFT JOIN chg_station s on p.STATION_ID = s.STATION_ID
+		WHERE
+		s.STATION_STATUS=50
+		AND
+		s.USE_STATUS =0
+		AND
+		p.PILE_STATUS =0
+		and cp.ONLINE_RATE =100
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==2">
+						<![CDATA[ AND DATE_FORMAT(cp.DATA_DATE, '%Y-%m-%d')>= #{midFormat} and  DATE_FORMAT(cp.DATA_DATE, '%Y-%m-%d')< #{lastFormat} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==2">
+						<![CDATA[ AND  DATE_FORMAT(cp.DATA_DATE, '%Y-%m-%d')>= #{firstForm} and  DATE_FORMAT(cp.DATA_DATE, '%Y-%m-%d')< #{midFormat} ]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		<if test="stationIds!=null and stationIds.size()>0">
+			and cp.STATION_ID in
+			<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+
+	<select id="onLineRateDay" parameterType="DataVo" resultType="Integer">
+		SELECT count(ds.ONLINE_RATE)  from d_cp_online_stat ds
+		LEFT JOIN chg_pile p on p.PILE_ID = ds.CJ_CP_NO
+		LEFT JOIN chg_station s on p.STATION_ID = s.STATION_ID
+		WHERE
+		s.STATION_STATUS=50
+		AND
+		s.USE_STATUS =0
+		AND
+		p.PILE_STATUS =0
+		and ds.ONLINE_RATE =100
+         <![CDATA[ AND DATE_FORMAT(ds.DATA_DATE, '%Y-%m')=  #{dateFormat}]]>
+		<if test="stationIds!=null and stationIds.size()>0">
+			and s.STATION_ID in
+			<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	<!--有效桩数-->
+	<select id="getPileSize" parameterType="DataVo" resultType="Integer">
+		SELECT
+		count(*)
+		FROM
+		effective_pile_record e
+		<where>
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND DATE_FORMAT(e.create_time, '%Y-%m')  =  #{dateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ AND   DATE_FORMAT(e.create_time, '%Y-%m-%d')>= #{midFormat} and  DATE_FORMAT(e.create_time, '%Y-%m-%d')< #{lastFormat} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND DATE_FORMAT(e.create_time, '%Y-%m') =  #{upDateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[   AND   DATE_FORMAT(e.create_time, '%Y-%m-%d')>= #{firstForm} and  DATE_FORMAT(e.create_time, '%Y-%m-%d')< #{midFormat}  ]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		<if test="orgIds!=null and orgIds.size()>0">
+			and e.org_id in
+			<foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		</where>
+	</select>
+	<select id="accuracy" parameterType="DataVo" resultType="Integer">
+		SELECT count(*) from (
+		SELECT
+		count(*) loss_size
+		FROM
+		chg_bill_pile_loss pl
+		LEFT JOIN chg_pile p
+		on pl.pile_id = p.PILE_ID
+		LEFT JOIN chg_station s
+		on s.STATION_ID = p.STATION_ID
+		WHERE
+		<![CDATA[ pl.qb_dl-pl.chg_dl>5 ]]>
+		and
+		p.PILE_STATUS=0
+		and
+		s.USE_STATUS=0
+		AND
+		s.STATION_STATUS=50
+		AND
+		pl.cal_type=1
+		AND
+		pl.data_type=1
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND DATE_FORMAT(pl.data_time, '%Y-%m')=  #{dateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ AND  DATE_FORMAT(pl.data_time, '%Y-%m-%d')>= #{midFormat} and  DATE_FORMAT(pl.data_time, '%Y-%m-%d')< #{lastFormat} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND  DATE_FORMAT(pl.data_time, '%Y-%m')=  #{upDateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ AND   DATE_FORMAT(pl.data_time, '%Y-%m-%d')>= #{firstForm} and  DATE_FORMAT(pl.data_time, '%Y-%m-%d')< #{midFormat} ]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		<if test="orgIds!=null and orgIds.size()>0">
+			and p.org_id in
+			<foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY pl.pile_id
+		) a
+	</select>
+	<select id="accuracyDay" parameterType="DataVo" resultType="Integer">
+		SELECT
+		count(*) loss_size
+		FROM
+		chg_bill_pile_loss pl
+		LEFT JOIN chg_pile p
+		on pl.pile_id = p.PILE_ID
+		LEFT JOIN chg_station s
+		on s.STATION_ID = p.STATION_ID
+		WHERE
+		<![CDATA[ pl.qb_dl-pl.chg_dl>5 ]]>
+		and
+		p.PILE_STATUS=0
+		and
+		s.USE_STATUS=0
+		AND
+		s.STATION_STATUS=50
+		AND
+		pl.cal_type=1
+		AND
+		pl.data_type=1
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND DATE_FORMAT(pl.data_time, '%Y-%m')=  #{dateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ AND  DATE_FORMAT(pl.data_time, '%Y-%m-%d')>= #{midFormat} and  DATE_FORMAT(pl.data_time, '%Y-%m-%d')< #{lastFormat} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND  DATE_FORMAT(pl.data_time, '%Y-%m')=  #{upDateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ AND   DATE_FORMAT(pl.data_time, '%Y-%m-%d')>= #{firstForm} and  DATE_FORMAT(pl.data_time, '%Y-%m-%d')< #{midFormat} ]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		<if test="orgIds!=null and orgIds.size()>0">
+			and p.org_id in
+			<foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	<select id="accuracyWeek" parameterType="DataVo" resultType="Integer">
+		SELECT
+		count(*) loss_size
+		FROM
+		chg_bill_pile_loss pl
+		LEFT JOIN chg_pile p
+		on pl.pile_id = p.PILE_ID
+		LEFT JOIN chg_station s
+		on s.STATION_ID = p.STATION_ID
+		WHERE
+		<![CDATA[ pl.qb_dl-pl.chg_dl>5 ]]>
+		AND
+		pl.cal_type=1
+		and
+		p.PILE_STATUS=0
+		and
+		s.USE_STATUS=0
+		AND
+		s.STATION_STATUS=50
+		AND
+		pl.cal_type=1
+		AND
+		pl.data_type=1
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND DATE_FORMAT(pl.data_time, '%Y-%m')=  #{dateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ AND  DATE_FORMAT(pl.data_time, '%Y-%m-%d')>= #{midFormat} and  DATE_FORMAT(pl.data_time, '%Y-%m-%d')< #{lastFormat} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==1">
+						<![CDATA[ AND  DATE_FORMAT(pl.data_time, '%Y-%m')=  #{upDateFormat} ]]>
+					</when>
+					<when test="flag==2">
+						<![CDATA[ AND   DATE_FORMAT(pl.data_time, '%Y-%m-%d')>= #{firstForm} and  DATE_FORMAT(pl.data_time, '%Y-%m-%d')< #{midFormat} ]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		<if test="orgIds!=null and orgIds.size()>0">
+			and p.org_id in
+			<foreach item="item" index="index" collection="orgIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+</mapper>

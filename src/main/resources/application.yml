@@ -1,0 +1,94 @@
+# ===================================================================
+# Spring Boot configuration.
+# ===================================================================
+
+spring:
+  application: 
+    name: charge
+  profiles:
+    active: test
+  messages:
+    basename: i18n/messages
+  jackson:
+      date-format: yyyy-MM-dd HH:mm:ss
+      time-zone: GMT+8  #Asia/Shanghai | Asia/Beijing
+  mvc:
+    media-types: 
+      typeMismatch: text/html;application/json
+  aop:
+      proxy-target-class: true
+
+info:
+  name: 充电云平台
+  version: 2.0.0
+
+mybatis: 
+  type-aliases-package: com.clouyun.charge.common.domain
+  config-location: classpath:mybatis-config.xml
+  mapperLocations: classpath:mapper/**/*.xml
+    
+mapper:
+    not-empty: false
+    identity: MYSQL
+
+pagehelper: 
+    helperDialect: mysql
+    reasonable: true
+    supportMethodsArguments: true
+    params: count=countSql
+    page-size-zero: true
+
+# JWT
+jwt:
+  enabled: false
+  header: Authorization
+  secret: mySecret
+  expiration: 86400    # 单位：秒  7天：604800  1天：86400
+  tokenHead: "Bearer "
+
+  route:
+    authentication:
+      path: auth
+      refresh: refresh
+      register: "auth/register"
+
+# Logging configuration
+logging:
+  level:
+    org.springframework:
+      data: INFO
+      security: INFO
+
+#management:
+#  port: 11111   #actuator暴露接口使用的端口，为了和api接口使用的端口进行分离
+#  context-path: /admin   #actuator暴露接口的前缀
+
+# 主站编号定义 
+WsIdConfig:
+  minNeId: 10
+  maxNeId: 120
+  minGeId: 10
+  maxGeId: 60
+
+javamelody:
+  advisor-auto-proxy-creator-enabled: false
+  scheduled-monitoring-enabled: true
+  # Enable JavaMelody auto-configuration (optional, default: true)
+  enabled: false
+  # Data source names to exclude from monitoring (optional, comma-separated)
+#  excluded-datasources: secretSource,topSecretSource
+  # Enable monitoring of Spring services and controllers (optional, default: true) spring 监控(类的方法监控，http请求监控已经包含，不开启)
+  spring-monitoring-enabled: false
+  # Initialization parameters for JavaMelody (optional)
+  # See: https://github.com/javamelody/javamelody/wiki/UserGuide#6-optional-parameters
+  init-parameters:
+    # log http requests
+#    log: true
+    # to exclude images, css, fonts and js urls from the monitoring:
+    url-exclude-pattern: (/webjars/.*|/css/.*|/images/.*|/fonts/.*|/js/.*)
+    # to add basic auth:
+    authorized-users: admin:123456
+    # to change the default storage directory:
+    storage-directory: /tmp/javamelody
+    # to change the default "/monitoring" path
+    monitoring-path: /admin/performance

@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--namespace必须是接口的全类名 -->
+<mapper namespace="com.clouyun.charge.modules.charge.mapper.BillPayMapper">
+	<!-- 根据Id获取对象 -->
+	<select id="findById" resultType="com.clou.entitys.data.BillPay">
+		SELECT *
+		FROM BILL_PAY
+		WHERE
+		BILL_PAY_ID = #{id}
+	</select>
+	
+	<select id="getPileById" resultType="com.clou.entitys.document.ChgPile">
+		SELECT * FROM chg_pile 
+		WHERE PILE_ID  = #{pileId}
+	</select>
+
+	<!-- 根据主键更新状态 -->
+	<update id="updateByPrimaryKey" parameterType="com.clou.entitys.data.BillPay">
+		UPDATE BILL_PAY
+		SET ORDER_STATUS = #{orderStatus} WHERE BILL_PAY_ID = #{billPayId}
+	</update>
+	
+	<!-- concat(concat('%',#{username}),'%')  like模糊处理 -->
+	<select id="findChargeRecord" parameterType="String" resultType="com.clou.entitys.data.ChgRecord">
+		<bind name="pattern_cardno" value="'%' + _parameter.cardno + '%'" />
+		SELECT * 
+		FROM `chg_record` r 
+		WHERE r.card_no2 like #{pattern_cardno} 
+		<if test="seqno != null">
+			<bind name="pattern_seqno" value="'%' + _parameter.seqno + '%'" />
+			and r.pile_seq_id like #{pattern_seqno}
+		</if>
+		ORDER BY r.write_time desc
+	</select>
+	
+	<select id="findEndChargeRecord" parameterType="String" resultType="com.clou.entitys.data.ChgRecord">
+		<bind name="pattern_cardno" value="'%' + _parameter.cardno + '%'" />
+		SELECT * 
+		FROM `chg_record` r 
+		WHERE r.chg_type !=0
+		AND r.card_no2 like #{pattern_cardno}
+	</select>
+	
+	<select id="findChargeRecordById" parameterType="Integer" resultType="com.clou.entitys.data.ChgRecord">
+		SELECT r.*  FROM `chg_record` r LEFT JOIN `bill_pay_record_ids` i on r.SEQ_ID = i.SEQ_ID
+		WHERE i.`bill_pay_id` = #{billPayId}
+	</select>
+	
+	<select id="getPilePrice" parameterType="Integer" resultType="com.clou.entitys.authority.PubPrice">
+		SELECT pr.`PRC_ID`,pr.`PRC_NAME`,pr.`PRC_TYPE_CODE`,pr.`PRC_ZXYGZ1`,pr.`PRC_ZXYGZ2`,pr.`PRC_ZXYGZ3`,pr.`PRC_ZXYGZ4`,pr.`PRC_SERVICE` 
+		FROM pub_price pr LEFT JOIN chg_pile p ON pr.`PRC_ID` = p.`PRC_ID_PRE`
+		WHERE p.`PILE_ID` = #{pileId}
+	</select>
+	
+	<update id="updateBillPay">
+		UPDATE BILL_PAY
+		SET PAY_STATE =  #{payState},
+		IS_STOP = 1,
+		START_TIME = #{startTime},
+		END_TIME = #{endTime},
+		<if test="dl1 != null">
+			POWER_ZXYG1 =  #{dl1},
+		</if>
+		<if test="dl2 != null">
+			POWER_ZXYG2 =  #{dl2},
+		</if>
+		<if test="dl3 != null">
+			POWER_ZXYG3 =  #{dl3},
+		</if>
+		<if test="dl4 != null">
+			POWER_ZXYG4 =  #{dl4},
+		</if>
+		
+		<if test="prc1 != null">
+			PRC_ZXYGZ1 =  #{prc1},
+		</if>
+		<if test="prc2 != null">
+			PRC_ZXYGZ2 =  #{prc2},
+		</if>
+		<if test="prc3 != null">
+			PRC_ZXYGZ3 =  #{prc3},
+		</if>
+		<if test="prc4 != null">
+			PRC_ZXYGZ4 =  #{prc4},
+		</if>
+		<if test="prcServ != null">
+			SERV_PRICE =  #{prcServ},
+		</if>
+		<if test="billPayNo != null">
+			BILL_PAY_NO =  #{billPayNo},
+		</if>
+		CHG_POWER = #{chgPower},
+		AMOUNT = #{amount}
+		WHERE BILL_PAY_ID = #{billPayId}
+	</update>
+	
+	<select id="queryAbnormalBill" resultType="com.clouyun.charge.modules.charge.vo.AbnormalBill">
+		SELECT b.BILL_PAY_ID,b.BILL_PAY_NO,b.CHG_POWER,b.AMOUNT,b.PAY_STATE,b.PAY_TYPE,b.INNER_ID as gunNo,b.ORDER_STATUS,
+			   DATE_FORMAT(b.CREATE_TIME,'%Y-%m-%d %H:%i:%s') as createTime,
+			   DATE_FORMAT(b.START_TIME,'%Y-%m-%d %H:%i:%s') as startTime,
+			   DATE_FORMAT(b.END_TIME,'%Y-%m-%d %H:%i:%s') as endTime,
+			   b.CONS_ID,
+			   c.CONS_NAME,c.CONS_PHONE ,
+               p.PILE_NO,p.PILE_ADDR,
+			   s.STATION_NO,s.STATION_NAME,
+	           o.ORG_NO,o.ORG_NAME
+		FROM bill_pay b 
+		LEFT JOIN c_cons c on b.CONS_ID = c.CONS_ID 
+		LEFT JOIN chg_pile p on b.PILE_ID = p.PILE_ID
+		LEFT JOIN chg_station s on p.STATION_ID = s.STATION_ID
+		LEFT JOIN pub_org o on s.ORG_ID = o.ORG_ID
+		WHERE b.ORDER_STATUS != -1  
+		<if test="startDate != null">
+			<![CDATA[ AND b.CREATE_TIME >= #{startDate} ]]>
+		</if>
+		<if test="endDate != null">
+			<![CDATA[ AND b.CREATE_TIME < #{endDate} ]]>
+		</if>
+		<if test="consPhone != null">
+			<bind name="pattern_consPhone" value="'%' + _parameter.consPhone + '%'" />
+			AND c.CONS_PHONE like #{pattern_consPhone}
+		</if>
+		<if test="billPayNo != null">
+			<bind name="pattern_billPayNo" value="'%' + _parameter.billPayNo + '%'" />
+			AND b.BILL_PAY_NO like #{pattern_billPayNo}
+		</if>
+		<if test="orgId != null">
+			AND o.ORG_ID = #{orgId}
+		</if>
+		<if test="stationId != null">
+			AND s.STATION_ID = #{stationId}
+		</if>
+		<if test="stationIds !=null and stationIds.size()>0">
+			AND s.STATION_ID in
+			<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		AND b.PAY_STATE = 1
+		ORDER BY b.`CREATE_TIME` desc
+	</select>
+	
+	<select id="queryAbnormalBill1" parameterType="DataVo" resultType="com.clouyun.charge.modules.charge.vo.AbnormalBill">
+		SELECT b.BILL_PAY_ID,b.BILL_PAY_NO,b.CHG_POWER,b.AMOUNT,b.PAY_STATE,b.PAY_TYPE,b.INNER_ID as gunNo,b.ORDER_STATUS,
+			   DATE_FORMAT(b.CREATE_TIME,'%Y-%m-%d %H:%i:%s') as createTime,
+			   DATE_FORMAT(b.START_TIME,'%Y-%m-%d %H:%i:%s') as startTime,
+			   DATE_FORMAT(b.END_TIME,'%Y-%m-%d %H:%i:%s') as endTime,
+			   b.CONS_ID,
+			   c.CONS_NAME,c.CONS_PHONE ,
+               p.PILE_NO,p.PILE_ADDR,p.PILE_NAME,
+			   s.STATION_NO,s.STATION_NAME,
+	           o.ORG_NO,o.ORG_NAME
+		FROM bill_pay b 
+		LEFT JOIN c_cons c on b.CONS_ID = c.CONS_ID 
+		LEFT JOIN chg_pile p on b.PILE_ID = p.PILE_ID
+		LEFT JOIN chg_station s on p.STATION_ID = s.STATION_ID
+		LEFT JOIN pub_org o on s.ORG_ID = o.ORG_ID
+		WHERE b.ORDER_STATUS != -1  
+		<if test="startDate != null">
+			<![CDATA[ AND b.CREATE_TIME >= #{startDate} ]]>
+		</if>
+		<if test="endDate != null">
+			<![CDATA[ AND b.CREATE_TIME < #{endDate} ]]>
+		</if>
+		<if test="consPhone != null">
+			<bind name="pattern_consPhone" value="'%' + _parameter.consPhone + '%'" />
+			AND c.CONS_PHONE like #{pattern_consPhone}
+		</if>
+		<if test="billPayNo != null">
+			<bind name="pattern_billPayNo" value="'%' + _parameter.billPayNo + '%'" />
+			AND b.BILL_PAY_NO like #{pattern_billPayNo}
+		</if>
+		<if test="orgId != null">
+			AND o.ORG_ID = #{orgId}
+		</if>
+		<if test="stationId != null">
+			AND s.STATION_ID = #{stationId}
+		</if>
+		<if test="stationIds !=null and stationIds.size()>0">
+			AND s.STATION_ID in
+			<foreach item="item" index="index" collection="stationIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		AND b.PAY_STATE = 1
+		ORDER BY b.`CREATE_TIME` desc
+	</select>
+	
+</mapper>

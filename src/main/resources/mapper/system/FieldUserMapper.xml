@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.system.mapper.FieldUserMapper">
+
+	<sql id="Base_Column_List">
+		this_.wq_cons_id,
+		this_.wq_cons_name,
+		this_.wq_cons_addr,
+		this_.wq_cons_email,
+		this_.wq_cons_status,
+		this_.wq_cons_tel,
+		this_.wq_cons_remark,
+		this_.wq_department,
+		this_.wq_cons_org_id,
+		that_.org_name
+	</sql>
+    
+	<sql id="conditions">
+		<where>
+			<if test="wqConsId != null and wqConsId !=''">
+				AND wq_cons_id = #{wqConsId}
+			</if>
+			<if test="wqConsName != null and wqConsName !=''">
+				AND wq_cons_name like concat('%',#{wqConsName},'%')
+			</if>
+			<if test="wqConsStatus != null and wqConsStatus !=''">
+				AND wq_cons_status = #{wqConsStatus}
+			</if>
+			<if test="wqConsTel != null and wqConsTel !=''">
+				AND wq_cons_tel  like concat('%',#{wqConsTel},'%')
+			</if>
+			<if test="orgIds != null">
+				AND wq_cons_org_id IN
+				<foreach collection="orgIds" item="item" open="(" separator=","
+					close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test="wqConsOrgId !=null and wqConsOrgId !=''">
+				AND wq_cons_org_id = #{wqConsOrgId}
+			</if>
+			<if test="wqConsOrgName !=null and wqConsOrgName !=''">
+				AND org_name like concat('%',#{wqConsOrgName},'%')
+			</if>
+			<if test="wqConsstationOrgId != null and wqConsstationOrgId !=''">
+				AND wq_cons_id IN (SELECT DISTINCT wq_consstation_cons_id
+				FROM yxg_consstation WHERE
+				wq_consstation_org_id=#{wqConsstationOrgId})
+			</if>
+			<if test="wqConsstationOrgName != null and wqConsstationOrgName !=''">
+				AND wq_cons_id IN (SELECT DISTINCT a.wq_consstation_cons_id
+	            FROM  yxg_consstation a LEFT JOIN  pub_org b ON  a.wq_consstation_org_id = b.org_id
+	            WHERE b.org_name like concat('%',#{wqConsstationOrgName},'%'))
+			</if>
+			<if test="wqConsstationStationId != null and wqConsstationStationId !=''">
+				AND wq_cons_id IN (select wq_consstation_cons_id
+				FROM
+				yxg_consstation where
+				wq_consstation_station_id=#{wqConsstationStationId})
+			</if>
+		</where>
+	</sql>
+	<sql id="conditions1">
+		<where>
+		    <if test="wqConsId != null and wqConsId !=''">
+				and wq_cons_id != #{wqConsId}
+			</if>
+			<if test="wqConsTel != null and wqConsTel !=''">
+				AND wq_cons_tel like concat('%',#{wqConsTel},'%')
+			</if>
+		</where>
+	</sql>
+	<!-- 分页条件 -->
+	<sql id="page">
+		<if test="pageIndex!=null and pageSize!=null">
+			LIMIT #{pageIndex},#{pageSize}
+		</if>
+	</sql>
+    <sql id="orderBy">
+		<if test="sort!=null and sort!=''">
+			ORDER BY ${sort} ${order}
+		</if>
+	</sql>
+	<select id="get" parameterType="Map" resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM
+		yxg_wq_info this_
+		LEFT JOIN pub_org that_ on this_.wq_cons_org_id =
+		that_.org_id
+		<include refid="conditions" />
+		<include refid="orderBy" />
+	</select>
+	<select id="getById" parameterType="java.lang.Integer"
+		resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM
+		yxg_wq_info this_ left join pub_org that_ 
+		on this_.wq_cons_org_id = that_.org_id where
+		this_.wq_cons_id=#{wqConsId}
+	</select>
+
+	<!-- 新增用户 -->
+	<insert id="addFieldUser" parameterType="Map" keyProperty="wqConsId"
+		useGeneratedKeys="true">
+		<selectKey keyProperty="wqConsId" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID() AS wqConsId
+		</selectKey>
+		INSERT INTO yxg_wq_info (
+		wq_cons_name
+		<if test="wqConsTel != null">,wq_cons_tel</if>
+		<if test="wqConsStatus != null">,wq_cons_status</if>
+		<if test="wqConsAddr != null">,wq_cons_addr</if>
+		<if test="wqConsRemark != null">,wq_cons_remark</if>
+		<if test="wqConsEmail != null">,wq_cons_email</if>
+		<if test="wqConsOrgId != null">,wq_cons_org_id</if>
+		<if test="wqDepartment != null">,wq_department</if>
+		) VALUES(
+		#{wqConsName}
+		<if test="wqConsTel != null">,#{wqConsTel}</if>
+		<if test="wqConsStatus != null">,#{wqConsStatus}</if>
+		<if test="wqConsAddr != null">,#{wqConsAddr}</if>
+		<if test="wqConsRemark != null">,#{wqConsRemark}</if>
+		<if test="wqConsEmail != null">,#{wqConsEmail}</if>
+		<if test="wqConsOrgId != null">,#{wqConsOrgId}</if>
+		<if test="wqDepartment != null">,#{wqDepartment}</if>
+		)
+	</insert>
+	<!-- 按条件分页查询用户 -->
+	<select id="queryAllFieldUser" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM
+		yxg_wq_info this_
+		LEFT JOIN pub_org that_ on this_.wq_cons_org_id =
+		that_.org_id
+		<include refid="conditions" />
+		ORDER BY this_.wq_cons_id DESC
+		<include refid="page" />
+	</select>
+	<select id="queryFieldUserExist" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		wq_cons_id,
+		wq_cons_name,
+		wq_cons_addr,
+		wq_cons_email,
+		wq_cons_status,
+		wq_cons_tel,
+		wq_cons_remark,
+		wq_cons_org_id
+		FROM
+		yxg_wq_info
+		<include refid="conditions1" />
+	</select>
+
+	<update id="modifyFieldUser" parameterType="DataVo">
+		UPDATE yxg_wq_info
+		<set>
+			<if test="wqConsName != null">wq_cons_name=#{wqConsName},</if>
+			<if test="wqConsAddr != null">wq_cons_addr = #{wqConsAddr},</if>
+			<if test="wqConsEmail != null">wq_cons_email = #{wqConsEmail},</if>
+			<if test="wqConsStatus != null">wq_cons_status = #{wqConsStatus},</if>
+			<if test="wqConsTel != null">wq_cons_tel = #{wqConsTel},</if>
+			<if test="wqConsRemark != null">wq_cons_remark = #{wqConsRemark},</if>
+			<if test="wqConsOrgId != null">wq_cons_org_id = #{wqConsOrgId},</if>
+			<if test="wqDepartment != null">wq_department = #{wqDepartment}</if>
+		</set>
+		<where>
+			wq_cons_id=#{wqConsId};
+		</where>
+	</update>
+	<update id="deleteFieldUser" parameterType="DataVo">
+		UPDATE yxg_wq_info SET wq_cons_status=0 WHERE wq_cons_id IN
+		<foreach collection="wqConsIds" item="item" open="("
+			separator="," close=")">#{item}</foreach>
+	</update>
+	<select id="queryFieldUserById" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		this_.wq_cons_id,
+		this_.wq_cons_name,
+		this_.wq_cons_addr,
+		this_.wq_cons_email,
+		this_.wq_cons_status,
+		this_.wq_cons_tel,
+		this_.wq_cons_remark,
+		this_.wq_cons_org_id,
+		that_.org_name
+		FROM
+		yxg_wq_info this_ left join pub_org that_ on
+		this_.wq_cons_org_id =
+		that_.org_id where
+		this_.wq_cons_id=#{wqConsId}
+	</select>
+
+	<select id="queryFieldUserByOrgIdAndTel" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		this_.wq_cons_id,
+		this_.wq_cons_name,
+		this_.wq_cons_addr,
+		this_.wq_cons_email,
+		this_.wq_cons_status,
+		this_.wq_cons_tel,
+		this_.wq_cons_remark,
+		this_.wq_cons_org_id
+		FROM
+		yxg_wq_info this_ where
+		this_.wq_cons_tel=#{wqConsTel} and
+		wq_cons_org_id = #{wqConsOrgId}
+	</select>
+
+	<insert id="addFieldStationOrgRel" parameterType="Map"
+		keyColumn="id" useGeneratedKeys="true">
+		INSERT INTO yxg_consstation (
+		wq_consstation_cons_id
+		<if test="wqConsstationStationId != null">,wq_consstation_station_id</if>
+		<if test="wqConsstationOrgId != null">,wq_consstation_org_id</if>
+		) VALUES(
+		#{wqConsstationConsId}
+		<if test="wqConsstationStationId != null">,#{wqConsstationStationId}</if>
+		<if test="wqConsstationOrgId != null">,#{wqConsstationOrgId}</if>
+		)
+	</insert>
+
+	<delete id="deleteFieldStationOrgRel" parameterType="DataVo">
+		DELETE FROM yxg_consstation
+		<where>
+			wq_consstation_cons_id IN
+			<foreach collection="wqConsstationConsIds" item="item" index="index"
+				open="(" separator="," close=")">#{item}</foreach>
+		</where>
+	</delete>
+	<select id="getFieldOrgsByConsId" parameterType="Integer" resultType="TreeNode">
+	    SELECT DISTINCT a.wq_consstation_org_id AS id, b.org_name AS name, 0 AS pid,1 AS level 
+	    FROM
+		yxg_consstation a
+        LEFT JOIN pub_org b 
+        ON a.wq_consstation_org_id = b.org_id
+        WHERE  wq_consstation_cons_id = #{wqConsId}
+		AND audit_status = 1
+	</select>
+	<select id="getFieldStationsByConsId" parameterType="Integer" resultType="TreeNode">
+        SELECT a.wq_consstation_station_id AS id, b.station_name AS name, a.wq_consstation_org_id  AS pid,2 AS level 
+        FROM yxg_consstation a
+        LEFT JOIN chg_station b ON a.wq_consstation_station_id = b.station_id 
+        WHERE  b.use_status = 0
+		AND wq_consstation_cons_id = #{wqConsId}
+    </select>
+    
+	<select id="queryFieldStationOrgRel" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		wq_consstation_cons_id,
+		wq_consstation_station_id,
+		wq_consstation_org_id
+		FROM
+		yxg_consstation where wq_consstation_cons_id
+		= #{wqConsstationConsId}
+	</select>
+	<select id="queryFieldUserByIds" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		wq_cons_id,
+		wq_cons_name,
+		wq_cons_addr,
+		wq_cons_email,
+		wq_cons_status,
+		wq_cons_tel,
+		wq_cons_remark,
+		wq_cons_org_id
+		FROM
+		yxg_wq_info
+		<where>
+			wq_cons_id IN
+			<foreach collection="wqConsIds" item="item" open="("
+				separator="," close=")">#{item}</foreach>
+		</where>
+	</select>
+</mapper>

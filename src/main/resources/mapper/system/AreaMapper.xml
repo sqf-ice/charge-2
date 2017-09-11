@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.system.mapper.AreaMapper">
+  <!-- 根据ID查询字典详情 -->
+  <select id="getAreaByType" parameterType="java.lang.String" resultType="ComboxVo">
+    SELECT area_no AS id , area_name AS text
+    FROM pub_area
+    WHERE 1=1
+    <if test="type!=null and type !=''">
+      AND area_type = #{type,jdbcType=VARCHAR}
+    </if>
+  </select>
+
+
+
+  <!-- 根据父节点类型查询二级字典组成下拉框 -->
+  <select id="getAreaByParentNo" parameterType="java.lang.String" resultType="ComboxVo">
+    SELECT area_no AS id , area_name AS text
+    FROM pub_area
+    WHERE p_area_no = #{pno,jdbcType=VARCHAR}
+  </select>
+</mapper>

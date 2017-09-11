@@ -1,0 +1,12 @@
+{
+  "id":1004,
+  "value": "100",
+  "label": "测试更新",
+  "type": "test111",
+  "description": "测试描述",
+  "sort": "123",
+  "createBy": "1",
+  "updateBy": "1",
+  "delFlag": "0",
+  "parentId": 1001
+}

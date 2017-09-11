@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.BuildViewMapper">
+
+	<!-- 查询场站列表 -->
+	<select id="getStations" parameterType="Map" resultType="DataVo">
+		SELECT
+		org_id,
+		station_id
+		FROM
+		chg_station
+		WHERE
+		use_status = 0
+	</select>
+	<!-- 查询第三方场站 -->
+	<select id="getToStationCount" resultType="Integer">
+		SELECT count(1) FROM
+		to_stationinfo
+	</select>
+	<!--根据场站和交直类型获取有效充电桩的数量 -->
+	<select id="getPilesCount" resultType="DataVo">
+		SELECT
+		station_id,
+		ort_mode,
+		COUNT(1) sum
+		FROM chg_pile
+		WHERE pile_status = 0
+		GROUP BY station_id,ort_mode
+	</select>
+
+	<select id="getJoinOrg" resultType="DataVo">
+		SELECT org_id from pub_org WHERE operate_type = '02' AND AUDIT_STATUS = '1'
+	</select>
+
+	<!-- 查询所有的有效的充电桩 -->
+	<select id="getPiles" resultType="DataVo">
+		SELECT
+		this_.org_id,
+		this_.station_id,
+		this_.ort_mode,
+		that_.station_model,
+		this_.rate_power
+		FROM chg_pile this_ LEFT JOIN
+		chg_station that_ ON this_.station_id =
+		that_.station_id WHERE
+		this_.pile_status = 0
+		and that_.use_status = 0
+	</select>
+
+	<select id="getToPiles" resultType="Integer">
+		SELECT count(*) FROM
+		to_equipmentinfo
+	</select>
+
+	<!-- 根据安装日期查询充电信息 在此要求新增充电桩时安装日期不能为空 -->
+	<select id="getPileByTime" resultType="DataVo" parameterType="Map">
+		SELECT
+		DATE_FORMAT(install_date, '%Y-%m') time,
+		org_id
+		FROM chg_pile
+		WHERE pile_status=0
+		AND install_date  <![CDATA[ <= ]]>
+		#{endTime}
+		AND install_date <![CDATA[ >= ]]>
+		#{startTime}
+	</select>
+
+	<select id="getStationByProv" resultType="DataVo" parameterType="Map">
+		SELECT prov_code,that_.area_name,count(*) sum FROM chg_station this_
+		LEFT JOIN pub_area that_ ON this_.prov_code = that_.area_no
+		WHERE
+		this_.use_status=0 AND
+		this_.prov_code is NOT NULL GROUP BY
+		this_.prov_code ORDER BY sum DESC
+		<if test="provQty != null and provQty !='' ">
+			limit #{provQty}
+		</if>
+	</select>
+
+	<select id="getPileByProv" resultType="DataVo" parameterType="Map">
+		SELECT
+		that_.prov_code,area.area_name,count(*) sum
+		FROM
+		chg_pile this_
+		LEFT JOIN
+		chg_station that_ ON this_.station_id =
+		that_.station_id
+		LEFT
+		JOIN pub_area area ON that_.prov_code=area.area_no
+		WHERE
+		this_.pile_status = 0
+		AND that_.use_status = 0 AND that_.prov_code IS
+		NOT NULL
+		GROUP BY that_.prov_code
+	</select>
+
+	<select id="getStationByCity" resultType="DataVo" parameterType="Map">
+		SELECT
+		that_.p_area_no,
+		this_.city_code,
+		that_.area_name,
+		count(*) sum
+		FROM
+		chg_station this_
+		LEFT JOIN pub_area that_
+		ON this_.city_code = that_.area_no
+		WHERE this_.use_status = 0
+		AND
+		this_.CITY_CODE IS NOT NULL
+		AND this_.CITY_CODE != ''
+		GROUP BY
+		this_.CITY_CODE
+		ORDER BY
+		sum DESC
+		<if test="cityQty != null and cityQty !='' ">
+			limit #{cityQty}
+		</if>
+	</select>
+
+	<select id="getAreaProv" resultType="DataVo" parameterType="Map">
+		select
+		area_no,area_name from pub_area where area_type = '01';
+	</select>
+
+	<select id="getPileByCity" resultType="DataVo" parameterType="Map">
+		SELECT
+		that_.city_code,count(*) sum
+		FROM
+		chg_pile this_
+		LEFT JOIN
+		chg_station that_ ON this_.station_id =
+		that_.station_id
+		WHERE
+		this_.pile_status = 0
+		AND that_.use_status = 0 AND that_.city_code IS
+		NOT NULL
+		GROUP BY that_.city_code
+	</select>
+	<!-- 场站建设速度 -->
+	<select id="getStationByTime" resultType="DataVo" parameterType="Map">
+		SELECT
+			DATE_FORMAT(a.create_time, '%Y-%m') time,
+			count(1) sum,
+			SUM(a.invest_amount) invest_amount,
+			SUM(a.budget_amount) budget_amount
+		FROM
+			chg_station a
+		LEFT JOIN pub_org b
+			ON a.org_id = b.org_id
+		WHERE
+			a.create_time <![CDATA[ <= ]]> #{endTime}
+			AND a.create_time <![CDATA[ >= ]]> #{startTime}
+			<if test="orgName != null and orgName !=''">
+				AND b.org_name like concat('%',#{orgName},'%')
+			</if>
+			<if test="stationName != null and stationName !=''">
+				AND a.station_name like concat('%',#{stationName},'%')
+			</if>
+			<if test="name != null and name !=''">
+				AND (b.org_name like concat('%',#{name},'%') OR a.station_name like
+				concat('%',#{name},'%'))
+			</if>
+			<if test="stationIds != null">
+				AND station_id IN
+				<foreach collection="stationIds" item="item" index="index"
+					open="(" separator="," close=")">#{item}
+				</foreach>
+			</if>
+		GROUP BY time
+		ORDER BY create_time DESC;
+	</select>
+	<!-- 车辆接入指标 -->
+	<select id="getVehiclesByOrgIds" resultType="DataVo">
+		SELECT
+		a.org_id,
+		count(*)sum
+		FROM vehicle a
+		WHERE a.is_delete = 0 AND
+		a.is_active = 0
+		AND a.org_id in(47,58)
+		GROUP BY a.org_id
+	</select>
+
+	<select id="getMileSum" resultType="DataVo">
+		SELECT
+		b.org_id,
+		sum(a.mileage)mileage_sum
+		FROM vehicle_mileage a
+		INNER JOIN (SELECT vehicle_id,org_id FROM vehicle WHERE org_id IN (58,47))
+		b
+		ON a.vehicle_id = b.vehicle_id
+		WHERE DATE_FORMAT(a.day, '%Y-%m') = #{month}
+		GROUP BY b.org_id
+	</select>
+
+
+
+	<!-- 有效订单的总数和充电总量 -->
+	<select id="getBillPayCountAndSum" resultType="DataVo"
+		parameterType="Map">
+		SELECT
+		SUM(chg_power) power_sum,
+		count(*) service_sum
+		FROM
+		bill_pay
+		WHERE
+		end_time <![CDATA[ <= ]]>
+		#{endTime} AND
+		end_time <![CDATA[ >= ]]>#{startTime}
+		AND
+		order_status = 1 AND pay_state !=1
+	</select>
+	<!-- 互联互通订单 -->
+	<select id="getToOrderAndSum" resultType="DataVo" parameterType="Map">
+		SELECT
+		SUM(totalPower) power_sum,
+		count(*) service_sum
+		FROM
+		to_notificationchargeorderinfo
+		WHERE endTime <![CDATA[ <= ]]>
+		#{endTime} AND
+		endTime <![CDATA[ >= ]]>#{startTime}
+		AND billStatus !=1
+	</select>
+
+	<select id="getBillPayVehicles" resultType="DataVo" parameterType="Map">
+		SELECT
+		vehicle_id,
+		using_roperty,
+		belongs_type
+		FROM vehicle
+		WHERE is_delete
+		= 0
+		AND is_active = 0
+	</select>
+
+	<select id="getToStationByTime" resultType="DataVo" parameterType="Map">
+		SELECT
+		count(*) sum,
+		DATE_FORMAT(a.sync_time, '%Y-%m')time
+		FROM to_stationinfo a
+		LEFT JOIN to_operatorinfo b
+		ON a.operatorI_D = b.operatorI_D
+		WHERE
+		DATE_FORMAT(a.sync_time, '%Y-%m') <![CDATA[ <= ]]>
+		#{endTime}
+		AND DATE_FORMAT(a.sync_time, '%Y-%m')<![CDATA[ >= ]]>
+		#{startTime}
+		<if test="orgName != null and orgName !=''">
+			AND b.operatorName like concat('%',#{orgName},'%')
+		</if>
+		<if test="stationName != null and stationName !=''">
+			AND a.stationName like concat('%',#{stationName},'%')
+		</if>
+		<if test="name != null and name !=''">
+			AND (b.operatorName like concat('%',#{orgName},'%') OR a.stationName
+			like concat('%',#{stationName},'%'))
+		</if>
+		GROUP BY time
+	</select>
+	<select id="getToPileByTime" resultType="DataVo" parameterType="Map">
+		SELECT
+		count(*) sum,
+		DATE_FORMAT(sync_time, '%Y-%m')time
+		FROM to_equipmentinfo
+		WHERE
+		DATE_FORMAT(sync_time, '%Y-%m') <![CDATA[ <= ]]>
+		#{endTime}
+		AND DATE_FORMAT(sync_time, '%Y-%m')<![CDATA[ >= ]]>
+		#{startTime}
+		GROUP BY time
+	</select>
+
+</mapper>

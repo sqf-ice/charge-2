@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.GunMapper">
+	
+	<!-- 查询充电桩列表 -->
+	<select id="getGunAll" parameterType="DataVo" resultType="DataVo">
+		SELECT GUN_ID,GUM_NO,GUM_POINT,INNER_ID,QR_CODE,PARK_NUM,PILE_ID,METER_ID,CONNECTOR_ID FROM chg_gun
+		<include refid="conditions" />
+		 ORDER BY INNER_ID DESC
+	</select>
+	<!-- 查询条件 -->
+	<sql id="conditions">
+		<where>
+			1=1
+		<if test="pileId!=null">
+			AND pile_id = #{pileId}
+		</if>
+		<if test="innerId!=null">
+			AND inner_id = #{innerId}
+		</if>
+		</where>
+	</sql>
+	<!-- 根据场站编号获取充电枪数量 -->
+	<select id="getGunCountByStationId" parameterType="DataVo" resultType="DataVo">
+		SELECT COUNT(1) as count,pile_.station_id FROM chg_gun gun_
+		LEFT OUTER JOIN chg_pile pile_ ON pile_.pile_id = gun_.pile_id
+		WHERE pile_.station_id IN 
+		<foreach collection="stationIds" item="stationId" open="(" separator="," close=")">
+			#{stationId}
+		</foreach> 
+		GROUP BY pile_.station_id
+	</select>
+	
+	<!-- 根据设备内部编号,充电桩Id查询枪口 -->
+	<select id="getGunPoint" parameterType="DataVo" resultType="DataVo">
+		SELECT gun_.`GUM_POINT` FROM chg_gun gun_ where gun_.`INNER_ID` = #{innerId} AND gun_.`PILE_ID` = #{pileId};
+	</select>
+	<!-- insert  7 -->
+	<insert id="insertGun" parameterType="Map" keyProperty="gunId" useGeneratedKeys="true">
+		INSERT INTO chg_gun
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="gumNo != null and gumNo !=''">gum_no,</if>
+			<if test="gumPoint != null and gumPoint !=''">gum_point,</if>
+			<if test="innerId != null ">inner_id,</if>
+			<if test="qrCode != null and qrCode !=''">qr_code,</if>
+			<if test="parkNum != null and parkNum !=''">park_num,</if>
+			<if test="pileId != null">pile_id,</if>
+			<if test="meterId != null ">meter_id,</if>
+			<if test="connectorId != null and connectorId !=''">connector_id</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="gumNo != null and gumNo !=''">#{gumNo,jdbcType=VARCHAR},</if>
+			<if test="gumPoint != null and gumPoint !=''">#{gumPoint,jdbcType=VARCHAR},</if>
+			<if test="innerId != null ">#{innerId,jdbcType=INTEGER},</if>
+			<if test="qrCode != null and qrCode !=''">#{qrCode,jdbcType=VARCHAR},</if>
+			<if test="parkNum != null and parkNum !=''">#{parkNum,jdbcType=VARCHAR},</if>
+			<if test="pileId != null">#{pileId,jdbcType=INTEGER},</if>
+			<if test="meterId != null ">#{meterId,jdbcType=INTEGER},</if>
+			<if test="connectorId != null and connectorId !=''">#{connectorId,jdbcType=VARCHAR}</if>
+		</trim>
+	</insert>
+	<delete id="deleteGunByPileId" parameterType="Map">
+		DELETE FROM chg_gun 
+		<where>
+		      pile_id IN 
+			 <foreach collection="pileIds" item="pileId" open="(" separator="," close=")">
+			 	#{pileId}
+			 </foreach>
+		</where>
+	</delete>
+	
+	<select id="getVehicleStatus" parameterType="DataVo" resultType="DataVo">
+		SELECT VEHICLE_ID,MILEAGES FROM vehicle_status ORDER BY mileages DESC
+	</select>
+	
+</mapper>

@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.clouyun.charge.modules.finance.mapper.WithdrawMapper">
+	<sql id="Base_Column_List">
+		bill_withdraw_id as id,
+		bill_withdraw_no as no,
+		bill_withdraw_time as time,
+		bill_withdraw_amount as amount,
+		bill_withdraw_status as status,
+		bill_withdraw_remain as remain,
+		bill_withdraw_account as account,
+		bill_withdraw_name as name,
+		bill_withdraw_tel as tel,
+		bill_withdraw_remark as remark,
+		bill_withdraw_type as type,
+		c_con_company_id,
+		c_con_company_name
+	</sql>
+	<sql id="orderBy">
+		<if test="sort!=null and sort!=''">
+			ORDER BY ${sort} ${order}
+		</if>
+	</sql>
+	<sql id="conditions">
+		<where>
+			<if test="no != null">
+				AND bill_withdraw_no = #{no,jdbcType=VARCHAR}
+			</if>
+			<if test="startTime != null">
+				AND bill_withdraw_time <![CDATA[ >= ]]>#{startTime,jdbcType=TIMESTAMP}
+			</if>
+			<if test="endTime != null">
+				AND bill_withdraw_time <![CDATA[ <= ]]>#{endTime,jdbcType=TIMESTAMP}
+			</if>
+			<if test="status != null">
+				AND bill_withdraw_status=#{status,jdbcType=INTEGER}
+			</if>
+			<if test="account != null">
+				AND bill_withdraw_account =#{account,jdbcType=VARCHAR}
+			</if>
+			<if test="companyId != null">
+				AND c_con_company_id = #{companyId,jdbcType=INTEGER}
+			</if>
+			<if test="companyName != null">
+				AND c_con_company_name =
+				#{companyName,jdbcType=VARCHAR}
+			</if>
+		</where>
+	</sql>
+	<!-- 根据提现Id获取提现记录 -->
+	<select id="get" resultType="DataVo" parameterType="DataVo">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM c_withdraw
+		<include refid="conditions" />
+		<include refid="orderBy" />
+	</select>
+	<!-- 根据提现Id获取提现记录 -->
+	<select id="getById" resultType="DataVo" parameterType="java.lang.Integer">
+		SELECT
+		<include refid="Base_Column_List" />
+		FROM c_withdraw
+		WHERE bill_withdraw_id = #{id,jdbcType=INTEGER}
+	</select>
+
+	<!-- 根据提现Id删除提现记录 -->
+	<delete id="delete" parameterType="java.lang.Integer">
+		DELETE FROM c_withdraw WHERE bill_withdraw_id = #{id,jdbcType=INTEGER}
+	</delete>
+	<!-- 新增提现记录 -->
+	<insert id="insert" parameterType="DataVo">
+		INSERT INTO c_withdraw
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="no != null">
+				bill_withdraw_no,
+			</if>
+			<if test="time != null">
+				bill_withdraw_time,
+			</if>
+			<if test="amount != null">
+				bill_withdraw_amount,
+			</if>
+			<if test="status != null">
+				bill_withdraw_status,
+			</if>
+			<if test="remain != null">
+				bill_withdraw_remain,
+			</if>
+			<if test="account != null">
+				bill_withdraw_account,
+			</if>
+			<if test="name != null">
+				bill_withdraw_name,
+			</if>
+			<if test="tel != null">
+				bill_withdraw_tel,
+			</if>
+			<if test="remark != null">
+				bill_withdraw_remark,
+			</if>
+			<if test="type != null">
+				bill_withdraw_type,
+			</if>
+			<if test="companyId != null">
+				c_con_company_id,
+			</if>
+			<if test="companyName != null">
+				c_con_company_name
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="no != null">
+				#{no,jdbcType=VARCHAR},
+			</if>
+			<if test="time != null">
+				#{time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="amount != null">
+				#{amount,jdbcType=DECIMAL},
+			</if>
+			<if test="status != null">
+				#{status,jdbcType=INTEGER},
+			</if>
+			<if test="remain != null">
+				#{remain,jdbcType=DECIMAL},
+			</if>
+			<if test="account != null">
+				#{account,jdbcType=VARCHAR},
+			</if>
+			<if test="name != null">
+				#{name,jdbcType=VARCHAR},
+			</if>
+			<if test="tel != null">
+				#{tel,jdbcType=VARCHAR},
+			</if>
+			<if test="remark != null">
+				#{remark,jdbcType=VARCHAR},
+			</if>
+			<if test="type != null">
+				#{type,jdbcType=INTEGER},
+			</if>
+			<if test="companyId != null">
+				#{companyId,jdbcType=INTEGER},
+			</if>
+			<if test="companyName != null">
+				#{companyName,jdbcType=VARCHAR}
+			</if>
+		</trim>
+	</insert>
+	<!-- 根据提现Id更新提现信息 -->
+	<update id="update" parameterType="DataVo">
+		UPDATE c_withdraw
+		<set>
+			<if test="no != null">
+				bill_withdraw_no = #{no,jdbcType=VARCHAR},
+			</if>
+			<if test="time != null">
+				bill_withdraw_time = #{time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="amount != null">
+				bill_withdraw_amount =#{amount,jdbcType=DECIMAL},
+			</if>
+			<if test="status != null">
+				bill_withdraw_status =#{status,jdbcType=INTEGER},
+			</if>
+			<if test="remain != null">
+				bill_withdraw_remain =#{remain,jdbcType=DECIMAL},
+			</if>
+			<if test="account != null">
+				bill_withdraw_account =#{account,jdbcType=VARCHAR},
+			</if>
+			<if test="name != null">
+				bill_withdraw_name = #{name,jdbcType=VARCHAR},
+			</if>
+			<if test="tel != null">
+				bill_withdraw_tel = #{tel,jdbcType=VARCHAR},
+			</if>
+			<if test="remark != null">
+				bill_withdraw_remark =#{remark,jdbcType=VARCHAR},
+			</if>
+			<if test="type != null">
+				bill_withdraw_type = #{type,jdbcType=INTEGER},
+			</if>
+			<if test="companyId != null">
+				c_con_company_id = #{companyId,jdbcType=INTEGER},
+			</if>
+			<if test="companyName != null">
+				c_con_company_name = #{companyName,jdbcType=VARCHAR}
+			</if>
+		</set>
+		WHERE bill_withdraw_id = #{id,jdbcType=INTEGER}
+	</update>
+</mapper>

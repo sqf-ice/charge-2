@@ -1,0 +1,81 @@
+{
+    "pileName": " 肖苏华测试",
+    "subsNo": "000000456106",
+    "selfNo": "120",
+    "orgId": 1,
+    "stationId": 11,
+    "pileType": "3",
+    "pileStatus": "0",
+    "innerPileNo": "",
+    "innerPileName": "",
+    "pileProtocol": "1",
+    "conCycle": 15,
+    "pileAddr": "yyyyyss",
+    "manufacturerId": "1",
+    "pileGbProtocol": "2",
+    "pileModelId": 11,
+    "numberGun":4 ,
+"ortMode":2 ,
+"powerMode":1 ,
+"ratePower":22.33 ,
+"serialNumber":"出厂编号" ,
+"screenVersion":"版本" ,
+"auxiPower":1,
+    "meter": [
+        {
+            "meterName": "A枪出线表",
+            "meterType": "",
+            "innerId": "1",
+            "pt": "",
+            "ct": "",
+            "gun": {
+                "qrCode": "sdsdsdw22",
+                "gumPoint": "充电枪A",
+                "parkNum": ""
+            }
+        },
+        {
+            "meterName": "B枪出线表",
+            "meterType": "",
+            "innerId": "0",
+            "pt": "01",
+            "ct": "",
+            "gun": {
+                "qrCode": "sdsdsdw2444",
+                "gumPoint": "充电枪B",
+                "parkNum": ""
+            }
+        },
+        {
+            "meterName": "C枪出线表",
+            "meterType": "",
+            "innerId": "0",
+            "pt": "01",
+            "ct": "",
+            "gun": {
+                "qrCode": "sdsdsdw2444",
+                "gumPoint": "充电枪C",
+                "parkNum": ""
+            }
+        },{
+            "meterName": "D枪出线表",
+            "meterType": "",
+            "innerId": "0",
+            "pt": "01",
+            "ct": "",
+            "gun": {
+                "qrCode": "sdsdsdw2444",
+                "gumPoint": "充电枪D",
+                "parkNum": ""
+            }
+        },
+        {
+            "meterName": "总表",
+            "meterType": "",
+            "innerId": "1",
+            "pt": "01",
+            "ct": "",
+            "gun": {}
+        }
+    ]
+}

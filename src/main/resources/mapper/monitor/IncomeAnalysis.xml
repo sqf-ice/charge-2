@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.monitor.mapper.IncomeAnalysisMapper">
+
+	<!-- 查询昨天,当月,全年的收入,用电量,服务次数 -->
+	<select id="getIncomeInfo" parameterType="Map" resultType="DataVo">
+		SELECT
+		sum(this_.amount) amount,
+		sum(this_.chg_power) chg_power,
+		sum(this_.ser_count) count
+		FROM
+		c_income_index this_
+		<where>
+			<if test="orgIds!=null ">
+				AND this_.org_id IN
+				<foreach collection="orgIds" item="item" open="(" separator=","
+					close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test="stationIds!=null ">
+				AND this_.station_id IN
+				<foreach collection="stationIds" item="item" open="("
+					separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			
+			<choose>
+			<when test="type==1">
+				AND this_.create_date = #{createDate}
+			</when>
+			<when test="type==2">
+				AND this_.create_date <![CDATA[ <= ]]> #{endDate}
+				AND this_.create_date <![CDATA[ >= ]]> #{startDate}
+			</when>
+		   </choose>
+		</where>
+	</select>
+	<!-- 查询昨天,当月,全年的充值金额 -->
+	<select id="getReCharge" parameterType="Map" resultType="Double">
+		SELECT
+		IFNULL(SUM(this_.amount),0)amount
+		FROM
+		bill_recharge this_
+		INNER JOIN c_cons
+		ON this_.CONS_ID = c_cons.CONS_ID
+		<where>
+			this_.RECHARGE_STATE = '02'
+			<if test="orgIds!=null ">
+				AND c_cons.APP_FROM IN
+				<foreach collection="orgIds" item="id" open="(" separator=","
+					close=")">
+					#{id}
+				</foreach>
+			</if>
+			<choose>
+				<when test="type==1">
+					AND DATE_FORMAT(this_.finish_time,'%Y-%m-%d') = #{createDate}
+				</when>
+				<when test="type==2">
+					AND DATE_FORMAT(this_.finish_time,'%Y-%m-%d') <![CDATA[ <= ]]> #{endDate}
+					AND DATE_FORMAT(this_.finish_time,'%Y-%m-%d') <![CDATA[ >= ]]> #{startDate}
+				</when>
+		   </choose>
+		</where>
+	</select>
+	
+	<select id="getContract" parameterType="Map" resultType="DataVo">
+		SELECT
+	    contract_id,
+	    contract_expiration_start,
+	    contract_expiration_end
+        FROM c_contract 
+        WHERE
+	    contract_type = 1 AND 
+	    contract_status = 0
+	</select>
+	
+	<select id="getConsContract" parameterType="Map" resultType="DataVo">
+		SELECT
+	    a.cons_id map_key,
+	    c.contract_id map_value
+        FROM c_cons a
+        LEFT JOIN in_contract_company b 
+        ON a.group_id = b.tr_group_id
+        LEFT JOIN c_contract c 
+        ON b.contract_id = c.contract_id
+        WHERE
+	    c.contract_type = 1 AND 
+	    c.contract_status = 0
+        ORDER BY
+	    a.cons_id,
+	    c.contract_id
+	</select>
+	
+	<select id="getContractPile" parameterType="Map" resultType="DataVo">
+		SELECT
+  		a.contract_id map_key,
+		c.station_id,
+  		d.pile_id map_value
+		FROM
+		c_contract_station_rela a
+		LEFT JOIN c_contract b   ON a.contract_id = b.contract_id
+		LEFT JOIN chg_station c  ON a.station_id  = c.station_id
+		LEFT JOIN chg_pile d ON c.station_id  = d.station_id
+		WHERE
+  		b.contract_type = 1
+		AND b.contract_status = 0
+		AND c.use_status = 0
+		AND d.pile_status = 0
+	</select>
+	<select id="getMonthPay" parameterType="Map" resultType="DataVo">
+		SELECT
+		bill_pay_id,
+		cons_id,
+		pile_id,
+		amount,
+		pay_type,
+		end_time
+		FROM bill_pay 
+		<where>
+			pay_state!=1 AND 
+			DATE_FORMAT(end_time,'%Y-%m-%d') <![CDATA[ >= ]]> #{startTime} AND 
+			DATE_FORMAT(end_time,'%Y-%m-%d') <![CDATA[ <= ]]> #{endTime}  
+			<if test="orgIds!=null ">
+				AND org_id IN
+				<foreach collection="orgIds" item="id" open="(" separator=","
+					close=")">
+					#{id}
+				</foreach>
+			</if>
+		</where>
+	</select>
+	
+	<!-- 按时 6-29 -->
+	<select id="getIncomeByHour" parameterType="Map" resultType="DataVo">
+		SELECT
+		ROUND(SUM(a.amount)) amount,
+		ROUND(SUM(a.chg_power)) powers,
+	    DATE_FORMAT(a.end_time, '%H:00') time
+        FROM bill_pay a
+        LEFT JOIN chg_pile b ON a.pile_id = b.pile_id
+        LEFT JOIN chg_station c ON b.station_id = c.station_id
+		<where>
+		    b.pile_status = 0 AND 
+            c.use_status = 0 AND 
+            c.station_status = 50 AND
+			a.end_time <![CDATA[ >= ]]>
+			#{startTime}
+			AND a.end_time <![CDATA[ <= ]]>
+			#{endTime}
+			AND a.pay_state != 1
+			<if test="orgIds!=null">
+				AND a.org_id IN
+				<foreach collection="orgIds" item="item" open="(" separator=","
+					close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+		GROUP BY
+		HOUR (a.end_time)
+	</select>
+
+	<!-- 按日 6-29 -->
+	<select id="getIncomeByDay" parameterType="Map" resultType="DataVo">
+		SELECT
+		ROUND(SUM(amount)) amount,
+		ROUND(SUM(chg_power)) powers,
+		create_date time
+		FROM
+		c_income_index
+		WHERE create_date <![CDATA[ >= ]]>
+		#{startTime}
+		AND create_date <![CDATA[ <= ]]>
+		#{endTime}
+		<if test="orgIds!=null">
+			AND org_id IN
+			<foreach collection="orgIds" item="item" open="(" separator=","
+				close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="stationIds !=null">
+			AND station_id IN
+			<foreach collection="stationIds" item="item" open="("
+				separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY
+		create_date
+	</select>
+	<!-- 按月 6-29 -->
+	<select id="getIncomeByMonth" parameterType="Map" resultType="DataVo">
+		SELECT
+		ROUND(SUM(amount)) amount,
+		ROUND(SUM(chg_power)) powers,
+		DATE_FORMAT(create_date, '%Y-%m') time
+		FROM
+		c_income_index
+		WHERE
+		DATE_FORMAT(create_date, '%Y-%m') <![CDATA[ >= ]]>
+		#{startTime}
+		AND DATE_FORMAT(create_date, '%Y-%m') <![CDATA[ <= ]]>
+		#{endTime}
+		<if test="orgIds!=null">
+			AND org_id IN
+			<foreach collection="orgIds" item="item" open="(" separator=","
+				close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="stationIds !=null">
+			AND station_id IN
+			<foreach collection="stationIds" item="item" open="("
+				separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY time
+	</select>
+    <!-- 个人会员 -->
+	<select id="getIncomeCons" parameterType="Map" resultType="DataVo">
+		SELECT
+		ROUND(SUM(amount)) sum,
+		DATE_FORMAT(create_date, '%Y-%m') time
+		FROM
+		c_income_distribution_cons
+		WHERE
+		DATE_FORMAT(create_date, '%Y-%m') <![CDATA[ >= ]]>
+		#{startTime}
+		AND DATE_FORMAT(create_date, '%Y-%m') <![CDATA[ <= ]]>
+		#{endTime}
+		<if test="orgIds!=null">
+			AND org_id IN
+			<foreach collection="orgIds" item="item" open="(" separator=","
+				close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="stationIds !=null">
+			AND station_id IN
+			<foreach collection="stationIds" item="item" open="("
+				separator="," close=")">
+				#{item}
+			</foreach>
+		</if> 
+		GROUP BY time
+	</select>
+    <!-- 合约 -->
+	<select id="getIncomeContract" parameterType="Map" resultType="DataVo">
+		SELECT
+		ROUND(sum(amount)) sum,
+		DATE_FORMAT(create_date, '%Y-%m') time
+		FROM
+		c_income_distribution_contract
+		WHERE
+		contract_type = 0 AND 
+		DATE_FORMAT(create_date, '%Y-%m') <![CDATA[ >= ]]>
+		#{startTime}
+		AND DATE_FORMAT(create_date, '%Y-%m') <![CDATA[ <= ]]>
+		#{endTime}
+		<if test="orgIds!=null">
+			AND org_id IN
+			<foreach collection="orgIds" item="item" open="(" separator=","
+				close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="stationIds !=null">
+			AND station_id IN
+			<foreach collection="stationIds" item="item" open="("
+				separator="," close=")">
+				#{item}
+			</foreach>
+		</if> 
+		GROUP BY time
+	</select>
+    <!-- 集团月结 -->
+	<select id="getIncomeCharge" parameterType="Map" resultType="DataVo">
+		SELECT
+		ROUND(sum(monthly_charge)) sum,
+		DATE_FORMAT(monthly_date, '%Y-%m') time
+		FROM
+		group_monthly_cache
+		WHERE
+		DATE_FORMAT(monthly_date, '%Y-%m') <![CDATA[ >= ]]>
+		#{startTime}
+		AND DATE_FORMAT(monthly_date, '%Y-%m') <![CDATA[ <= ]]>
+		#{endTime}
+		<if test="stationIds !=null">
+			AND station_id IN
+			<foreach collection="stationIds" item="item" open="("
+				separator="," close=")">
+				#{item}
+			</foreach>
+		</if> 
+		GROUP BY time
+	</select>
+	<!--得到充电量年，月，日 -->
+	<select id="getChargeDayChgPower" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		cs.chg_power,
+		s.STATION_ID,
+		s.STATION_NAME
+		FROM
+		chg_station s
+		LEFT JOIN (
+		SELECT
+		sum(chg_power) chg_power,
+		station_id
+		FROM
+		c_income_index
+		WHERE
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==0">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')= #{date}  ]]>
+					</when>
+					<when test="flag==1">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')= #{upDate}  ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==0">
+						<![CDATA[ DATE_FORMAT(create_date, '%Y-%m-%d')>=#{month} and  DATE_FORMAT(create_date, '%Y-%m-%d')<=#{date} ]]>
+					</when>
+					<when test="flag==1">
+						<![CDATA[ DATE_FORMAT(create_date, '%Y-%m-%d')>=#{upMonth} and  DATE_FORMAT(create_date, '%Y-%m-%d')<=#{upDate} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==3">
+				<choose>
+					<when test="flag==0">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')>= #{year} and DATE_FORMAT(create_date, '%Y-%m-%d') <= #{date}]]>
+					</when>
+					<when test="flag==1">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')>= #{upYear} and DATE_FORMAT(create_date, '%Y-%m-%d') <= #{upDate}]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		GROUP BY
+		station_id
+		) cs ON s.STATION_ID = cs.station_id
+		<where>
+			<if test="stationIds!=null">
+				and s.STATION_ID in
+				<foreach item="item" index="index" collection="stationIds"
+					open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+		ORDER BY
+		cs.chg_power DESC
+		LIMIT ${size}
+	</select>
+	<!--得到年，月，日收入 -->
+	<select id="getChargeDayAmount" parameterType="DataVo"
+		resultType="DataVo">
+		SELECT
+		cs.amount,
+		s.STATION_ID,
+		s.STATION_NAME
+		FROM
+		chg_station s
+		LEFT JOIN
+		(
+		SELECT
+		sum(amount) amount,
+		station_id
+		FROM
+		c_income_index
+		WHERE
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==0">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')= #{date}  ]]>
+					</when>
+					<when test="flag==1">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')= #{upDate}  ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==0">
+						<![CDATA[ DATE_FORMAT(create_date, '%Y-%m-%d')>= #{month} AND  DATE_FORMAT(create_date, '%Y-%m-%d') <= #{date} ]]>
+					</when>
+					<when test="flag==1">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')>= #{upMonth} AND  DATE_FORMAT(create_date, '%Y-%m-%d')<= #{upDate} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==3">
+				<choose>
+					<when test="flag==0">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')>= #{year} and DATE_FORMAT(create_date, '%Y-%m-%d') <= #{date}]]>
+					</when>
+					<when test="flag==1">
+						<![CDATA[  DATE_FORMAT(create_date, '%Y-%m-%d')>= #{upYear} and DATE_FORMAT(create_date, '%Y-%m-%d') <= #{upDate}]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		GROUP BY
+		station_id
+		) cs ON s.STATION_ID = cs.station_id
+		<where>
+			<if test="stationIds!=null">
+				and s.STATION_ID in
+				<foreach item="item" index="index" collection="stationIds"
+					open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+		ORDER BY
+		cs.amount DESC
+		LIMIT ${size}
+	</select>
+	<!--得到年，月，日运营商排序 -->
+	<select id="getOrgAmount" parameterType="DataVo" resultType="DataVo">
+		SELECT
+		p.ORG_NAME,
+		c.org_id station_id,
+		sum(c.amount) org_amount
+		FROM
+		pub_org p
+		LEFT JOIN   c_income_index c ON p.ORG_ID = c.org_id
+		<choose>
+			<when test="type==1">
+				<choose>
+					<when test="flag==0">
+						<![CDATA[ AND DATE_FORMAT(c.create_date, '%Y-%m-%d')= #{date}  ]]>
+					</when>
+					<when test="flag==1">
+						<![CDATA[ AND   DATE_FORMAT(c.create_date, '%Y-%m-%d')= #{upDate}  ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==2">
+				<choose>
+					<when test="flag==0">
+						<![CDATA[  AND DATE_FORMAT(c.create_date, '%Y-%m-%d')>= #{month} AND DATE_FORMAT(c.create_date, '%Y-%m-%d')<= #{date} ]]>
+					</when>
+					<when test="flag==1">
+						<![CDATA[ AND DATE_FORMAT(c.create_date, '%Y-%m-%d')>= #{upMonth} AND DATE_FORMAT(c.create_date, '%Y-%m-%d')<= #{upDate} ]]>
+					</when>
+				</choose>
+			</when>
+			<when test="type==3">
+				<choose>
+					<when test="flag==0">
+						<![CDATA[ AND  DATE_FORMAT(c.create_date, '%Y-%m-%d')>= #{year} and DATE_FORMAT(c.create_date, '%Y-%m-%d') <= #{date}]]>
+					</when>
+					<when test="flag==1">
+						<![CDATA[ AND DATE_FORMAT(c.create_date, '%Y-%m-%d')>= #{upYear} and DATE_FORMAT(c.create_date, '%Y-%m-%d') <= #{upDate}]]>
+					</when>
+				</choose>
+			</when>
+		</choose>
+		<where>
+			c.amount>0
+		<if test="orgIds!=null">
+			and p.org_id in
+			<foreach item="item" index="index" collection="orgIds"
+					 open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		</where>
+		GROUP BY p.org_id
+			ORDER BY org_amount desc
+			LIMIT ${size};
+	</select>
+</mapper>

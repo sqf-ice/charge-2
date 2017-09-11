@@ -1,0 +1,18 @@
+{
+	"orgId":48,
+	"stationId":1,
+	"deviceName":"设备名称更改",
+	"deviceNo":"设备编号更改",
+	"equipmentType":"设备型号更改",
+	"deviceType":"1",
+	"parameter":"参数更改",
+	"ratedPower":80.222,
+	"manufacturer":"生产厂家更改",
+	"manufactureTime":"2017-06-14",
+	"guaranteeTime":"2017-06-13",
+	"installTime":"2017-06-14",
+	"assetOwnership":"资产归属更改",
+	"deviceStatus":"12",
+	"remarks":"备注更改",
+	"deviceId":1
+}

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.member.mapper.PointNewMapper">
+	<!-- 排序条件 -->
+    <sql id="orderBy">
+        <if test="sort!=null">
+            ORDER BY ${sort} ${order}
+        </if>
+    </sql>
+	
+	<!-- 积分管理列表 -->
+	<select id="queryPoints" resultType="DataVo">
+		SELECT
+			this_.point_id,
+	        this_.point_type,
+	        this_.gain_point,
+	        this_.org_id,
+	        this_.exchange_money,
+	        this_.user_id,
+	        this_.timetag,
+			user2x1_.login_name user_name,
+	        puborg2x2_.org_id,
+	        puborg2x2_.org_name
+	    FROM
+	        points this_ 
+	    left outer JOIN
+	        pub_org puborg2x2_ 
+	            ON this_.org_id=puborg2x2_.org_id 
+	    left outer JOIN
+	        sys_user user2x1_
+	            ON this_.user_id=user2x1_.id
+	    <where>
+	    	<if test="orgId != null">
+	    		and this_.org_id = #{orgId}
+	    	</if>
+	    	<if test="orgIds != null">
+	    		and this_.org_id in
+	    			<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+						#{id}
+					</foreach>
+	    	</if>
+	    	<if test="orgName != null">
+	    		and puborg2x2_.org_name LIKE CONCAT('%',#{orgName},'%' ) 
+	    	</if>
+	    </where>
+	</select>
+	
+	<select id="queryByType" resultType="DataVo">
+		SELECT
+			this_.point_id,
+	        this_.point_type
+	    FROM
+	        points this_ 
+	    where point_type = #{pointType} and org_id = #{orgId}    
+	</select>
+	
+	<select id="queryPubOrg" resultType="DataVo">
+		select * from pub_org where org_id = #{orgId}
+	</select>
+	
+	<insert id="insertPoints" parameterType="Map" keyProperty="pointId" useGeneratedKeys="true">
+		INSERT INTO points
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="pointType != null">point_type,</if>
+			<if test="gainPoint != null">gain_point,</if>
+			<if test="orgId != null and '' != orgId">org_id,</if>
+			<if test="exchangeMoney != null">exchange_money,</if>
+			<if test="userId != null and '' != userId">user_id,</if>
+			timetag,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="pointType != null">#{pointType},</if>
+			<if test="gainPoint != null">#{gainPoint},</if>
+			<if test="orgId != null and '' != orgId">#{orgId},</if>
+			<if test="exchangeMoney != null">#{exchangeMoney},</if>
+			<if test="userId != null and '' != userId">#{userId},</if>
+			now()
+		</trim>
+	</insert>
+	
+	<update id="updatePoints">
+		UPDATE points
+			<set>
+				<if test="exchangeMoney != null and '' != exchangeMoney">exchange_money = #{exchangeMoney},</if>
+				<if test="gainPoint != null and '' != gainPoint">gain_point = #{gainPoint},</if>
+				<if test="userId != null and '' != userId">user_id = #{userId},</if>
+				timetag = now()
+			</set>
+		where point_id = #{pointId}
+	</update>
+	
+	<select id="queryPointsHistoryInfo" resultType="DataVo">
+		SELECT
+	        SUM(this_.gain_point) as gain_point,
+	        ccons2x1_.cons_name,
+	        ccons2x1_.cons_id
+		FROM
+	        c_points this_ 
+	    left outer JOIN
+	        c_cons ccons2x1_ 
+	            on this_.cons_id=ccons2x1_.cons_id 
+		    <where>
+				<if test="consId != null">
+			        this_.cons_id = #{consId}
+				</if>
+				<if test="consIds != null and consIds.size() > 0">
+					this_.cons_id in
+					<foreach collection="consIds" item="cId" open="(" separator="," close=")">
+						#{cId}
+					</foreach>
+				</if>	    
+		    </where>
+	    GROUP BY
+	        this_.cons_id
+	    <include refid="orderBy"/>
+	</select>
+	<select id="queryPointsHistory" resultType="DataVo">
+		SELECT
+			this_.point_type,
+			this_.gain_point,
+			this_.gain_time,
+			this_.consumer_use,
+			this_.remark,
+			ccons2x1_.cons_name
+		FROM
+			c_points this_
+		left outer JOIN
+			c_cons ccons2x1_
+				on this_.cons_id=ccons2x1_.cons_id
+		<where>
+			<if test="consId != null">
+				this_.cons_id = #{consId}
+			</if>
+			<if test="consIds != null and consIds.size() > 0">
+				this_.cons_id in
+				<foreach collection="consIds" item="cId" open="(" separator="," close=")">
+					#{cId}
+				</foreach>
+			</if>
+		</where>
+		<include refid="orderBy"/>
+	</select>
+</mapper>

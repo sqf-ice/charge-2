@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.ConTractMapper">
+	
+	<!-- 查询合约列表 -->
+	<select id="getConTractAll" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.CONTRACT_ID,
+	        this_.CONTRACT_TYPE,
+	        this_.CONTRACT_NAME,
+	        this_.CONTRACT_UPDATE_DATE,
+	        this_.CONTRACT_EXPIRATION_START,
+	        this_.CONTRACT_EXPIRATION_END,
+	        this_.CONTRACT_APPROVE_STATUS,
+	        this_.CONTRACT_STATUS,
+	        this_.STATION_ID,
+	        this_.tract_price,
+	        this_.discount,
+	        this_.CONTRACT_USER_NAME,
+	        this_.contract_income_type,
+	        this_.contract_cost_type,
+	        chgstation1_.STATION_NAME,
+	        pubuser2x2_.USER_NAME
+	    FROM
+	        c_contract this_ 
+	    LEFT OUTER JOIN
+	        CHG_STATION chgstation1_ 
+	            ON this_.STATION_ID=chgstation1_.STATION_ID 
+	    LEFT OUTER JOIN
+	        PUB_USER pubuser2x2_ 
+	            ON this_.USER_ID=pubuser2x2_.USER_ID 
+	    <include refid="conditions"/>
+	    ORDER BY
+	        this_.CONTRACT_ID DESC
+	</select>
+	<sql id="conditions">
+		<where>
+			1=1
+		<if test="stationIds != null">
+			AND this_.STATION_ID IN 
+			<foreach collection="stationIds" item="subId" open="(" separator="," close=")">
+				${subId}
+			</foreach>
+		</if>
+		<if test="tractIds != null">
+			AND this_.CONTRACT_ID IN
+			<foreach collection="tractIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+		<if test="conTractName != null">
+			AND this_.CONTRACT_NAME like concat('%',#{conTractName},'%')
+		</if>
+		<if test="stationName != null">
+			AND chgstation1_.STATION_NAME like concat('%',#{stationName},'%')
+		</if>
+		<if test="conTractExpirationStart != null">
+			AND this_.CONTRACT_EXPIRATION_START <![CDATA[ >= ]]> #{conTractExpirationStart}
+		</if>
+		<if test="conTractExpirationEnd != null">
+			AND this_.CONTRACT_EXPIRATION_END <![CDATA[ <= ]]> #{conTractExpirationEnd} 
+		</if>
+		
+		<if test="conTractStatus != null">
+			AND this_.CONTRACT_STATUS = #{conTractStatus} 
+		</if>
+		<if test="conTractType !=null">
+			AND this_.CONTRACT_TYPE = #{conTractType}
+		</if>
+		<if test="conTractTypes !=null">
+			AND this_.CONTRACT_TYPE  IN
+			<foreach collection="conTractTypes" item="ctype" open="(" close=")" separator=",">
+				#{ctype}
+			</foreach> 
+		</if>
+		<if test="conTractApproveStatus != null">
+			AND this_.CONTRACT_APPROVE_STATUS = #{conTractApproveStatus}
+		</if>
+		<if test="contractIncomeType !=null">
+			AND this_.contract_income_type = #{contractIncomeType}
+		</if>
+		<if test="contractCostType != null">
+			AND this_.contract_cost_type = #{contractCostType}
+		</if>
+		
+		</where>
+	</sql>
+	
+	<!-- 合约置无效  -->
+	<update id="dissConTract" parameterType="DataVo" >
+		UPDATE c_contract SET CONTRACT_STATUS = 1 WHERE CONTRACT_ID IN 
+		<if test="tractIds !=null">
+			<foreach collection="tractIds" item="id" open="(" separator="," close=")">
+				#{id}
+			</foreach>
+		</if>
+	</update>
+	<!--根据合约Id查询合约信息  -->
+	<select id="getConTractById" parameterType="DataVo" resultType="DataVo">
+		 SELECT
+	        this_.CONTRACT_ID,
+	        this_.CONTRACT_TYPE,
+	        this_.CONTRACT_NAME,
+	        this_.STATION_ID,
+	        this_.USER_ID,
+	        this_.CONTRACT_UPDATE_DATE,
+	        this_.CONTRACT_PERIOD,
+	        this_.CONTRACT_DATE,
+	        this_.CONTRACT_EXPIRATION_START,
+	        this_.CONTRACT_EXPIRATION_END,
+	        this_.CONTRACT_APPROVE_STATUS,
+	        this_.CONTRACT_STATUS,
+	        this_.CONTRACT_REASON,
+	        this_.CONTRACT_SHARE_TYPE,
+	        this_.CONTRACT_USER_NAME,
+	        this_.CONTRACT_DISS_TIME,
+	        this_.contract_income_type,
+	        this_.contract_cost_type,
+	        this_.contract_service_charge,
+	        this_.contract_efficiency,
+	        this_.contract_amount,
+	        this_.contract_file,
+	        this_.contract_cons_total,
+	        this_.contract_cons_amount,
+	        this_.contract_card_total,
+	        this_.contract_card_amount,
+	        this_.tract_price,
+	        this_.discount,
+	        this_.remark,
+	        chgstation1_.STATION_ID,
+	        chgstation1_.STATION_NO,
+	        chgstation1_.STATION_NAME,
+	        user_.login_name as user_name  
+	    FROM
+	        c_contract this_ 
+	    LEFT OUTER JOIN
+	        CHG_STATION chgstation1_ 
+	            ON this_.STATION_ID=chgstation1_.STATION_ID 
+	    LEFT OUTER JOIN 
+	    	sys_user user_ ON this_.user_id = user_.id
+	    WHERE
+	        this_.CONTRACT_ID=#{tractId}
+	</select>
+	
+	<!-- 根据stationIds 查询月结合约关联表信息 -->
+	<select id="getConTractStationRelaByTractId" parameterType="DataVo" resultType="DataVo">
+		SELECT this_.CONTRACT_ID,this_.STATION_ID,station_.STATION_NAME,station_.STATION_NO FROM c_contract_station_rela this_
+		LEFT OUTER JOIN chg_station station_ on station_.STATION_ID = this_.STATION_ID
+		LEFT OUTER JOIN c_contract tract_ ON tract_.`CONTRACT_ID` = this_.`CONTRACT_ID`
+		WHERE 1=1 
+		<if test="stationIds !=null">
+			AND this_.STATION_ID IN
+			<foreach collection="stationIds" item="subId" open="(" separator="," close=")">
+				#{subId}
+			</foreach> 
+		</if>
+		<if test="tractId !=null ">
+			AND this_.CONTRACT_ID = #{tractId}
+		</if>
+		<if test="tractIds != null">
+			AND this_.CONTRACT_ID IN 
+			<foreach collection="tractIds" item="id" open="(" close=")" separator=",">
+				#{id}
+			</foreach>
+		</if>
+		<if test="stationName != null">
+			AND station_.STATION_NAME like concat('%',#{stationName},'%')
+		</if>
+		<if test="conTractName != null">
+			AND tract_.CONTRACT_NAME like concat('%',#{conTractName},'%')
+		</if>
+		<if test="conTractExpirationStart != null">
+			AND tract_.CONTRACT_EXPIRATION_START <![CDATA[ >= ]]> #{conTractExpirationStart}
+		</if>
+		<if test="conTractExpirationEnd != null">
+			AND tract_.CONTRACT_EXPIRATION_END <![CDATA[ <= ]]> #{conTractExpirationEnd} 
+		</if>
+		<if test="conTractStatus != null">
+			AND tract_.CONTRACT_STATUS = #{conTractStatus} 
+		</if>
+		<if test="conTractType !=null">
+			AND tract_.CONTRACT_TYPE = #{conTractType}
+		</if>
+		<if test="conTractApproveStatus != null">
+			AND tract_.CONTRACT_APPROVE_STATUS = #{conTractApproveStatus}
+		</if>
+	</select>
+	
+	<!-- 根据合约企业Id获取合约的关联表关系 -->
+	<select id="getConTractCompanyById" parameterType="DataVo" resultType="DataVo">
+        SELECT this_.CCID,this_.CONTRACT_ID,this_.TR_COMPANY_ID,company_.`C_CON_COMPANY_NAME`,this_.TR_GROUP_ID,group_.`GROUP_NAME`,this_.PERCENTAGE FROM in_contract_company this_ 
+        LEFT OUTER JOIN c_con_company company_ ON company_.`C_CON_COMPANY_ID` = this_.TR_COMPANY_ID
+        LEFT OUTER JOIN c_group group_ ON group_.`GROUP_ID` = this_.`TR_GROUP_ID` 
+		WHERE 1=1 
+		<if test="tractId != null">
+			AND this_.CONTRACT_ID = #{tractId}
+		</if>
+	</select>
+	
+	<!-- 新增合约信息 -->
+	<insert id="saveConTract" parameterType="DataVo" keyProperty="contractId" useGeneratedKeys="true">
+		INSERT INTO c_contract 
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="contractType != null">CONTRACT_TYPE,</if>
+			<if test="contractName != null">CONTRACT_NAME,</if>
+			<if test="contractIncomeType!=null">contract_income_type,</if>
+			<if test="contractCostType!=null">contract_cost_type,</if>
+			<if test="contractPeriod != null">CONTRACT_PERIOD,</if>
+			<if test="contractExpirationStart != null">CONTRACT_EXPIRATION_START,</if>
+			<if test="contractExpirationEnd != null">CONTRACT_EXPIRATION_END,</if>
+			<if test="contractDate != null">CONTRACT_DATE,</if>
+			<if test="contractShareType != null">CONTRACT_SHARE_TYPE,</if>
+			<if test="contractEfficiency != null">contract_efficiency,</if>
+			<if test="contractServiceCharge != null ">contract_service_charge,</if>
+			<if test="contractAmount != null ">contract_amount,</if>
+			<if test="tractPrice != null ">tract_price,</if>
+			<if test="discount != null ">discount,</if>
+			<if test="contractConsTotal != null ">contract_cons_total,</if>
+			<if test="contractConsAmount != null ">contract_cons_amount,</if>
+			<if test="contractCardTotal != null ">contract_card_total,</if>
+			<if test="contractCardAmount != null ">contract_card_amount,</if>
+			<if test="userAppId != null">USER_ID,</if>
+			<if test="stationId != null">STATION_ID,</if>
+			<if test="contractUserName != null">CONTRACT_USER_NAME,</if>
+			<if test="contractStatus != null">CONTRACT_STATUS,</if>
+			<if test="contractApproveStatus != null">CONTRACT_APPROVE_STATUS,</if>
+			<if test="contractFile != null">contract_file,</if>
+			<if test="remark != null">remark,</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="contractType != null">#{contractType},</if>
+			<if test="contractName != null">#{contractName},</if>
+			<if test="contractIncomeType !=null">#{contractIncomeType},</if>
+			<if test="contractCostType !=null">#{contractCostType},</if>
+			<if test="contractPeriod != null">#{contractPeriod},</if>
+			<if test="contractExpirationStart != null">#{contractExpirationStart},</if>
+			<if test="contractExpirationEnd != null">#{contractExpirationEnd},</if>
+			<if test="contractDate != null">#{contractDate},</if>
+			<if test="contractShareType != null">#{contractShareType},</if>
+			<if test="contractEfficiency != null">#{contractEfficiency},</if>
+			<if test="contractServiceCharge != null ">#{contractServiceCharge},</if>
+			<if test="contractAmount != null ">#{contractAmount},</if>
+			<if test="tractPrice != null ">#{tractPrice},</if>
+			<if test="discount != null ">#{discount},</if>
+			<if test="contractConsTotal != null ">#{contractConsTotal},</if>
+			<if test="contractConsAmount != null ">#{contractConsAmount},</if>
+			<if test="contractCardTotal != null ">#{contractCardTotal},</if>
+			<if test="contractCardAmount != null ">#{contractCardAmount},</if>
+			<if test="userAppId != null">#{userAppId},</if>
+			<if test="stationId != null">#{stationId},</if>
+			<if test="contractUserName != null">#{contractUserName},</if>
+			<if test="contractStatus != null">#{contractStatus},</if>
+			<if test="contractApproveStatus != null">#{contractApproveStatus},</if>
+			<if test="contractFile != null">#{contractFile},</if>
+			<if test="remark != null">#{remark},</if>
+		</trim>
+	</insert>
+	<!-- 新增合约关联表 -->
+	<insert id="saveInTractCompany" parameterType="DataVo">
+		INSERT INTO  in_contract_company
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="contractId != null">CONTRACT_ID,</if>
+			<if test="companyId != null">TR_COMPANY_ID,</if>
+			<if test="groupId != null">TR_GROUP_ID,</if>
+			<if test="percentage != null">PERCENTAGE,</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="contractId != null">#{contractId},</if>
+			<if test="companyId != null">#{companyId},</if>
+			<if test="groupId != null">#{groupId},</if>
+			<if test="percentage != null">#{percentage},</if>
+		</trim>
+	</insert>
+	<!-- 删除合约关联表 -->
+	<delete id="delInTractCompany" parameterType="DataVo">
+		DELETE FROM in_contract_company WHERE CONTRACT_ID = #{contractId}
+	</delete>
+	<!-- 新增合约场站关联表 -->
+	<insert id="saveTractStation" parameterType="DataVo">
+		INSERT INTO c_contract_station_rela (CONTRACT_ID,STATION_ID) VALUE (#{contractId},#{stationId})
+	</insert>
+	<!-- 删除合约场站关联表 -->
+	<delete id="delTractStation" parameterType="DataVo">
+		DELETE FROM c_contract_station_rela WHERE CONTRACT_ID = #{contractId}
+	</delete>
+	<!-- 编辑合约信息 -->
+	<update id="updateConTract" parameterType="map">
+		UPDATE c_contract 
+		<set>
+			CONTRACT_TYPE = #{contractType},
+			CONTRACT_NAME = #{contractName},
+			contract_income_type = #{contractIncomeType},
+			contract_cost_type = #{contractCostType},
+			CONTRACT_PERIOD = #{contractPeriod},
+			CONTRACT_EXPIRATION_START = #{contractExpirationStart},
+			CONTRACT_EXPIRATION_END = #{contractExpirationEnd},
+			CONTRACT_DATE = #{contractDate},
+			CONTRACT_SHARE_TYPE = #{contractShareType},
+			contract_efficiency = #{contractEfficiency},
+			contract_service_charge = #{contractServiceCharge},
+			contract_amount = #{contractAmount},
+			tract_price = #{tractPrice},
+			discount = #{discount},
+			contract_cons_total = #{contractConsTotal},
+			contract_cons_amount = #{contractConsAmount},
+			contract_card_total = #{contractCardTotal},
+			contract_card_amount = #{contractCardAmount},
+			USER_ID = #{userAppId},
+			STATION_ID = #{stationId},
+			CONTRACT_USER_NAME = #{contractUserName},
+			CONTRACT_STATUS = #{contractStatus},
+			CONTRACT_APPROVE_STATUS = #{contractApproveStatus},
+			contract_file = #{contractFile},
+			remark = #{remark},
+			CONTRACT_REASON = #{contractReason},
+			CONTRACT_UPDATE_DATE = now()
+		</set>
+		WHERE CONTRACT_ID = #{contractId}
+	</update>
+	<!-- 检查收入合约/支出合约重复 -->
+	<select id="checkIncomsTract" resultType="Integer" parameterType="DataVo">
+		SELECT count(*) FROM c_contract WHERE CONTRACT_STATUS = #{contractStatus} AND contract_type = #{contractType} 
+		<if test="contractIncomeType != null">
+			AND contract_income_type = #{contractIncomeType}
+		</if>
+		<if test="contractCostType != null">
+			AND contract_cost_type = #{contractCostType}
+		</if>
+		<if test="stationId != null">
+			AND STATION_ID = #{stationId}
+		</if>
+		<if test="contractId != null">
+			AND CONTRACT_ID <![CDATA[ <> ]]> #{contractId}
+		</if>
+	</select>
+	<!-- 检查月结合约重复性 -->
+	<select id="checkMonthlyTract" parameterType="DataVo" resultType="Integer">
+		SELECT count(*) FROM in_contract_company this_ 
+		LEFT OUTER JOIN c_contract tract_ ON this_.`CONTRACT_ID` = tract_.contract_id 
+		WHERE  tract_.contract_status = #{contractStatus} AND tract_.contract_type = #{contractType} AND tract_.`CONTRACT_EXPIRATION_END` <![CDATA[ >= ]]> #{contractExpirationStart}
+		<if test="contractId != null">
+			AND tract_.contract_id <![CDATA[ <> ]]> #{contractId}
+		</if>
+		<if test="groupIds != null">
+			AND this_.TR_GROUP_ID IN 
+			<foreach collection="groupIds" item="id" open="(" close=")" separator=",">
+				#{id}
+			</foreach>
+		</if>
+	</select>
+	
+	<!-- 根据合约企业Id查询所签订的合约 -->
+	<select id="getTractByCompanyId" parameterType="Integer" resultType="DataVo">
+		SELECT CONTRACT_ID FROM in_contract_company WHERE TR_COMPANY_ID = #{companyId}
+	</select>
+	
+	<!-- 合约审批 -->
+	<update id="updateAppConTract" parameterType="DataVo">
+		UPDATE c_contract 
+		<set>
+			CONTRACT_APPROVE_STATUS = #{contractApproveStatus},
+			<if test="contractReason != null ">CONTRACT_REASON = #{contractReason},</if>
+			CONTRACT_STATUS = #{contractStatus}
+		</set>
+		WHERE CONTRACT_ID = #{contractId}
+	</update>
+</mapper>

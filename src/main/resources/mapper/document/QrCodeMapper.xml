@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.clouyun.charge.modules.document.mapper.QrCodeMapper">
+	
+	<sql id="selectiveSql">
+		<where>
+			<!-- 二维码管理需要展示选择屏显以及支持科陆协议 -->
+			<!-- 二维码管理展示屏显,不区分协议 -->
+			<if test="isQrCode != null and '' != isQrCode">
+				AND this_.is_qrcode = #{isQrCode} 
+			</if>
+			<if test="orgName != null and '' != orgName">
+				AND org.org_name LIKE CONCAT('%',#{orgName},'%' ) 
+			</if>
+			<if test="orgId != null and '' != orgId">
+				AND this_.org_id = #{orgId}
+			</if>
+			<if test="qrCodeState != null and '' != qrCodeState">
+				AND this_.qr_code_state = #{qrCodeState}
+			</if>
+			<if test="hlhtQrCodeState != null and '' != hlhtQrCodeState">
+				AND this_.hlht_qrcode_state = #{hlhtQrCodeState}
+			</if>
+			<if test="stationName != null and '' != stationName">
+				AND chgstation1_.station_name LIKE CONCAT('%',#{stationName},'%' )
+			</if>
+			<if test="stationId != null and '' != stationId">
+				AND this_.station_id = #{stationId}
+			</if>
+			<if test="orgIds != null">
+				AND this_.org_id in 
+				<foreach collection="orgIds" item="id" open="(" separator="," close=")">
+					#{id}
+				</foreach>
+			</if>
+			<if test="stationIds != null">
+				AND this_.station_id in
+				<foreach collection="stationIds" item="sId" open="(" separator="," close=")">
+					#{sId}
+				</foreach>
+			</if>
+		</where>
+	</sql>
+		
+	<sql id="pubDictItemSql">
+		<where>
+	        type_id = #{typeId}
+			<if test="itemNum != null">
+				AND item_num = #{itemNum}
+			</if> 
+			<if test="itemName != null">
+				AND item_name = #{itemName}
+			</if> 
+		</where>
+	</sql>
+	
+	<!-- 排序条件 -->
+    <sql id="orderBy">
+        <if test="sort!=null">
+            ORDER BY ${sort} ${order}
+        </if>
+    </sql>
+	
+	<sql id="baseSql">
+		 	this_.pile_id,
+	        this_.pile_name,
+	        this_.pile_no,
+	        this_.pile_type,
+			this_.number_gun,
+			this_.ort_mode,
+			this_.power_mode,
+	        this_.pile_addr,
+	        this_.qr_code_state,
+	        this_.hlht_qrcode_state,
+	        this_.org_id,
+	        this_.station_id,
+	        this_.number_gun,
+	        this_.ort_mode,
+	        this_.power_mode,
+	        chgstation1_.station_name,
+	        chgstation1_.station_no,
+	        org.org_name,
+	        org.org_code,
+	        org.org_no
+	    FROM
+	        chg_pile this_
+	    LEFT OUTER JOIN
+	        chg_station chgstation1_  on this_.station_id=chgstation1_.station_id
+	    LEFT OUTER JOIN
+	    	pub_org org on this_.org_id = org.org_id
+	</sql>
+	
+	<!-- 按条件统计 -->
+	<select id="count" parameterType="DataVo" resultType="Integer">
+		SELECT 
+			count(pile_id) 
+		FROM   
+			chg_pile this_
+		LEFT OUTER JOIN
+	        chg_station chgstation1_ 
+	            on this_.station_id=chgstation1_.station_id 
+		<include refid="selectiveSql"/>
+	</select>
+
+	<!-- 按条件分页查询 -->
+	<select id="selectAll" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	    <include refid="baseSql"/>
+		<include refid="selectiveSql"/>
+		<include refid="orderBy"/>
+		
+	</select>
+	
+	<!-- 根据ID查询桩信息 -->
+	<select id="selectByPrimaryKey" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.pile_id,
+	        this_.pile_name,
+	        this_.pile_no,
+	        this_.pile_type,
+	        this_.pile_addr,
+	        this_.qr_code_state,
+	        this_.hlht_qrcode_state,
+	        this_.org_id,
+	        this_.station_id,
+			this_.number_gun,
+			this_.ort_mode,
+			this_.power_mode,
+			this_.pile_protocol,
+	        chgstation1_.station_name,
+	        chgstation1_.station_no,
+	        org.org_name,
+	        org.org_code,
+	        org.org_no
+	    FROM
+	        chg_pile this_ 
+	    LEFT OUTER JOIN
+	        chg_station chgstation1_  on this_.station_id=chgstation1_.station_id
+	    LEFT OUTER JOIN
+	    	pub_org org on this_.org_id = org.org_id
+	    WHERE
+	        this_.is_qrcode=1 
+			and this_.pile_id=#{pileId}
+	</select>
+	
+	<select id="selectByListKey" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        this_.pile_id,
+	        this_.pile_name,
+	        this_.pile_no,
+	        this_.pile_type,
+	        this_.pile_addr,
+	        this_.qr_code_state,
+	        this_.hlht_qrcode_state,
+	        this_.org_id,
+	        this_.station_id,
+			this_.pile_protocol,
+	        chgstation1_.station_name,
+	        chgstation1_.station_no,
+	        org.org_name,
+	        org.org_code,
+	        org.org_no
+	    FROM
+	        chg_pile this_ 
+	    LEFT OUTER JOIN
+	        chg_station chgstation1_  on this_.station_id=chgstation1_.station_id
+	    LEFT OUTER JOIN
+	    	pub_org org on this_.org_id = org.org_id
+	    WHERE
+	        this_.is_qrcode=1 
+			and this_.pile_id in 
+			<foreach collection="list" item="item" open="(" separator="," close=")">
+				 	#{item}
+			</foreach>
+	</select>
+	
+	
+	<!-- 根据桩ID查询二维码 -->
+	<select id="selectChgGunByPileId" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        gum_point,
+	        qr_code,
+	        gun_id,
+	        inner_id,
+	        connector_id,
+	        pile_id
+	    FROM
+	        chg_gun 
+        <where>
+		    <if test="list != null">
+		        and pile_id IN
+		        <foreach collection="list" item="item" open="(" separator="," close=")">
+				 	#{item}
+				 </foreach>
+		    </if>
+        </where>
+	</select>	
+
+	<!-- 验证二维码唯一性 -->
+	<select id="QRCodeCount" parameterType="DataVo" resultType="Integer">
+		SELECT 
+			COUNT(gun_id) 
+		FROM   
+			chg_gun 
+		WHERE
+			qr_code = #{qrCode}
+			and pile_id != #{pileId}
+	</select>	
+	
+	<!-- 更新二维码 -->
+	<update id="updateGumPointQRCode">
+		<foreach collection="list" item="chgGun" index="index" open="" close="" separator=";">
+          UPDATE chg_gun
+			<set>
+				<if test="chgGun.qrCode != null">qr_code=#{chgGun.qrCode},</if>
+				<if test="chgGun.connectorId != null">connector_id=#{chgGun.connectorId},</if>
+				<if test="chgGun.parkNum != null">park_num = #{chgGun.parkNum}</if>
+			</set>
+			<where>
+				gun_id=#{chgGun.chgGunId}
+			</where>
+        </foreach>
+	</update>
+	
+	<!-- 更改二维码下发状态 -->
+	<update id="updatePileCodeState">
+		UPDATE chg_pile SET qr_code_state = #{qrCodeState} WHERE pile_id in
+			 <foreach collection="list" item="item" open="(" separator="," close=")">
+			 	#{item}
+			 </foreach> 
+	</update>
+	
+	<!-- 更改互联互通二维码下发状态 -->
+	<update id="updateHLHTCodeState">
+		UPDATE chg_pile SET hlht_qrcode_state = #{hlhtQRCodeState} WHERE pile_id in
+			<foreach collection="list" item="item" open="(" separator="," close=")">
+			 	#{item}
+			 </foreach> 
+	</update>
+	
+	<!-- 新增二维码 -->
+	<insert id="insertQRCode" parameterType="DataVo" keyColumn="GUN_ID" useGeneratedKeys="true">
+		INSERT INTO chg_gun (gum_point,qr_code,pile_id) VALUES(#{gumPoint},#{qrCode},#{pileId})
+	</insert>
+	
+	<!-- 根据充电桩编号获取充电桩信息 -->
+	<select id="selectPileByPileNo" resultType="DataVo">
+		SELECT 
+			this_.pile_id,
+			this_.pile_no,
+			this_.pile_name,
+			this_.pile_type,
+			cs.station_id,
+			cs.station_no,
+			org.org_no,
+			org.org_code
+		FROM
+			chg_pile this_
+		LEFT OUTER JOIN
+			chg_station cs
+				on this_.station_id = cs.station_id
+		LEFT OUTER JOIN
+			pub_org org
+				on this_.org_id = org.org_id
+		<where>
+			    this_.pile_no IN 
+			 <foreach collection="list" item="item" open="(" separator="," close=")">
+			 	#{item}
+			 </foreach>
+		</where>
+	</select>
+	
+	<!-- 根据桩ID查询表计信息 -->
+	<select id="selectChgmeterByPileId" parameterType="DataVo" resultType="DataVo">
+		SELECT
+	        meter_id,
+	        meter_name,
+	        pile_id
+	    FROM
+	        chg_meter 
+	    <if test="pileId != null">
+		    WHERE
+		        pile_id in 
+		        <foreach collection="pileId" item="item" open="(" separator="," close=")">
+				 	#{item}
+				 </foreach>
+	    </if>
+	</select>
+
+
+	<!-- 更新表计 -->
+	<update id="updateChgMeter">
+		 <foreach collection="list" item="chgMeter" index="index" open="" close="" separator=";">
+	        UPDATE chg_meter
+			<set>
+				<if test="chgMeter.meterType != null">meter_type=#{chgMeter.meterType},</if>
+				<if test="chgMeter.meterPower != null">rat_power = #{chgMeter.meterPower},</if>
+				<!--<if test="chgMeter.pt != null">pt = #{chgMeter.pt},</if>
+				<if test="chgMeter.ct != null">ct = #{chgMeter.ct},</if>-->
+				<if test="chgMeter.meterRatio != null">meter_ratio = #{chgMeter.meterRatio}</if>
+			</set>
+			<where>
+				meter_id=#{chgMeter.meterId}
+			</where>
+        </foreach>
+	</update>
+	
+	<insert id="inserChgMeter" parameterType="Map" keyProperty="meterId" useGeneratedKeys="true">
+		INSERT INTO chg_meter
+		(PILE_ID,INNER_ID,METER_NAME,METER_TYPE,meter_power,METER_RATIO)
+		VALUES
+		<foreach collection="list" item="chgMeter" index="index" separator=",">
+            (#{chgMeter.pileId},#{chgMeter.innerId},#{chgMeter.meterName},
+            	#{chgMeter.meterType},#{chgMeter.meterPower},#{chgMeter.meterRatio})
+        </foreach>	
+	</insert>
+	<insert id="inserChgGun" parameterType="Map" keyProperty="gunId" useGeneratedKeys="true" >
+		INSERT INTO chg_gun
+		(GUM_POINT,INNER_ID,QR_CODE,PARK_NUM,PILE_ID,METER_ID,CONNECTOR_ID)
+		VALUES 
+		<foreach collection="list" item="chgGun" index="index" separator=",">
+            (#{chgGun.gumPoint},#{chgGun.innerId},#{chgGun.qrCode},#{chgGun.parkNum},
+            	#{chgGun.pileId},#{chgGun.meterId},#{chgGun.connectorId})
+        </foreach>
+	</insert>
+</mapper>
